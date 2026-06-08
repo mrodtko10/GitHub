@@ -250,6 +250,12 @@ Private Function GetHtmlPath() As String
     End If
 End Function
 
+' ── COMBINED: refresh data then open browser ─────────────────────────────────
+Sub RefreshAndOpen()
+    RefreshHTMLDashboard
+    OpenDashboardButton
+End Sub
+
 Private Function N(cell As Object) As Double
     If IsNumeric(cell.Value) Then N = CDbl(cell.Value) Else N = 0
 End Function
