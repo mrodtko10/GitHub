@@ -29,6 +29,24 @@
   .btn-reset{background:transparent;border:1px solid var(--border);color:var(--muted);
     border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer}
   .btn-reset:hover{border-color:var(--accent);color:var(--accent)}
+  /* multi-select dropdown */
+  .ms-wrap{position:relative}
+  .ms-trigger{background:var(--surface2);border:1px solid var(--border);color:var(--text);
+    border-radius:6px;padding:6px 28px 6px 10px;font-size:13px;cursor:pointer;
+    user-select:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    min-width:160px;display:flex;align-items:center;justify-content:space-between;gap:6px}
+  .ms-trigger:after{content:'▾';font-size:10px;color:var(--muted);flex-shrink:0}
+  .ms-trigger.active{border-color:var(--accent)}
+  .ms-panel{display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:999;
+    background:var(--surface2);border:1px solid var(--border);border-radius:8px;
+    min-width:100%;max-height:260px;overflow-y:auto;box-shadow:0 8px 24px #00000060}
+  .ms-panel.open{display:block}
+  .ms-option{display:flex;align-items:center;gap:8px;padding:7px 12px;
+    cursor:pointer;font-size:13px;color:var(--text);white-space:nowrap}
+  .ms-option:hover{background:var(--surface)}
+  .ms-option input[type=checkbox]{accent-color:var(--accent);width:14px;height:14px;cursor:pointer;flex-shrink:0}
+  .ms-option.select-all{border-bottom:1px solid var(--border);color:var(--muted);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+  .ms-badge{background:var(--accent);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;flex-shrink:0}
   .main{padding:22px 28px;display:flex;flex-direction:column;gap:22px}
   .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
   .kpi{background:var(--surface);border:1px solid var(--border);border-radius:10px;
@@ -83,12 +101,21 @@
 </div>
 
 <div class="filters">
+  <!-- Item multi-select -->
   <div>
     <label>Cost Code / Item</label>
-    <select id="itemFilter" style="width:320px">
-      <option value="">All Items</option>
-    </select>
+    <div class="ms-wrap" id="itemWrap">
+      <div class="ms-trigger" id="itemTrigger" onclick="toggleMS('item')">
+        <span id="itemLabel">All Items</span>
+      </div>
+      <div class="ms-panel" id="itemPanel">
+        <label class="ms-option select-all">
+          <input type="checkbox" id="itemAll" checked onchange="toggleAllMS('item')"> Select All
+        </label>
+      </div>
+    </div>
   </div>
+  <!-- Over/Under (single select unchanged) -->
   <div>
     <label>Over/Under</label>
     <select id="ouFilter">
@@ -98,14 +125,22 @@
       <option value="N/A">No Status</option>
     </select>
   </div>
+  <!-- Category multi-select -->
   <div>
     <label>Category</label>
-    <select id="catFilter">
-      <option value="">All</option>
-      <option value="su">Subcontracts</option>
-      <option value="oc">Supplies</option>
-      <option value="ma">Materials</option>
-    </select>
+    <div class="ms-wrap" id="catWrap">
+      <div class="ms-trigger" id="catTrigger" onclick="toggleMS('cat')">
+        <span id="catLabel">All Categories</span>
+      </div>
+      <div class="ms-panel" id="catPanel">
+        <label class="ms-option select-all">
+          <input type="checkbox" id="catAll" checked onchange="toggleAllMS('cat')"> Select All
+        </label>
+        <label class="ms-option"><input type="checkbox" value="su" class="cat-cb" onchange="onMSChange('cat')"> Subcontracts</label>
+        <label class="ms-option"><input type="checkbox" value="oc" class="cat-cb" onchange="onMSChange('cat')"> Supplies</label>
+        <label class="ms-option"><input type="checkbox" value="ma" class="cat-cb" onchange="onMSChange('cat')"> Materials</label>
+      </div>
+    </div>
   </div>
   <button class="btn-reset" onclick="resetFilters()">Reset Filters</button>
 </div>
@@ -203,36 +238,79 @@ const fmt = (n, compact=false) => {
 
 const sum = (key) => filtered.reduce((s,r)=>s+r[key],0);
 
-// ── derived row totals — respects active category filter ─────────────────────
+// ── multi-select helpers ──────────────────────────────────────────────────────
+function getSelectedMS(cls) {
+  return [...document.querySelectorAll('.'+cls+':checked')].map(c=>c.value);
+}
+function activeCats() {
+  const sel = getSelectedMS('cat-cb');
+  return { su: sel.length===0||sel.includes('su'), oc: sel.length===0||sel.includes('oc'), ma: sel.length===0||sel.includes('ma') };
+}
+function toggleMS(id) {
+  document.getElementById(id+'Panel').classList.toggle('open');
+  document.getElementById(id+'Trigger').classList.toggle('active');
+}
+function toggleAllMS(id) {
+  const allCk = document.getElementById(id+'All').checked;
+  document.querySelectorAll('.'+id+'-cb').forEach(cb=>cb.checked=allCk);
+  updateMSLabel(id); applyFilters();
+}
+function onMSChange(id) {
+  const cbs=[...document.querySelectorAll('.'+id+'-cb')];
+  document.getElementById(id+'All').checked=cbs.every(c=>c.checked);
+  updateMSLabel(id); applyFilters();
+}
+function updateMSLabel(id) {
+  const cbs=[...document.querySelectorAll('.'+id+'-cb')];
+  const sel=cbs.filter(c=>c.checked);
+  const lbl=document.getElementById(id+'Label');
+  const trig=document.getElementById(id+'Trigger');
+  const existing=trig.querySelector('.ms-badge');
+  if (sel.length===0||sel.length===cbs.length) {
+    lbl.textContent=id==='item'?'All Items':'All Categories';
+    if(existing) existing.remove();
+  } else {
+    const names=sel.map(c=>c.closest('.ms-option').textContent.trim());
+    lbl.textContent=names.length<=2?names.join(', '):names[0]+' +'+(names.length-1)+' more';
+    if(!existing){const b=document.createElement('span');b.className='ms-badge';trig.appendChild(b);}
+    trig.querySelector('.ms-badge').textContent=sel.length;
+  }
+}
+document.addEventListener('click',e=>{
+  ['item','cat'].forEach(id=>{
+    const w=document.getElementById(id+'Wrap');
+    if(w&&!w.contains(e.target)){
+      document.getElementById(id+'Panel').classList.remove('open');
+      document.getElementById(id+'Trigger').classList.remove('active');
+    }
+  });
+});
+
+// ── derived row totals — respects active category multi-select ────────────────
 const row = r => {
-  const cat = document.getElementById('catFilter').value;
-  const su = !cat || cat==='su';
-  const oc = !cat || cat==='oc';
-  const ma = !cat || cat==='ma';
+  const {su,oc,ma} = activeCats();
   return {
-    actuals:   (su?r.su_act:0)  + (oc?r.oc_act:0)  + (ma?r.ma_act:0),
-    accrued:   (su?r.su_acc:0)  + (oc?r.oc_acc:0)  + (ma?r.ma_acc:0),
-    committed: (su?r.su_com:0)  + (oc?r.oc_com:0)  + (ma?r.ma_com:0),
-    ctd:       (su?r.su_ctd:0)  + (oc?r.oc_ctd:0)  + (ma?r.ma_ctd:0),
-    eac:       (su?r.su_eac:0)  + (oc?r.oc_eac:0)  + (ma?r.ma_eac:0),
-    rem:       (su?r.su_rem:0)  + (oc?r.oc_rem:0)  + (ma?r.ma_rem:0),
+    actuals:   (su?r.su_act:0)+(oc?r.oc_act:0)+(ma?r.ma_act:0),
+    accrued:   (su?r.su_acc:0)+(oc?r.oc_acc:0)+(ma?r.ma_acc:0),
+    committed: (su?r.su_com:0)+(oc?r.oc_com:0)+(ma?r.ma_com:0),
+    ctd:       (su?r.su_ctd:0)+(oc?r.oc_ctd:0)+(ma?r.ma_ctd:0),
+    eac:       (su?r.su_eac:0)+(oc?r.oc_eac:0)+(ma?r.ma_eac:0),
+    rem:       (su?r.su_rem:0)+(oc?r.oc_rem:0)+(ma?r.ma_rem:0),
   };
 };
 
 // ── filter / sort ─────────────────────────────────────────────────────────────
 function applyFilters() {
-  const item = document.getElementById('itemFilter').value;
-  const ou   = document.getElementById('ouFilter').value;
-  const cat  = document.getElementById('catFilter').value;
+  const selItems = getSelectedMS('item-cb');
+  const ou = document.getElementById('ouFilter').value;
+  const {su,oc,ma} = activeCats();
   filtered = RAW_DATA.filter(r => {
-    if (item && r.cost_code !== item) return false;
-    if (ou && r.ou_status !== ou) return false;
-    if (cat) {
-      const has = cat==='su'?(r.su_act||r.su_eac||r.su_com):
-                  cat==='oc'?(r.oc_act||r.oc_eac||r.oc_com):
-                              (r.ma_act||r.ma_eac||r.ma_com);
-      if (!has) return false;
-    }
+    if (selItems.length>0 && !selItems.includes(r.cost_code)) return false;
+    if (ou && r.ou_status!==ou) return false;
+    const hasCat=(su&&(r.su_act||r.su_eac||r.su_com||r.su_rem))||
+                 (oc&&(r.oc_act||r.oc_eac||r.oc_com||r.oc_rem))||
+                 (ma&&(r.ma_act||r.ma_eac||r.ma_com||r.ma_rem));
+    if (!hasCat) return false;
     return true;
   });
   filtered.sort((a,b)=>{
@@ -244,15 +322,17 @@ function applyFilters() {
   currentPage=0;
   renderAll();
 }
-
 function sortTable(key) {
   if (sortKey===key) sortDir*=-1; else {sortKey=key;sortDir=-1;}
   applyFilters();
 }
 function resetFilters() {
-  document.getElementById('itemFilter').value='';
+  document.querySelectorAll('.item-cb').forEach(cb=>cb.checked=false);
+  document.getElementById('itemAll').checked=true;
+  document.querySelectorAll('.cat-cb').forEach(cb=>cb.checked=false);
+  document.getElementById('catAll').checked=true;
   document.getElementById('ouFilter').value='';
-  document.getElementById('catFilter').value='';
+  updateMSLabel('item'); updateMSLabel('cat');
   applyFilters();
 }
 function changePage(d) { currentPage+=d; renderTable(); }
@@ -339,14 +419,12 @@ const dlPie = {
 function dc(id) { if(charts[id]){charts[id].destroy();delete charts[id];} }
 
 // ── Category-aware aggregation helper ────────────────────────────────────────
-// Returns [su_val, oc_val, ma_val] summed across filtered rows,
-// zeroing out categories not selected by the filter.
 function catSums(suKey, ocKey, maKey) {
-  const cat = document.getElementById('catFilter').value;
+  const {su,oc,ma} = activeCats();
   return [
-    cat==='' || cat==='su' ? filtered.reduce((s,r)=>s+r[suKey],0) : 0,
-    cat==='' || cat==='oc' ? filtered.reduce((s,r)=>s+r[ocKey],0) : 0,
-    cat==='' || cat==='ma' ? filtered.reduce((s,r)=>s+r[maKey],0) : 0,
+    su ? filtered.reduce((s,r)=>s+r[suKey],0) : 0,
+    oc ? filtered.reduce((s,r)=>s+r[ocKey],0) : 0,
+    ma ? filtered.reduce((s,r)=>s+r[maKey],0) : 0,
   ];
 }
 
@@ -427,10 +505,10 @@ function renderChartRemByCat() {
 // ── Top 15 by CTD ─────────────────────────────────────────────────────────────
 function renderChartTopItems() {
   dc('chartTopItems');
-  const cat=document.getElementById('catFilter').value;
-  const ctdVal=r=>(cat===''||cat==='su'?r.su_ctd:0)+(cat===''||cat==='oc'?r.oc_ctd:0)+(cat===''||cat==='ma'?r.ma_ctd:0);
-  const actVal=r=>(cat===''||cat==='su'?r.su_act:0)+(cat===''||cat==='oc'?r.oc_act:0)+(cat===''||cat==='ma'?r.ma_act:0);
-  const comVal=r=>(cat===''||cat==='su'?r.su_com:0)+(cat===''||cat==='oc'?r.oc_com:0)+(cat===''||cat==='ma'?r.ma_com:0);
+  const {su:csu,oc:coc,ma:cma}=activeCats();
+  const ctdVal=r=>(csu?r.su_ctd:0)+(coc?r.oc_ctd:0)+(cma?r.ma_ctd:0);
+  const actVal=r=>(csu?r.su_act:0)+(coc?r.oc_act:0)+(cma?r.ma_act:0);
+  const comVal=r=>(csu?r.su_com:0)+(coc?r.oc_com:0)+(cma?r.ma_com:0);
   const top=[...filtered].sort((a,b)=>ctdVal(b)-ctdVal(a)).slice(0,15);
   charts['chartTopItems']=new Chart(document.getElementById('chartTopItems'),{
     type:'bar',
@@ -460,8 +538,8 @@ function renderChartTopItems() {
 // ── Top 10 Remaining ─────────────────────────────────────────────────────────
 function renderChartRemTop() {
   dc('chartRemTop');
-  const cat=document.getElementById('catFilter').value;
-  const remVal=r=>(cat===''||cat==='su'?r.su_rem:0)+(cat===''||cat==='oc'?r.oc_rem:0)+(cat===''||cat==='ma'?r.ma_rem:0);
+  const {su:rsu,oc:roc,ma:rma}=activeCats();
+  const remVal=r=>(rsu?r.su_rem:0)+(roc?r.oc_rem:0)+(rma?r.ma_rem:0);
   const top=[...filtered].sort((a,b)=>remVal(b)-remVal(a)).slice(0,10);
   const vals=top.map(remVal);
   charts['chartRemTop']=new Chart(document.getElementById('chartRemTop'),{
@@ -523,21 +601,19 @@ function renderAll() {
   renderCharts();
 }
 
-// ── dropdown populate ─────────────────────────────────────────────────────────
+// ── populate item multi-select panel ─────────────────────────────────────────
 function populateDropdown() {
-  const sel=document.getElementById('itemFilter');
+  const panel = document.getElementById('itemPanel');
   [...RAW_DATA].sort((a,b)=>a.cost_code.localeCompare(b.cost_code)).forEach(r=>{
-    const opt=document.createElement('option');
-    opt.value=r.cost_code;
-    opt.textContent=r.item;
-    sel.appendChild(opt);
+    const lbl = document.createElement('label');
+    lbl.className='ms-option';
+    lbl.innerHTML=`<input type="checkbox" value="${r.cost_code}" class="item-cb" onchange="onMSChange('item')"> ${r.item}`;
+    panel.appendChild(lbl);
   });
 }
 
 // ── event listeners ───────────────────────────────────────────────────────────
-document.getElementById('itemFilter').addEventListener('change',applyFilters);
 document.getElementById('ouFilter').addEventListener('change',applyFilters);
-document.getElementById('catFilter').addEventListener('change',applyFilters);
 
 // ── init ──────────────────────────────────────────────────────────────────────
 populateDropdown();
