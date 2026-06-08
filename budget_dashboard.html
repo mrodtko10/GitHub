@@ -203,15 +203,21 @@ const fmt = (n, compact=false) => {
 
 const sum = (key) => filtered.reduce((s,r)=>s+r[key],0);
 
-// ── derived row totals ────────────────────────────────────────────────────────
-const row = r => ({
-  actuals: r.su_act+r.oc_act+r.ma_act,
-  accrued: r.su_acc+r.oc_acc+r.ma_acc,
-  committed: r.su_com+r.oc_com+r.ma_com,
-  ctd: r.su_ctd+r.oc_ctd+r.ma_ctd,
-  eac: r.su_eac+r.oc_eac+r.ma_eac,
-  rem: r.su_rem+r.oc_rem+r.ma_rem,
-});
+// ── derived row totals — respects active category filter ─────────────────────
+const row = r => {
+  const cat = document.getElementById('catFilter').value;
+  const su = !cat || cat==='su';
+  const oc = !cat || cat==='oc';
+  const ma = !cat || cat==='ma';
+  return {
+    actuals:   (su?r.su_act:0)  + (oc?r.oc_act:0)  + (ma?r.ma_act:0),
+    accrued:   (su?r.su_acc:0)  + (oc?r.oc_acc:0)  + (ma?r.ma_acc:0),
+    committed: (su?r.su_com:0)  + (oc?r.oc_com:0)  + (ma?r.ma_com:0),
+    ctd:       (su?r.su_ctd:0)  + (oc?r.oc_ctd:0)  + (ma?r.ma_ctd:0),
+    eac:       (su?r.su_eac:0)  + (oc?r.oc_eac:0)  + (ma?r.ma_eac:0),
+    rem:       (su?r.su_rem:0)  + (oc?r.oc_rem:0)  + (ma?r.ma_rem:0),
+  };
+};
 
 // ── filter / sort ─────────────────────────────────────────────────────────────
 function applyFilters() {
@@ -258,10 +264,10 @@ function setEACMode(mode) {
 
 // ── KPI ───────────────────────────────────────────────────────────────────────
 function renderKPI() {
-  const tAct=filtered.reduce((s,r)=>s+r.su_act+r.oc_act+r.ma_act,0);
-  const tEAC=filtered.reduce((s,r)=>s+r.su_eac+r.oc_eac+r.ma_eac,0);
-  const tCom=filtered.reduce((s,r)=>s+r.su_com+r.oc_com+r.ma_com,0);
-  const tRem=filtered.reduce((s,r)=>s+r.su_rem+r.oc_rem+r.ma_rem,0);
+  const [sa,oa,ma]=catSums('su_act','oc_act','ma_act'); const tAct=sa+oa+ma;
+  const [se,oe,me]=catSums('su_eac','oc_eac','ma_eac'); const tEAC=se+oe+me;
+  const [sc,oc2,mc]=catSums('su_com','oc_com','ma_com'); const tCom=sc+oc2+mc;
+  const [sr,or2,mr]=catSums('su_rem','oc_rem','ma_rem'); const tRem=sr+or2+mr;
   const overC=filtered.filter(r=>r.ou_status==='Over').length;
   const underC=filtered.filter(r=>r.ou_status==='Under').length;
   document.getElementById('kpiGrid').innerHTML=`
@@ -332,33 +338,35 @@ const dlPie = {
 
 function dc(id) { if(charts[id]){charts[id].destroy();delete charts[id];} }
 
+// ── Category-aware aggregation helper ────────────────────────────────────────
+// Returns [su_val, oc_val, ma_val] summed across filtered rows,
+// zeroing out categories not selected by the filter.
+function catSums(suKey, ocKey, maKey) {
+  const cat = document.getElementById('catFilter').value;
+  return [
+    cat==='' || cat==='su' ? filtered.reduce((s,r)=>s+r[suKey],0) : 0,
+    cat==='' || cat==='oc' ? filtered.reduce((s,r)=>s+r[ocKey],0) : 0,
+    cat==='' || cat==='ma' ? filtered.reduce((s,r)=>s+r[maKey],0) : 0,
+  ];
+}
+
 // ── EAC chart (with mode filter) ─────────────────────────────────────────────
 function renderChartEAC() {
   dc('chartEAC');
-  const su_eac=filtered.reduce((s,r)=>s+r.su_eac,0);
-  const oc_eac=filtered.reduce((s,r)=>s+r.oc_eac,0);
-  const ma_eac=filtered.reduce((s,r)=>s+r.ma_eac,0);
+  const [su_eac,oc_eac,ma_eac] = catSums('su_eac','oc_eac','ma_eac');
 
   let su_ctd,oc_ctd,ma_ctd,ctdLabel;
   if (eacMode==='acc') {
-    su_ctd=filtered.reduce((s,r)=>s+r.su_acc,0);
-    oc_ctd=filtered.reduce((s,r)=>s+r.oc_acc,0);
-    ma_ctd=filtered.reduce((s,r)=>s+r.ma_acc,0);
+    [su_ctd,oc_ctd,ma_ctd]=catSums('su_acc','oc_acc','ma_acc');
     ctdLabel='Accrued';
   } else if (eacMode==='act') {
-    su_ctd=filtered.reduce((s,r)=>s+r.su_act,0);
-    oc_ctd=filtered.reduce((s,r)=>s+r.oc_act,0);
-    ma_ctd=filtered.reduce((s,r)=>s+r.ma_act,0);
+    [su_ctd,oc_ctd,ma_ctd]=catSums('su_act','oc_act','ma_act');
     ctdLabel='Actuals';
   } else if (eacMode==='com') {
-    su_ctd=filtered.reduce((s,r)=>s+r.su_com,0);
-    oc_ctd=filtered.reduce((s,r)=>s+r.oc_com,0);
-    ma_ctd=filtered.reduce((s,r)=>s+r.ma_com,0);
+    [su_ctd,oc_ctd,ma_ctd]=catSums('su_com','oc_com','ma_com');
     ctdLabel='Committed';
   } else {
-    su_ctd=filtered.reduce((s,r)=>s+r.su_ctd,0);
-    oc_ctd=filtered.reduce((s,r)=>s+r.oc_ctd,0);
-    ma_ctd=filtered.reduce((s,r)=>s+r.ma_ctd,0);
+    [su_ctd,oc_ctd,ma_ctd]=catSums('su_ctd','oc_ctd','ma_ctd');
     ctdLabel='CTD (All)';
   }
 
@@ -389,9 +397,7 @@ function renderChartEAC() {
 // ── Remaining Budget by Category bar ─────────────────────────────────────────
 function renderChartRemByCat() {
   dc('chartRemByCat');
-  const su=filtered.reduce((s,r)=>s+r.su_rem,0);
-  const oc=filtered.reduce((s,r)=>s+r.oc_rem,0);
-  const ma=filtered.reduce((s,r)=>s+r.ma_rem,0);
+  const [su,oc,ma]=catSums('su_rem','oc_rem','ma_rem');
   charts['chartRemByCat']=new Chart(document.getElementById('chartRemByCat'),{
     type:'bar',
     data:{
@@ -421,15 +427,19 @@ function renderChartRemByCat() {
 // ── Top 15 by CTD ─────────────────────────────────────────────────────────────
 function renderChartTopItems() {
   dc('chartTopItems');
-  const top=[...filtered].sort((a,b)=>(b.su_ctd+b.oc_ctd+b.ma_ctd)-(a.su_ctd+a.oc_ctd+a.ma_ctd)).slice(0,15);
+  const cat=document.getElementById('catFilter').value;
+  const ctdVal=r=>(cat===''||cat==='su'?r.su_ctd:0)+(cat===''||cat==='oc'?r.oc_ctd:0)+(cat===''||cat==='ma'?r.ma_ctd:0);
+  const actVal=r=>(cat===''||cat==='su'?r.su_act:0)+(cat===''||cat==='oc'?r.oc_act:0)+(cat===''||cat==='ma'?r.ma_act:0);
+  const comVal=r=>(cat===''||cat==='su'?r.su_com:0)+(cat===''||cat==='oc'?r.oc_com:0)+(cat===''||cat==='ma'?r.ma_com:0);
+  const top=[...filtered].sort((a,b)=>ctdVal(b)-ctdVal(a)).slice(0,15);
   charts['chartTopItems']=new Chart(document.getElementById('chartTopItems'),{
     type:'bar',
     data:{
       labels:top.map(r=>r.cost_code),
       datasets:[
-        {label:'Actuals',data:top.map(r=>r.su_act+r.oc_act+r.ma_act),backgroundColor:C.blue,borderRadius:4},
-        {label:'Committed',data:top.map(r=>r.su_com+r.oc_com+r.ma_com),backgroundColor:C.purple,borderRadius:4},
-        {label:'CTD',data:top.map(r=>r.su_ctd+r.oc_ctd+r.ma_ctd),backgroundColor:C.teal,borderRadius:4},
+        {label:'Actuals',data:top.map(actVal),backgroundColor:C.blue,borderRadius:4},
+        {label:'Committed',data:top.map(comVal),backgroundColor:C.purple,borderRadius:4},
+        {label:'CTD',data:top.map(ctdVal),backgroundColor:C.teal,borderRadius:4},
       ]
     },
     options:{
@@ -450,8 +460,10 @@ function renderChartTopItems() {
 // ── Top 10 Remaining ─────────────────────────────────────────────────────────
 function renderChartRemTop() {
   dc('chartRemTop');
-  const top=[...filtered].sort((a,b)=>(b.su_rem+b.oc_rem+b.ma_rem)-(a.su_rem+a.oc_rem+a.ma_rem)).slice(0,10);
-  const vals=top.map(r=>r.su_rem+r.oc_rem+r.ma_rem);
+  const cat=document.getElementById('catFilter').value;
+  const remVal=r=>(cat===''||cat==='su'?r.su_rem:0)+(cat===''||cat==='oc'?r.oc_rem:0)+(cat===''||cat==='ma'?r.ma_rem:0);
+  const top=[...filtered].sort((a,b)=>remVal(b)-remVal(a)).slice(0,10);
+  const vals=top.map(remVal);
   charts['chartRemTop']=new Chart(document.getElementById('chartRemTop'),{
     type:'bar',
     data:{
@@ -479,9 +491,7 @@ function renderChartRemTop() {
 // ── Actuals pie ───────────────────────────────────────────────────────────────
 function renderChartActPie() {
   dc('chartActPie');
-  const su=filtered.reduce((s,r)=>s+r.su_act,0);
-  const oc=filtered.reduce((s,r)=>s+r.oc_act,0);
-  const ma=filtered.reduce((s,r)=>s+r.ma_act,0);
+  const [su,oc,ma]=catSums('su_act','oc_act','ma_act');
   charts['chartActPie']=new Chart(document.getElementById('chartActPie'),{
     type:'pie',
     data:{
