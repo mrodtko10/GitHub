@@ -20,8 +20,6 @@ Sub RefreshHTMLDashboard()
 
     Dim wsData      As Worksheet
     Dim htmlPath    As String
-    Dim fso         As Object
-    Dim ts          As Object
     Dim html        As String
     Dim jsonArray   As String
     Dim startPos    As Long
@@ -31,10 +29,17 @@ Sub RefreshHTMLDashboard()
     Dim i           As Long
 
     ' ── Locate HTML file ────────────────────────────────────────────────────
+    If ThisWorkbook.Path = "" Then
+        MsgBox "Please save the workbook first before running this macro.", _
+               vbExclamation, "Workbook Not Saved"
+        Exit Sub
+    End If
     htmlPath = ThisWorkbook.Path & "\budget_dashboard.html"
     If Dir(htmlPath) = "" Then
         MsgBox "Could not find budget_dashboard.html in:" & vbCrLf & _
-               ThisWorkbook.Path, vbCritical, "File Not Found"
+               ThisWorkbook.Path & vbCrLf & vbCrLf & _
+               "Make sure budget_dashboard.html is in the same folder as this workbook.", _
+               vbCritical, "File Not Found"
         Exit Sub
     End If
 
@@ -141,11 +146,17 @@ NextRow:
     Next i
     jsonArray = jsonArray & "]"
 
-    ' ── Read HTML file ───────────────────────────────────────────────────────
-    Set fso = CreateObject("Scripting.FileSystemObject")
-    Set ts  = fso.OpenTextFile(htmlPath, 1, False, -2)
-    html = ts.ReadAll
-    ts.Close
+    ' ── Read HTML file (native VBA file I/O — no FSO encoding issues) ────────
+    Dim fileNum As Integer
+    fileNum = FreeFile
+    Dim oneLine As String
+    html = ""
+    Open htmlPath For Input As #fileNum
+    Do While Not EOF(fileNum)
+        Line Input #fileNum, oneLine
+        html = html & oneLine & vbLf
+    Loop
+    Close #fileNum
 
     ' ── Replace const RAW_DATA = [...]; ─────────────────────────────────────
     startPos = InStr(html, "const RAW_DATA = [")
@@ -190,9 +201,10 @@ NextRow:
     End If
 
     ' ── Write updated HTML ──────────────────────────────────────────────────
-    Set ts = fso.CreateTextFile(htmlPath, True, False)
-    ts.Write html
-    ts.Close
+    fileNum = FreeFile
+    Open htmlPath For Output As #fileNum
+    Print #fileNum, html
+    Close #fileNum
 
     MsgBox "Dashboard updated!" & vbCrLf & _
            (lastRow - 3) & " rows scanned  ·  " & _
