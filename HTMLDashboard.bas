@@ -31,16 +31,34 @@ Sub RefreshHTMLDashboard()
     Dim i         As Long
 
     ' ── Resolve HTML file path ───────────────────────────────────────────────
+    ' Priority: 1) HTML_PATH_OVERRIDE constant  2) Dashboard!B4  3) workbook folder
     If HTML_PATH_OVERRIDE <> "" Then
         htmlPath = HTML_PATH_OVERRIDE
-    ElseIf ThisWorkbook.Path <> "" Then
-        htmlPath = ThisWorkbook.Path & "\budget_dashboard.html"
     Else
-        MsgBox "Please either:" & vbCrLf & _
-               "  1. Save the workbook first, or" & vbCrLf & _
-               "  2. Paste the full HTML path in HTML_PATH_OVERRIDE at the top of this module.", _
-               vbExclamation, "Path Unknown"
-        Exit Sub
+        ' Try to read path from Dashboard sheet cell B4
+        Dim wsDash As Worksheet
+        On Error Resume Next
+        Set wsDash = ThisWorkbook.Sheets("Dashboard")
+        On Error GoTo 0
+        If Not wsDash Is Nothing Then
+            Dim cellPath As String
+            cellPath = Trim(CStr(wsDash.Cells(4, 2).Value))   ' row 4, col B
+            If cellPath <> "" And cellPath <> "0" Then
+                htmlPath = cellPath
+            End If
+        End If
+        ' Fall back to workbook folder
+        If htmlPath = "" Then
+            If ThisWorkbook.Path <> "" Then
+                htmlPath = ThisWorkbook.Path & "\budget_dashboard.html"
+            Else
+                MsgBox "No file path found. Please either:" & vbCrLf & _
+                       "  1. Paste the full HTML path in Dashboard cell B4, or" & vbCrLf & _
+                       "  2. Paste it in HTML_PATH_OVERRIDE at the top of this module.", _
+                       vbExclamation, "Path Unknown"
+                Exit Sub
+            End If
+        End If
     End If
 
     If Dir(htmlPath) = "" Then
