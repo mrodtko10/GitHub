@@ -203,9 +203,87 @@ Skip:
     Print #fNum, html
     Close #fNum
 
+    ' Open dashboard in browser after refresh
+    OpenDashboard htmlPath
+
     MsgBox "Done!  " & (lastRow - 3) & " rows scanned." & vbCrLf & _
-           "Refresh your browser to see the changes.", vbInformation, "Dashboard Updated"
+           "Dashboard opened in your browser.", vbInformation, "Dashboard Updated"
 End Sub
+
+' ============================================================
+' OpenDashboard  –  assign this to your hyperlink button.
+' Forces the file to open in a browser instead of PDF viewer.
+' ============================================================
+Sub OpenDashboardButton()
+    OpenDashboard GetHtmlPath()
+End Sub
+
+' ── Internal: open a file path in a browser ─────────────────────────────────
+Private Sub OpenDashboard(htmlPath As String)
+    If htmlPath = "" Or Dir(htmlPath) = "" Then
+        MsgBox "HTML file not found:" & vbCrLf & htmlPath, vbCritical
+        Exit Sub
+    End If
+    ' Convert backslashes to forward slashes for file:/// URL
+    Dim url As String
+    url = "file:///" & Replace(htmlPath, "\", "/")
+
+    ' Try browsers in order: Edge (always on Win10/11), Chrome, Firefox
+    Dim launched As Boolean
+    launched = False
+
+    ' Microsoft Edge
+    If Not launched Then
+        On Error Resume Next
+        Shell "cmd /c start msedge """ & url & """", vbHide
+        If Err.Number = 0 Then launched = True
+        On Error GoTo 0
+    End If
+
+    ' Google Chrome
+    If Not launched Then
+        On Error Resume Next
+        Shell "cmd /c start chrome """ & url & """", vbHide
+        If Err.Number = 0 Then launched = True
+        On Error GoTo 0
+    End If
+
+    ' Firefox
+    If Not launched Then
+        On Error Resume Next
+        Shell "cmd /c start firefox """ & url & """", vbHide
+        If Err.Number = 0 Then launched = True
+        On Error GoTo 0
+    End If
+
+    ' Last resort: let Windows decide (may still be PDF viewer)
+    If Not launched Then
+        Shell "cmd /c start """" """ & htmlPath & """", vbHide
+    End If
+End Sub
+
+' ── Internal: resolve the HTML path (same logic as RefreshHTMLDashboard) ─────
+Private Function GetHtmlPath() As String
+    If HTML_PATH_OVERRIDE <> "" Then
+        GetHtmlPath = HTML_PATH_OVERRIDE
+        Exit Function
+    End If
+    Dim wsDash As Worksheet
+    On Error Resume Next
+    Set wsDash = ThisWorkbook.Sheets("Dashboard")
+    On Error GoTo 0
+    If Not wsDash Is Nothing Then
+        Dim cellPath As String
+        cellPath = Trim(CStr(wsDash.Cells(4, 2).Value))
+        If cellPath <> "" And cellPath <> "0" Then
+            GetHtmlPath = cellPath
+            Exit Function
+        End If
+    End If
+    If ThisWorkbook.Path <> "" Then
+        GetHtmlPath = ThisWorkbook.Path & "\budget_dashboard.html"
+    End If
+End Function
 
 Private Function N(cell As Object) As Double
     If IsNumeric(cell.Value) Then N = CDbl(cell.Value) Else N = 0
