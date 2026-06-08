@@ -4,20 +4,26 @@ Option Explicit
 ' ============================================================
 ' PASTE YOUR DASHBOARD FILE PATH HERE (include the filename):
 '   Example: "C:\Users\You\Documents\budget_dashboard.html"
-' Leave it as "" to auto-detect (workbook folder).
+' Leave it as "" to auto-detect from Dashboard cell B4.
 ' ============================================================
 Private Const HTML_PATH_OVERRIDE As String = ""
 
 ' ============================================================
-' RefreshHTMLDashboard
-' Reads Category Table, rebuilds RAW_DATA in budget_dashboard.html
+' TWO MACROS TO ASSIGN TO BUTTONS:
 '
-' INSTALL:
-'   Alt+F11 > (if old module exists: right-click it > Remove)
-'   File > Import File > select this .bas file
-'   Assign macro RefreshHTMLDashboard to a button
+'   RefreshHTMLDashboard  -> "Refresh Data" button
+'        Reads Category Table and rewrites budget_dashboard.html
+'        Does NOT open the browser (safe – no file interference)
+'
+'   OpenDashboardButton   -> "Open Dashboard" button
+'        Opens the HTML file in your browser
+'
+' Path is read from: HTML_PATH_OVERRIDE constant (if set),
+'   otherwise Dashboard sheet cell B4,
+'   otherwise workbook folder + "budget_dashboard.html".
 ' ============================================================
 
+' ── REFRESH: write updated data to HTML file ─────────────────────────────────
 Sub RefreshHTMLDashboard()
 
     Dim wsData    As Worksheet
@@ -30,46 +36,39 @@ Sub RefreshHTMLDashboard()
     Dim lastRow   As Long
     Dim i         As Long
 
-    ' ── Resolve HTML file path ───────────────────────────────────────────────
-    ' Priority: 1) HTML_PATH_OVERRIDE constant  2) Dashboard!B4  3) workbook folder
-    If HTML_PATH_OVERRIDE <> "" Then
-        htmlPath = HTML_PATH_OVERRIDE
-    Else
-        ' Try to read path from Dashboard sheet cell B4
-        Dim wsDash As Worksheet
-        On Error Resume Next
-        Set wsDash = ThisWorkbook.Sheets("Dashboard")
-        On Error GoTo 0
-        If Not wsDash Is Nothing Then
-            Dim cellPath As String
-            cellPath = Trim(CStr(wsDash.Cells(4, 2).Value))   ' row 4, col B
-            If cellPath <> "" And cellPath <> "0" Then
-                htmlPath = cellPath
-            End If
-        End If
-        ' Fall back to workbook folder
-        If htmlPath = "" Then
-            If ThisWorkbook.Path <> "" Then
-                htmlPath = ThisWorkbook.Path & "\budget_dashboard.html"
-            Else
-                MsgBox "No file path found. Please either:" & vbCrLf & _
-                       "  1. Paste the full HTML path in Dashboard cell B4, or" & vbCrLf & _
-                       "  2. Paste it in HTML_PATH_OVERRIDE at the top of this module.", _
-                       vbExclamation, "Path Unknown"
-                Exit Sub
-            End If
-        End If
+    ' ── Resolve path ────────────────────────────────────────────────────────
+    htmlPath = GetHtmlPath()
+    If htmlPath = "" Then
+        MsgBox "No HTML path found. Please paste the full path to" & vbCrLf & _
+               "budget_dashboard.html into cell B4 on the Dashboard sheet.", _
+               vbExclamation, "Path Not Set"
+        Exit Sub
+    End If
+
+    ' ── Safety: must end in .html ────────────────────────────────────────────
+    If LCase(Right(Trim(htmlPath), 5)) <> ".html" And _
+       LCase(Right(Trim(htmlPath), 4)) <> ".htm" Then
+        MsgBox "SAFETY STOP – path does not end in .html:" & vbCrLf & htmlPath & vbCrLf & vbCrLf & _
+               "Check that cell B4 contains the HTML file path, not the Excel file path.", _
+               vbCritical, "Wrong File Type"
+        Exit Sub
+    End If
+
+    If LCase(htmlPath) = LCase(ThisWorkbook.FullName) Then
+        MsgBox "SAFETY STOP – path points to this workbook!" & vbCrLf & _
+               "Update cell B4 with the path to budget_dashboard.html.", _
+               vbCritical, "Wrong File"
+        Exit Sub
     End If
 
     If Dir(htmlPath) = "" Then
         MsgBox "HTML file not found at:" & vbCrLf & htmlPath & vbCrLf & vbCrLf & _
-               "To fix: open this module (Alt+F11) and paste the correct path" & vbCrLf & _
-               "into the HTML_PATH_OVERRIDE constant at the top.", _
+               "Make sure budget_dashboard.html exists at that path.", _
                vbCritical, "File Not Found"
         Exit Sub
     End If
 
-    ' ── Find Category Table sheet ────────────────────────────────────────────
+    ' ── Find Category Table ──────────────────────────────────────────────────
     Set wsData = Nothing
     Dim ws As Worksheet
     For Each ws In ThisWorkbook.Sheets
@@ -84,9 +83,9 @@ Sub RefreshHTMLDashboard()
         Exit Sub
     End If
 
-    wsData.Calculate   ' force formula recalculation
+    wsData.Calculate
 
-    ' ── CVR Month (row 1) ────────────────────────────────────────────────────
+    ' ── CVR Month ────────────────────────────────────────────────────────────
     cvrMonth = ""
     Dim c As Long
     For c = 1 To 8
@@ -99,14 +98,8 @@ Sub RefreshHTMLDashboard()
         End If
     Next c
 
-    ' ── Build JSON (data starts row 4) ──────────────────────────────────────
-    ' Column map (1-based):
-    '  EAC  SU=15 OC=16 MA=17 | Accrued SU=21 OC=22 MA=23
-    '  Act  SU=24 OC=25 MA=26 | Committed SU=27 OC=28 MA=29
-    '  CTD  SU=33 OC=34 MA=35 | Rem  SU=39 OC=40 MA=41
-    '  O/U  SU=42 OC=43 MA=44
-
-    lastRow = wsData.UsedRange.Row + wsData.UsedRange.Rows.Count - 1
+    ' ── Build JSON ───────────────────────────────────────────────────────────
+    lastRow   = wsData.UsedRange.Row + wsData.UsedRange.Rows.Count - 1
     jsonArray = "["
     Dim firstRec As Boolean
     firstRec = True
@@ -160,30 +153,28 @@ Skip:
 
     ' ── Read HTML ────────────────────────────────────────────────────────────
     Dim fNum As Integer
-    Dim line As String
+    Dim oneLine As String
     fNum = FreeFile
     html = ""
     Open htmlPath For Input As #fNum
     Do While Not EOF(fNum)
-        Line Input #fNum, line
-        html = html & line & vbLf
+        Line Input #fNum, oneLine
+        html = html & oneLine & vbLf
     Loop
     Close #fNum
 
-    ' ── Replace RAW_DATA block ───────────────────────────────────────────────
+    ' ── Replace RAW_DATA ─────────────────────────────────────────────────────
     startPos = InStr(html, "const RAW_DATA = [")
     If startPos = 0 Then
-        MsgBox "RAW_DATA not found in the HTML file. Are you pointing at the right file?", vbCritical
+        MsgBox "RAW_DATA not found in the HTML. Is this the right file?" & vbCrLf & htmlPath, vbCritical
         Exit Sub
     End If
     endPos = InStr(startPos, html, "];")
     If endPos = 0 Then
-        MsgBox "Could not find the closing ]; of RAW_DATA.", vbCritical: Exit Sub
+        MsgBox "Could not find the closing ]; of RAW_DATA.", vbCritical
+        Exit Sub
     End If
-
-    html = Left(html, startPos - 1) & _
-           "const RAW_DATA = " & jsonArray & ";" & _
-           Mid(html, endPos + 2)
+    html = Left(html, startPos - 1) & "const RAW_DATA = " & jsonArray & ";" & Mid(html, endPos + 2)
 
     ' ── Update CVR Month ─────────────────────────────────────────────────────
     If cvrMonth <> "" Then
@@ -197,107 +188,61 @@ Skip:
         End If
     End If
 
-    ' ── Safety check before writing ─────────────────────────────────────────
-    ' Refuse to write if the path doesn't end in .html / .htm
-    If LCase(Right(Trim(htmlPath), 5)) <> ".html" And _
-       LCase(Right(Trim(htmlPath), 4)) <> ".htm" Then
-        MsgBox "SAFETY STOP: The resolved path does not end in .html:" & vbCrLf & _
-               htmlPath & vbCrLf & vbCrLf & _
-               "Check that cell B4 on the Dashboard sheet contains the" & vbCrLf & _
-               "full path to budget_dashboard.html (not the Excel file).", _
-               vbCritical, "Wrong File Type"
-        Exit Sub
-    End If
-
-    ' Also refuse if it looks like the workbook itself
-    If LCase(htmlPath) = LCase(ThisWorkbook.FullName) Then
-        MsgBox "SAFETY STOP: The path points to this workbook!" & vbCrLf & _
-               "Update cell B4 with the path to budget_dashboard.html.", _
-               vbCritical, "Wrong File"
-        Exit Sub
-    End If
-
-    ' ── Write HTML ───────────────────────────────────────────────────────────
+    ' ── Write HTML (file closed before any browser interaction) ──────────────
     fNum = FreeFile
     Open htmlPath For Output As #fNum
     Print #fNum, html
     Close #fNum
 
-    ' Open dashboard in browser after refresh
-    OpenDashboard htmlPath
-
-    MsgBox "Done!  " & (lastRow - 3) & " rows scanned." & vbCrLf & _
-           "Dashboard opened in your browser.", vbInformation, "Dashboard Updated"
+    MsgBox "Dashboard data refreshed!" & vbCrLf & _
+           (lastRow - 3) & " rows scanned." & vbCrLf & vbCrLf & _
+           "Now click the 'Open Dashboard' button (or refresh your browser).", _
+           vbInformation, "Refresh Complete"
 End Sub
 
-' ============================================================
-' OpenDashboard  –  assign this to your hyperlink button.
-' Forces the file to open in a browser instead of PDF viewer.
-' ============================================================
+' ── OPEN: launch HTML in browser (separate from refresh) ─────────────────────
 Sub OpenDashboardButton()
-    OpenDashboard GetHtmlPath()
-End Sub
+    Dim htmlPath As String
+    htmlPath = GetHtmlPath()
 
-' ── Internal: open a file path in a browser ─────────────────────────────────
-Private Sub OpenDashboard(htmlPath As String)
     If htmlPath = "" Or Dir(htmlPath) = "" Then
-        MsgBox "HTML file not found:" & vbCrLf & htmlPath, vbCritical
+        MsgBox "HTML file not found." & vbCrLf & _
+               "Make sure cell B4 on the Dashboard sheet has the correct path.", _
+               vbCritical, "File Not Found"
         Exit Sub
     End If
-    ' Convert backslashes to forward slashes for file:/// URL
+
+    ' Use WScript.Shell to open as a file:/// URL
+    ' This routes to the browser rather than PDF viewer
     Dim url As String
-    url = "file:///" & Replace(htmlPath, "\", "/")
+    url = "file:///" & Replace(Replace(htmlPath, "\", "/"), " ", "%20")
 
-    ' Try browsers in order: Edge (always on Win10/11), Chrome, Firefox
-    Dim launched As Boolean
-    launched = False
-
-    ' Microsoft Edge
-    If Not launched Then
-        On Error Resume Next
-        Shell "cmd /c start msedge """ & url & """", vbHide
-        If Err.Number = 0 Then launched = True
-        On Error GoTo 0
+    Dim wsh As Object
+    Set wsh = CreateObject("WScript.Shell")
+    On Error Resume Next
+    wsh.Run url
+    If Err.Number <> 0 Then
+        ' Fallback: use FollowHyperlink
+        Err.Clear
+        ThisWorkbook.FollowHyperlink Address:=htmlPath, NewWindow:=True
     End If
-
-    ' Google Chrome
-    If Not launched Then
-        On Error Resume Next
-        Shell "cmd /c start chrome """ & url & """", vbHide
-        If Err.Number = 0 Then launched = True
-        On Error GoTo 0
-    End If
-
-    ' Firefox
-    If Not launched Then
-        On Error Resume Next
-        Shell "cmd /c start firefox """ & url & """", vbHide
-        If Err.Number = 0 Then launched = True
-        On Error GoTo 0
-    End If
-
-    ' Last resort: let Windows decide (may still be PDF viewer)
-    If Not launched Then
-        Shell "cmd /c start """" """ & htmlPath & """", vbHide
-    End If
+    On Error GoTo 0
 End Sub
 
-' ── Internal: resolve the HTML path (same logic as RefreshHTMLDashboard) ─────
+' ── Shared path resolver ─────────────────────────────────────────────────────
 Private Function GetHtmlPath() As String
     If HTML_PATH_OVERRIDE <> "" Then
-        GetHtmlPath = HTML_PATH_OVERRIDE
-        Exit Function
+        GetHtmlPath = HTML_PATH_OVERRIDE: Exit Function
     End If
     Dim wsDash As Worksheet
     On Error Resume Next
     Set wsDash = ThisWorkbook.Sheets("Dashboard")
     On Error GoTo 0
     If Not wsDash Is Nothing Then
-        Dim cellPath As String
-        cellPath = Trim(CStr(wsDash.Cells(4, 2).Value))
-        If cellPath <> "" And cellPath <> "0" Then
-            GetHtmlPath = cellPath
-            Exit Function
+        Dim p As String
+        p = Trim(CStr(wsDash.Cells(4, 2).Value))
+        If p <> "" And p <> "0" Then
+            GetHtmlPath = p: Exit Function
         End If
     End If
     If ThisWorkbook.Path <> "" Then
@@ -308,11 +253,5 @@ End Function
 Private Function N(cell As Object) As Double
     If IsNumeric(cell.Value) Then N = CDbl(cell.Value) Else N = 0
 End Function
-
-Private Function Q(s As String) As String
-    Q = """" & s & """"
-End Function
-
-Private Function J(v As Double) As String
-    J = Replace(CStr(CDec(v)), ",", ".")
-End Function
+Private Function Q(s As String) As String: Q = """" & s & """": End Function
+Private Function J(v As Double) As String: J = Replace(CStr(CDec(v)), ",", "."): End Function
