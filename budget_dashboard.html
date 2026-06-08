@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Budget Dashboard – May, 2026</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3350;
+    --accent: #4f8ef7;
+    --accent2: #7c5cfc;
+    --green: #22c55e;
+    --red: #ef4444;
+    --yellow: #f59e0b;
+    --text: #e2e8f0;
+    --muted: #8892a4;
+    --font: 'Inter', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; }
+  
+  /* HEADER */
+  .header { background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 16px 28px; display: flex; align-items: center; justify-content: space-between; }
+  .header h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+  .header h1 span { color: var(--accent); }
+  .badge { background: var(--accent2); color: #fff; border-radius: 6px;
+    padding: 3px 10px; font-size: 12px; font-weight: 600; }
+
+  /* FILTERS */
+  .filters { background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 12px 28px; display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+  .filters label { font-size: 12px; color: var(--muted); margin-right: 4px; }
+  .filters select, .filters input {
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    border-radius: 6px; padding: 6px 10px; font-size: 13px; outline: none; cursor: pointer; }
+  .filters select:focus, .filters input:focus { border-color: var(--accent); }
+  .btn-reset { background: transparent; border: 1px solid var(--border); color: var(--muted);
+    border-radius: 6px; padding: 6px 12px; font-size: 12px; cursor: pointer; }
+  .btn-reset:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* MAIN LAYOUT */
+  .main { padding: 22px 28px; display: flex; flex-direction: column; gap: 22px; }
+
+  /* KPI CARDS */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
+  .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 18px 20px; position: relative; overflow: hidden; }
+  .kpi::before { content: ''; position: absolute; top: 0; left: 0; right: 0;
+    height: 3px; background: var(--accent); }
+  .kpi.red::before { background: var(--red); }
+  .kpi.green::before { background: var(--green); }
+  .kpi.yellow::before { background: var(--yellow); }
+  .kpi.purple::before { background: var(--accent2); }
+  .kpi-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.5px; margin-bottom: 8px; }
+  .kpi-value { font-size: 22px; font-weight: 700; }
+  .kpi-sub { font-size: 11px; color: var(--muted); margin-top: 5px; }
+
+  /* CHARTS ROW */
+  .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .chart-card { background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 20px; }
+  .chart-title { font-size: 13px; font-weight: 600; margin-bottom: 14px; color: var(--text); }
+  .chart-wrap { position: relative; height: 280px; }
+
+  /* WIDE CHART */
+  .chart-card.wide { background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 20px; }
+  .chart-wrap-tall { position: relative; height: 320px; }
+
+  /* TABLE */
+  .table-card { background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 20px; }
+  .table-header { display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+  .table-title { font-size: 13px; font-weight: 600; }
+  .table-count { font-size: 12px; color: var(--muted); }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th { background: var(--surface2); color: var(--muted); font-weight: 600; text-align: left;
+    padding: 9px 12px; white-space: nowrap; border-bottom: 1px solid var(--border);
+    cursor: pointer; user-select: none; }
+  th:hover { color: var(--text); }
+  th .sort-icon { margin-left: 4px; opacity: 0.5; font-size: 10px; }
+  td { padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .pos { color: var(--green); }
+  .neg { color: var(--red); }
+  .badge-over { background: #ef444420; color: var(--red); border-radius: 4px;
+    padding: 2px 7px; font-size: 11px; font-weight: 600; }
+  .badge-under { background: #22c55e20; color: var(--green); border-radius: 4px;
+    padding: 2px 7px; font-size: 11px; font-weight: 600; }
+  .badge-na { background: #8892a420; color: var(--muted); border-radius: 4px;
+    padding: 2px 7px; font-size: 11px; font-weight: 600; }
+
+  /* PAGINATION */
+  .pagination { display: flex; align-items: center; gap: 8px; margin-top: 12px;
+    justify-content: flex-end; font-size: 12px; color: var(--muted); }
+  .pagination button { background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); border-radius: 5px; padding: 4px 10px; cursor: pointer; font-size: 12px; }
+  .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .pagination button:hover:not(:disabled) { border-color: var(--accent); }
+
+  /* BOTTOM CHARTS */
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+  @media (max-width: 900px) {
+    .charts-row, .three-col { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Budget & Commitments <span>Dashboard</span></h1>
+  <span class="badge">CVR Month: May, 2026</span>
+</div>
+
+<div class="filters">
+  <div>
+    <label>Search Cost Code / Item</label>
+    <input type="text" id="searchInput" placeholder="e.g. 4004 or Racking…" style="width:220px">
+  </div>
+  <div>
+    <label>Over/Under</label>
+    <select id="ouFilter">
+      <option value="">All</option>
+      <option value="Over">Over Budget</option>
+      <option value="Under">Under Budget</option>
+      <option value="N/A">No Status</option>
+    </select>
+  </div>
+  <div>
+    <label>Category</label>
+    <select id="catFilter">
+      <option value="">All</option>
+      <option value="su">Subcontracts</option>
+      <option value="oc">Supplies</option>
+      <option value="ma">Materials</option>
+    </select>
+  </div>
+  <button class="btn-reset" onclick="resetFilters()">Reset Filters</button>
+</div>
+
+<div class="main">
+  <!-- KPI CARDS -->
+  <div class="kpi-grid" id="kpiGrid"></div>
+
+  <!-- CHARTS ROW 1 -->
+  <div class="charts-row">
+    <div class="chart-card">
+      <div class="chart-title">Actuals vs ETC by Category</div>
+      <div class="chart-wrap"><canvas id="chartActualsETC"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Over / Under Budget — Item Count</div>
+      <div class="chart-wrap"><canvas id="chartOUDonut"></canvas></div>
+    </div>
+  </div>
+
+  <!-- WIDE BAR — TOP 15 BY ACTUALS -->
+  <div class="chart-card wide">
+    <div class="chart-title">Top Items by Total Actuals ($)</div>
+    <div class="chart-wrap-tall"><canvas id="chartTopItems"></canvas></div>
+  </div>
+
+  <!-- REMAINING BUDGET + COMMITTED -->
+  <div class="charts-row">
+    <div class="chart-card">
+      <div class="chart-title">Remaining Budget — Top 10 Items</div>
+      <div class="chart-wrap"><canvas id="chartRemBudget"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Actuals Breakdown: Subcontracts / Supplies / Materials</div>
+      <div class="chart-wrap"><canvas id="chartCatBreak"></canvas></div>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-card">
+    <div class="table-header">
+      <div class="table-title">Cost Code Detail Table</div>
+      <div class="table-count" id="tableCount"></div>
+    </div>
+    <div class="table-wrap">
+      <table id="mainTable">
+        <thead>
+          <tr>
+            <th onclick="sortTable('cost_code')">Cost Code <span class="sort-icon">⇅</span></th>
+            <th onclick="sortTable('item')">Item <span class="sort-icon">⇅</span></th>
+            <th class="num" onclick="sortTable('actuals')">Actuals <span class="sort-icon">⇅</span></th>
+            <th class="num" onclick="sortTable('etc')">CVR ETC <span class="sort-icon">⇅</span></th>
+            <th class="num" onclick="sortTable('committed')">Committed <span class="sort-icon">⇅</span></th>
+            <th class="num" onclick="sortTable('jtd')">Total JTD Cost <span class="sort-icon">⇅</span></th>
+            <th class="num" onclick="sortTable('rem_budget')">Rem Budget <span class="sort-icon">⇅</span></th>
+            <th onclick="sortTable('ou_status')">Status <span class="sort-icon">⇅</span></th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+    <div class="pagination">
+      <span id="pageInfo"></span>
+      <button id="btnPrev" onclick="changePage(-1)">‹ Prev</button>
+      <button id="btnNext" onclick="changePage(1)">Next ›</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const RAW_DATA = [{"cost_code": "0-4000", "item": "0-4000-Mobilization", "su_actuals": 0.0, "oc_actuals": 38865.0, "ma_actuals": 0.0, "actuals": 38865.0, "su_etc": 178048.73, "oc_etc": 38865.0, "ma_etc": 0.0, "etc": 216913.73, "committed": 0.0, "jtd": 38865.0, "rem_budget": 178048.73, "ou_status": "Under"}, {"cost_code": "0-4001", "item": "0-4001-Demobilization", "su_actuals": 0.0, "oc_actuals": 2350.0, "ma_actuals": 0.0, "actuals": 2350.0, "su_etc": 220300.84, "oc_etc": 2350.0, "ma_etc": 0.0, "etc": 222650.84, "committed": 0.0, "jtd": 2350.0, "rem_budget": 220300.84, "ou_status": "Under"}, {"cost_code": "0-4004-01", "item": "0-4004-01 Racking Materials", "su_actuals": 0.0, "oc_actuals": 1035502.42, "ma_actuals": 9355889.1, "actuals": 10391391.52, "su_etc": 0.0, "oc_etc": 12443640.64, "ma_etc": 25884139.96, "etc": 38327780.6, "committed": 36332209.09, "jtd": 46723600.61, "rem_budget": -8395820.01, "ou_status": "Over"}, {"cost_code": "0-4004-02", "item": "0-4004-02 Inverter Materials", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 4983660.0, "actuals": 4983660.0, "su_etc": -350000.0, "oc_etc": 0.0, "ma_etc": 17130787.98, "etc": 16780787.98, "committed": 16959929.76, "jtd": 21943589.76, "rem_budget": -5162801.78, "ou_status": "Over"}, {"cost_code": "0-4004-05", "item": "0-4004-05 PV Power Cable Materi", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 4497552.64, "actuals": 4497552.64, "su_etc": 1264434.05, "oc_etc": 648040.49, "ma_etc": 19509894.67, "etc": 21422369.21, "committed": 16024422.23, "jtd": 20543723.14, "rem_budget": 878646.07, "ou_status": "Over"}, {"cost_code": "0-4004-06", "item": "0-4004-06 Cable Management", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 0.0, "oc_etc": 0.0, "ma_etc": 1624883.96, "etc": 1624883.96, "committed": 0.0, "jtd": 0.0, "rem_budget": 1624883.96, "ou_status": "Under"}, {"cost_code": "0-4004-07", "item": "0-4004-07 Scada ", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 138740.0, "oc_etc": 0.0, "ma_etc": 1848766.26, "etc": 1987506.26, "committed": 0.0, "jtd": 0.0, "rem_budget": 1987506.26, "ou_status": "Under"}, {"cost_code": "0-4004-08", "item": "0-4004-08 PV Harness & LBDs", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 0.0, "oc_etc": 0.0, "ma_etc": 11679119.26, "etc": 11679119.26, "committed": 0.0, "jtd": 0.0, "rem_budget": 11679119.26, "ou_status": "Under"}, {"cost_code": "0-4004-10", "item": "0-4004-10 PV Electrical Materia", "su_actuals": 0.0, "oc_actuals": 123.43, "ma_actuals": 34204.68, "actuals": 34328.11, "su_etc": 0.0, "oc_etc": -132558.76, "ma_etc": 2068864.73, "etc": 1936305.97, "committed": 0.0, "jtd": 36466.4, "rem_budget": 1899839.57, "ou_status": "Over"}, {"cost_code": "0-4004-12", "item": "0-4004-12 Non Tracker Piles", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 0.0, "oc_etc": 212948.61, "ma_etc": 754485.45, "etc": 967434.06, "committed": 967434.06, "jtd": 967434.06, "rem_budget": 0.0, "ou_status": "N/A"}, {"cost_code": "0-4004-13", "item": "0-4004-13 CenterPoint's Breaker", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 0.0, "oc_etc": 0.0, "ma_etc": 300000.0, "etc": 300000.0, "committed": 333000.0, "jtd": 333000.0, "rem_budget": -33000.0, "ou_status": "Over"}, {"cost_code": "0-4005", "item": "0-4005-FOE", "su_actuals": 0.0, "oc_actuals": 20433.51, "ma_actuals": 0.0, "actuals": 20433.51, "su_etc": 0.0, "oc_etc": 23868.88, "ma_etc": 0.0, "etc": 23868.88, "committed": 0.0, "jtd": 20433.51, "rem_budget": 3435.37, "ou_status": "Under"}, {"cost_code": "0-4006", "item": "0-4006-Yard and Trailer", "su_actuals": 0.0, "oc_actuals": 35420.42, "ma_actuals": 0.0, "actuals": 35420.42, "su_etc": 76535.45, "oc_etc": 312745.98, "ma_etc": 0.0, "etc": 389281.43, "committed": 277325.56, "jtd": 312745.98, "rem_budget": 76535.45, "ou_status": "Under"}, {"cost_code": "0-4008", "item": "0-4008-Supplies", "su_actuals": 0.0, "oc_actuals": 108788.0, "ma_actuals": 0.0, "actuals": 108788.0, "su_etc": 0.0, "oc_etc": 2425247.73, "ma_etc": 0.0, "etc": 2425247.73, "committed": 60149.43, "jtd": 179686.48, "rem_budget": 2245561.25, "ou_status": "Under"}, {"cost_code": "0-4010", "item": "0-4010-FOG", "su_actuals": 0.0, "oc_actuals": 42925.37, "ma_actuals": 0.0, "actuals": 42925.37, "su_etc": 0.0, "oc_etc": 1835125.61, "ma_etc": 0.0, "etc": 1835125.61, "committed": 0.0, "jtd": -20637.25, "rem_budget": 1855762.86, "ou_status": "Under"}, {"cost_code": "0-4013", "item": "0-4013-Contingency", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 4883701.58, "oc_etc": 0.0, "ma_etc": 0.0, "etc": 4883701.58, "committed": 0.0, "jtd": 0.0, "rem_budget": 4883701.58, "ou_status": "Under"}, {"cost_code": "0-4013-01", "item": "0-4013-01-LD's", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 1800000.0, "oc_etc": 0.0, "ma_etc": 0.0, "etc": 1800000.0, "committed": 0.0, "jtd": 0.0, "rem_budget": 1800000.0, "ou_status": "Under"}, {"cost_code": "0-4013-02", "item": "0-4013-02-Weather Cont.", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 1386220.96, "oc_etc": 0.0, "ma_etc": 0.0, "etc": 1386220.96, "committed": 0.0, "jtd": 0.0, "rem_budget": 1386220.96, "ou_status": "Under"}, {"cost_code": "0-4015", "item": "0-4015-Survey", "su_actuals": 28288.75, "oc_actuals": 956.01, "ma_actuals": 325.83, "actuals": 29570.59, "su_etc": 494657.05, "oc_etc": -143993.53, "ma_etc": 325.83, "etc": 350989.35, "committed": 0.0, "jtd": 29570.59, "rem_budget": 321418.76, "ou_status": "Over"}, {"cost_code": "0-4016", "item": "0-4016-Permits", "su_actuals": 20024.36, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 20024.36, "su_etc": 63445.61, "oc_etc": 0.0, "ma_etc": 36554.39, "etc": 100000.0, "committed": 43421.25, "jtd": 63445.61, "rem_budget": 36554.39, "ou_status": "Under"}, {"cost_code": "0-4017", "item": "0-4017-Utility Locate", "su_actuals": 0.0, "oc_actuals": 849.86, "ma_actuals": 0.0, "actuals": 849.86, "su_etc": 2821.59, "oc_etc": 22178.41, "ma_etc": 0.0, "etc": 25000.0, "committed": 21328.55, "jtd": 22178.41, "rem_budget": 2821.59, "ou_status": "Under"}, {"cost_code": "0-4024", "item": "0-4024-Engineering", "su_actuals": 1128965.04, "oc_actuals": 28340.55, "ma_actuals": 0.0, "actuals": 1157305.59, "su_etc": 2771659.45, "oc_etc": 28340.55, "ma_etc": 0.0, "etc": 2800000.0, "committed": 223654.01, "jtd": 1380959.6, "rem_budget": 1419040.4, "ou_status": "Under"}, {"cost_code": "0-4029", "item": "0-4029-ACS ", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 1680000.0, "oc_etc": 0.0, "ma_etc": 0.0, "etc": 1680000.0, "committed": 0.0, "jtd": 0.0, "rem_budget": 1680000.0, "ou_status": "Under"}, {"cost_code": "0-4031", "item": "0-4031-Hire-In and Orientation", "su_actuals": 0.0, "oc_actuals": 1549.5, "ma_actuals": 0.0, "actuals": 1549.5, "su_etc": 0.0, "oc_etc": 2093.75, "ma_etc": 0.0, "etc": 2093.75, "committed": 0.0, "jtd": 1549.5, "rem_budget": 544.25, "ou_status": "Under"}, {"cost_code": "0-4302", "item": "0-4302-Pile Installs", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 0.0, "oc_etc": 0.0, "ma_etc": 114488.16, "etc": 114488.16, "committed": 0.0, "jtd": 0.0, "rem_budget": 114488.16, "ou_status": "Under"}, {"cost_code": "0-4400", "item": "0-4400-Electrical Receiving", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 0.0, "oc_etc": 389.51, "ma_etc": 32475.0, "etc": 32864.51, "committed": 0.0, "jtd": 0.0, "rem_budget": 32864.51, "ou_status": "Under"}, {"cost_code": "0-4413", "item": "0-4413-DC Testing", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 0.0, "oc_etc": 0.0, "ma_etc": 59537.5, "etc": 59537.5, "committed": 0.0, "jtd": 0.0, "rem_budget": 59537.5, "ou_status": "Under"}, {"cost_code": "0-4414", "item": "0-4414- Commisioning", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 0.0, "oc_etc": 3621.99, "ma_etc": 0.0, "etc": 3621.99, "committed": 0.0, "jtd": 0.0, "rem_budget": 3621.99, "ou_status": "Under"}, {"cost_code": "0-4418", "item": "0-4418 - Electrical QAQC", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 0.0, "oc_etc": 108.61, "ma_etc": 0.0, "etc": 108.61, "committed": 0.0, "jtd": 0.0, "rem_budget": 108.61, "ou_status": "Under"}, {"cost_code": "0-4500", "item": "0-4500-AC-MV Plowing", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 0.0, "oc_etc": 0.0, "ma_etc": 147627.24, "etc": 147627.24, "committed": 0.0, "jtd": 0.0, "rem_budget": 147627.24, "ou_status": "Under"}, {"cost_code": "0-4503", "item": "0-4503-AC-MV Cable Tie-ins", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 0.0, "oc_etc": 0.0, "ma_etc": 2877.54, "etc": 2877.54, "committed": 0.0, "jtd": 0.0, "rem_budget": 2877.54, "ou_status": "Under"}, {"cost_code": "0-4505", "item": "0-4505-AC-MV Boring", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 22500.0, "oc_etc": 200836.63, "ma_etc": 1735000.0, "etc": 1958336.63, "committed": 0.0, "jtd": 0.0, "rem_budget": 1958336.63, "ou_status": "Under"}, {"cost_code": "0-4508", "item": "0-4508-AC-MV Trenching & BackFill", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 0.0, "oc_etc": 0.0, "ma_etc": 150000.0, "etc": 150000.0, "committed": 0.0, "jtd": 0.0, "rem_budget": 150000.0, "ou_status": "Under"}, {"cost_code": "0-4510", "item": "0-4510-AC-MV Cable Pull", "su_actuals": 0.0, "oc_actuals": 274.5, "ma_actuals": 0.0, "actuals": 274.5, "su_etc": 0.0, "oc_etc": 579.51, "ma_etc": 243551.05, "etc": 244130.56, "committed": 120097.28, "jtd": 174130.56, "rem_budget": 70000.0, "ou_status": "Under"}, {"cost_code": "0-4512", "item": "0-4512-AC Testing", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 231000.0, "oc_etc": 0.0, "ma_etc": 0.0, "etc": 231000.0, "committed": 0.0, "jtd": 0.0, "rem_budget": 231000.0, "ou_status": "Under"}, {"cost_code": "0-4520", "item": "0-4520-Electrical MV Punch List", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 0.0, "oc_etc": 8004.85, "ma_etc": 0.0, "etc": 8004.85, "committed": 0.0, "jtd": 0.0, "rem_budget": 8004.85, "ou_status": "Under"}, {"cost_code": "0-4701", "item": "0-4701-Inv Skid Conduit", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 0.0, "oc_etc": 3096.41, "ma_etc": 0.0, "etc": 3096.41, "committed": 0.0, "jtd": 0.0, "rem_budget": 3096.41, "ou_status": "Under"}, {"cost_code": "0-4702", "item": "0-4702-Inv Skid Backfill", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 0.0, "oc_etc": 0.0, "ma_etc": 59537.5, "etc": 59537.5, "committed": 0.0, "jtd": 0.0, "rem_budget": 59537.5, "ou_status": "Under"}, {"cost_code": "0-4703", "item": "0-4703-Inv Pile Caps", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 0.0, "oc_etc": 0.0, "ma_etc": 8182.95, "etc": 8182.95, "committed": 0.0, "jtd": 0.0, "rem_budget": 8182.95, "ou_status": "Under"}, {"cost_code": "0-4704", "item": "0-4704-Inv Skid Setting", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 95200.0, "oc_etc": 0.0, "ma_etc": 0.0, "etc": 95200.0, "committed": 0.0, "jtd": 0.0, "rem_budget": 95200.0, "ou_status": "Under"}, {"cost_code": "0-4000-01", "item": "0-4000-01-Mobilization", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 66371.18, "oc_etc": 0.0, "ma_etc": 0.0, "etc": 66371.18, "committed": 0.0, "jtd": 0.0, "rem_budget": 66371.18, "ou_status": "Under"}, {"cost_code": "0-4001-01", "item": "0-4001-01-Demobilization", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 60400.0, "oc_etc": 0.0, "ma_etc": 0.0, "etc": 60400.0, "committed": 0.0, "jtd": 0.0, "rem_budget": 60400.0, "ou_status": "Under"}, {"cost_code": "0-4005-01", "item": "0-4005-01-Civil FOE", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 0.0, "oc_etc": 0.0, "ma_etc": 7988.36, "etc": 7988.36, "committed": 0.0, "jtd": 0.0, "rem_budget": 7988.36, "ou_status": "Under"}, {"cost_code": "0-4100", "item": "0-4100-Silt Fence", "su_actuals": 0.0, "oc_actuals": 48956.07, "ma_actuals": 0.0, "actuals": 48956.07, "su_etc": 0.0, "oc_etc": 48956.07, "ma_etc": 8000.0, "etc": 56956.07, "committed": 0.0, "jtd": 48956.07, "rem_budget": 8000.0, "ou_status": "Under"}, {"cost_code": "0-4100-01", "item": "0-4100-01-Erosion Control", "su_actuals": 0.0, "oc_actuals": 24756.07, "ma_actuals": 0.0, "actuals": 24756.07, "su_etc": 0.0, "oc_etc": 24838.65, "ma_etc": 118178.93, "etc": 143017.58, "committed": 99982.58, "jtd": 124738.65, "rem_budget": 18278.93, "ou_status": "Under"}, {"cost_code": "0-4102", "item": "0-4102-Cut&Fill", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 0.0, "oc_etc": 0.0, "ma_etc": 7477.79, "etc": 7477.79, "committed": 0.0, "jtd": 0.0, "rem_budget": 7477.79, "ou_status": "Under"}, {"cost_code": "0-4103", "item": "0-4103-Drainage", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 0.0, "oc_etc": 0.0, "ma_etc": 233266.3, "etc": 233266.3, "committed": 0.0, "jtd": 0.0, "rem_budget": 233266.3, "ou_status": "Under"}, {"cost_code": "0-4104", "item": "0-4104-Grading", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 0.0, "oc_etc": 0.0, "ma_etc": 2165.0, "etc": 2165.0, "committed": 0.0, "jtd": 0.0, "rem_budget": 2165.0, "ou_status": "Under"}, {"cost_code": "0-4107", "item": "0-4107-Seeding & Revegetation", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 536369.28, "oc_etc": 0.0, "ma_etc": 795093.0, "etc": 1331462.28, "committed": 795093.0, "jtd": 795093.0, "rem_budget": 536369.28, "ou_status": "Under"}, {"cost_code": "0-4108", "item": "0-4108-Fences & Gates", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 1066260.0, "oc_etc": 0.0, "ma_etc": 0.0, "etc": 1066260.0, "committed": 0.0, "jtd": 0.0, "rem_budget": 1066260.0, "ou_status": "Under"}, {"cost_code": "0-4109", "item": "0-4109-Site Roadways", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 0.0, "oc_etc": 0.0, "ma_etc": 3249926.05, "etc": 3249926.05, "committed": 1993005.0, "jtd": 1993005.0, "rem_budget": 1256921.05, "ou_status": "Under"}, {"cost_code": "0-4015-01", "item": "0-4015-01-Survey", "su_actuals": 0.0, "oc_actuals": 1196.88, "ma_actuals": 0.0, "actuals": 1196.88, "su_etc": 0.0, "oc_etc": 10952.69, "ma_etc": 5412.5, "etc": 16365.19, "committed": -0.0, "jtd": 1196.88, "rem_budget": 15168.31, "ou_status": "Under"}, {"cost_code": "0-4110", "item": "0-4110-Ditches", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 0.0, "oc_etc": 361.69, "ma_etc": 86810.01, "etc": 87171.7, "committed": 0.0, "jtd": 0.0, "rem_budget": 87171.7, "ou_status": "Under"}, {"cost_code": "0-4110-01", "item": "0-4110-01-Canal Bridge Repair", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 70000.0, "oc_etc": 0.0, "ma_etc": 0.0, "etc": 70000.0, "committed": 0.0, "jtd": 0.0, "rem_budget": 70000.0, "ou_status": "Under"}, {"cost_code": "0-4111", "item": "0-4111-Compaction Testing", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 166284.0, "oc_etc": 55500.0, "ma_etc": 0.0, "etc": 221784.0, "committed": 55500.0, "jtd": 55500.0, "rem_budget": 166284.0, "ou_status": "Under"}, {"cost_code": "0-4113", "item": "0-4113-Construction Entrance", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 0.0, "oc_etc": 0.0, "ma_etc": 114993.97, "etc": 114993.97, "committed": 0.0, "jtd": 0.0, "rem_budget": 114993.97, "ou_status": "Under"}, {"cost_code": "0-4115-01", "item": "0-4115-01-Clean Up", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 1200.0, "oc_etc": 0.0, "ma_etc": 0.0, "etc": 1200.0, "committed": 0.0, "jtd": 0.0, "rem_budget": 1200.0, "ou_status": "Under"}, {"cost_code": "0-4116", "item": "0-4116-Bush Hog", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 0.0, "oc_etc": 0.0, "ma_etc": 53177.5, "etc": 53177.5, "committed": 0.0, "jtd": 0.0, "rem_budget": 53177.5, "ou_status": "Under"}, {"cost_code": "0-4121", "item": "0-4121-Laydown Areas", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 156147.77, "actuals": 156147.77, "su_etc": 29000.0, "oc_etc": 832.5, "ma_etc": 907645.86, "etc": 937478.36, "committed": 596875.57, "jtd": 754913.78, "rem_budget": 182564.58, "ou_status": "Under"}, {"cost_code": "0-4123", "item": "0-4123-Dust Control", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 0.0, "oc_etc": 0.0, "ma_etc": 95877.25, "etc": 95877.25, "committed": 0.0, "jtd": 0.0, "rem_budget": 95877.25, "ou_status": "Under"}, {"cost_code": "0-4125", "item": "0-4125-SWPPP Maintenance", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 0.0, "oc_etc": 0.0, "ma_etc": 13345.35, "etc": 13345.35, "committed": 0.0, "jtd": 0.0, "rem_budget": 13345.35, "ou_status": "Under"}, {"cost_code": "0-4128", "item": "0-4128-Basin Installation", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 0.0, "oc_etc": 0.0, "ma_etc": 154560.43, "etc": 154560.43, "committed": 0.0, "jtd": 0.0, "rem_budget": 154560.43, "ou_status": "Under"}, {"cost_code": "0-4705", "item": "0-4705-Inverter Pads", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 0.0, "oc_etc": 0.0, "ma_etc": 186821.46, "etc": 186821.46, "committed": 0.0, "jtd": 0.0, "rem_budget": 186821.46, "ou_status": "Under"}, {"cost_code": "0-4999", "item": "0-4999 Job Abuse", "su_actuals": 0.0, "oc_actuals": 1035.85, "ma_actuals": 0.0, "actuals": 1035.85, "su_etc": 3278.64, "oc_etc": 1035.85, "ma_etc": 0.0, "etc": 4314.49, "committed": 0.0, "jtd": 1035.85, "rem_budget": 3278.64, "ou_status": "Under"}, {"cost_code": "0-4018", "item": "0-4018 Travel", "su_actuals": 0.0, "oc_actuals": 36745.18, "ma_actuals": 0.0, "actuals": 36745.18, "su_etc": 13254.82, "oc_etc": 36745.18, "ma_etc": 0.0, "etc": 50000.0, "committed": 0.0, "jtd": 36745.18, "rem_budget": 13254.82, "ou_status": "Under"}, {"cost_code": "0-4027", "item": "0-4027 Early Work", "su_actuals": 0.0, "oc_actuals": 2274.82, "ma_actuals": 5745.54, "actuals": 8020.36, "su_etc": 0.0, "oc_etc": 2274.82, "ma_etc": 6936.05, "etc": 9210.87, "committed": 1190.51, "jtd": 9210.87, "rem_budget": 0.0, "ou_status": "N/A"}, {"cost_code": "0-4614", "item": "0-4614 SCADA MET Install", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": 0.0, "oc_etc": 6000.0, "ma_etc": 36860.7, "etc": 42860.7, "committed": 0.0, "jtd": 0.0, "rem_budget": 42860.7, "ou_status": "Under"}, {"cost_code": "0-4xyy", "item": "Risk", "su_actuals": 0.0, "oc_actuals": 0.0, "ma_actuals": 0.0, "actuals": 0.0, "su_etc": -2390722.77, "oc_etc": 0.0, "ma_etc": 0.0, "etc": -2390722.77, "committed": 0.0, "jtd": 0.0, "rem_budget": -2390722.77, "ou_status": "Over"}, {"cost_code": "0-4xxy", "item": "Opps", "su_actuals": 0, "oc_actuals": 0, "ma_actuals": 0, "actuals": 0, "su_etc": 0.0, "oc_etc": -1220810.63, "ma_etc": -1200000.0, "etc": -2420810.63, "committed": 0.0, "jtd": 0.0, "rem_budget": -2420810.63, "ou_status": "Over"}];
+const PAGE_SIZE = 20;
+
+let filtered = [...RAW_DATA];
+let sortKey = 'actuals';
+let sortDir = -1;
+let currentPage = 0;
+let charts = {};
+
+// ─── UTILS ──────────────────────────────────────────────────────────────────
+const fmt = (n, compact=false) => {
+  if (n == null) return '—';
+  const abs = Math.abs(n);
+  if (compact) {
+    if (abs >= 1e6) return (n/1e6).toFixed(1) + 'M';
+    if (abs >= 1e3) return (n/1e3).toFixed(0) + 'K';
+    return n.toFixed(0);
+  }
+  return new Intl.NumberFormat('en-US', {style:'currency', currency:'USD', maximumFractionDigits:0}).format(n);
+};
+
+// ─── FILTER & SORT ───────────────────────────────────────────────────────────
+function applyFilters() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const ou = document.getElementById('ouFilter').value;
+  const cat = document.getElementById('catFilter').value;
+
+  filtered = RAW_DATA.filter(r => {
+    if (search && !r.cost_code.toLowerCase().includes(search) && !r.item.toLowerCase().includes(search)) return false;
+    if (ou && r.ou_status !== ou) return false;
+    if (cat) {
+      const has = cat === 'su' ? (r.su_actuals || r.su_etc || r.su_committed) :
+                  cat === 'oc' ? (r.oc_actuals || r.oc_etc || r.oc_committed) :
+                                 (r.ma_actuals || r.ma_etc || r.ma_committed);
+      if (!has) return false;
+    }
+    return true;
+  });
+
+  filtered.sort((a,b) => {
+    let av = a[sortKey], bv = b[sortKey];
+    if (typeof av === 'string') av = av.toLowerCase();
+    if (typeof bv === 'string') bv = bv.toLowerCase();
+    return (av < bv ? -1 : av > bv ? 1 : 0) * sortDir;
+  });
+
+  currentPage = 0;
+  renderAll();
+}
+
+function sortTable(key) {
+  if (sortKey === key) sortDir *= -1; else { sortKey = key; sortDir = -1; }
+  applyFilters();
+}
+
+function resetFilters() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('ouFilter').value = '';
+  document.getElementById('catFilter').value = '';
+  applyFilters();
+}
+
+function changePage(dir) {
+  currentPage += dir;
+  renderTable();
+}
+
+// ─── KPI CARDS ───────────────────────────────────────────────────────────────
+function renderKPI() {
+  const totalActuals = filtered.reduce((s,r) => s + r.actuals, 0);
+  const totalETC = filtered.reduce((s,r) => s + r.etc, 0);
+  const totalCommitted = filtered.reduce((s,r) => s + r.committed, 0);
+  const totalRem = filtered.reduce((s,r) => s + r.rem_budget, 0);
+  const overCount = filtered.filter(r => r.ou_status === 'Over').length;
+  const underCount = filtered.filter(r => r.ou_status === 'Under').length;
+
+  document.getElementById('kpiGrid').innerHTML = `
+    <div class="kpi blue">
+      <div class="kpi-label">Total Actuals (JTD)</div>
+      <div class="kpi-value">${fmt(totalActuals,true)}</div>
+      <div class="kpi-sub">${fmt(totalActuals)}</div>
+    </div>
+    <div class="kpi yellow">
+      <div class="kpi-label">CVR ETC</div>
+      <div class="kpi-value">${fmt(totalETC,true)}</div>
+      <div class="kpi-sub">${fmt(totalETC)}</div>
+    </div>
+    <div class="kpi purple">
+      <div class="kpi-label">Total Committed</div>
+      <div class="kpi-value">${fmt(totalCommitted,true)}</div>
+      <div class="kpi-sub">${fmt(totalCommitted)}</div>
+    </div>
+    <div class="kpi ${totalRem < 0 ? 'red' : 'green'}">
+      <div class="kpi-label">Remaining Budget</div>
+      <div class="kpi-value ${totalRem < 0 ? 'neg' : 'pos'}">${fmt(totalRem,true)}</div>
+      <div class="kpi-sub">${fmt(totalRem)}</div>
+    </div>
+    <div class="kpi red">
+      <div class="kpi-label">Items Over Budget</div>
+      <div class="kpi-value neg">${overCount}</div>
+      <div class="kpi-sub">of ${filtered.length} active items</div>
+    </div>
+    <div class="kpi green">
+      <div class="kpi-label">Items Under Budget</div>
+      <div class="kpi-value pos">${underCount}</div>
+      <div class="kpi-sub">of ${filtered.length} active items</div>
+    </div>
+  `;
+}
+
+// ─── TABLE ───────────────────────────────────────────────────────────────────
+function renderTable() {
+  const start = currentPage * PAGE_SIZE;
+  const page = filtered.slice(start, start + PAGE_SIZE);
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+
+  document.getElementById('tableCount').textContent =
+    `Showing ${start+1}–${Math.min(start+PAGE_SIZE, filtered.length)} of ${filtered.length} items`;
+
+  document.getElementById('tableBody').innerHTML = page.map(r => `
+    <tr>
+      <td><code style="color:var(--accent)">${r.cost_code}</code></td>
+      <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis" title="${r.item}">${r.item}</td>
+      <td class="num">${fmt(r.actuals)}</td>
+      <td class="num">${fmt(r.etc)}</td>
+      <td class="num">${fmt(r.committed)}</td>
+      <td class="num">${fmt(r.jtd)}</td>
+      <td class="num ${r.rem_budget < 0 ? 'neg' : r.rem_budget > 0 ? 'pos' : ''}">${fmt(r.rem_budget)}</td>
+      <td><span class="${r.ou_status==='Over'?'badge-over':r.ou_status==='Under'?'badge-under':'badge-na'}">${r.ou_status}</span></td>
+    </tr>`).join('');
+
+  document.getElementById('pageInfo').textContent = `Page ${currentPage+1} of ${totalPages||1}`;
+  document.getElementById('btnPrev').disabled = currentPage === 0;
+  document.getElementById('btnNext').disabled = currentPage >= totalPages - 1;
+}
+
+// ─── CHARTS ─────────────────────────────────────────────────────────────────
+const COLORS = {
+  blue: '#4f8ef7', purple: '#7c5cfc', green: '#22c55e',
+  red: '#ef4444', yellow: '#f59e0b', teal: '#14b8a6'
+};
+
+Chart.defaults.color = '#8892a4';
+Chart.defaults.borderColor = '#2e3350';
+
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+
+function renderCharts() {
+  const d = filtered;
+
+  // 1. Actuals vs ETC by Category (grouped bar)
+  destroyChart('chartActualsETC');
+  const suAct = d.reduce((s,r)=>s+r.su_actuals,0);
+  const ocAct = d.reduce((s,r)=>s+r.oc_actuals,0);
+  const maAct = d.reduce((s,r)=>s+r.ma_actuals,0);
+  const suETC = d.reduce((s,r)=>s+r.su_etc,0);
+  const ocETC = d.reduce((s,r)=>s+r.oc_etc,0);
+  const maETC = d.reduce((s,r)=>s+r.ma_etc,0);
+  charts['chartActualsETC'] = new Chart(document.getElementById('chartActualsETC'), {
+    type: 'bar',
+    data: {
+      labels: ['Subcontracts', 'Supplies', 'Materials'],
+      datasets: [
+        { label: 'Actuals', data: [suAct, ocAct, maAct], backgroundColor: COLORS.blue, borderRadius: 4 },
+        { label: 'CVR ETC', data: [suETC, ocETC, maETC], backgroundColor: COLORS.purple, borderRadius: 4 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#8892a4' } } },
+      scales: {
+        x: { grid: { color: '#2e3350' } },
+        y: { grid: { color: '#2e3350' }, ticks: { callback: v => '$' + (v/1e6).toFixed(1)+'M' } }
+      }
+    }
+  });
+
+  // 2. O/U Donut
+  destroyChart('chartOUDonut');
+  const overC = d.filter(r=>r.ou_status==='Over').length;
+  const underC = d.filter(r=>r.ou_status==='Under').length;
+  const naC = d.filter(r=>r.ou_status==='N/A').length;
+  charts['chartOUDonut'] = new Chart(document.getElementById('chartOUDonut'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Over Budget', 'Under Budget', 'No Status'],
+      datasets: [{ data: [overC, underC, naC],
+        backgroundColor: [COLORS.red, COLORS.green, '#374151'],
+        borderWidth: 0, hoverOffset: 6 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '65%',
+      plugins: {
+        legend: { position: 'right', labels: { color: '#8892a4', padding: 14, boxWidth: 12 } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed} items` } }
+      }
+    }
+  });
+
+  // 3. Top 15 items by actuals (horizontal bar)
+  destroyChart('chartTopItems');
+  const top15 = [...d].sort((a,b)=>b.actuals-a.actuals).slice(0,15);
+  charts['chartTopItems'] = new Chart(document.getElementById('chartTopItems'), {
+    type: 'bar',
+    data: {
+      labels: top15.map(r => r.cost_code),
+      datasets: [
+        { label: 'Actuals', data: top15.map(r=>r.actuals), backgroundColor: COLORS.blue, borderRadius: 4 },
+        { label: 'Committed', data: top15.map(r=>r.committed), backgroundColor: COLORS.purple, borderRadius: 4 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#8892a4' } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)}` } }
+      },
+      scales: {
+        x: { grid: { color: '#2e3350' } },
+        y: { grid: { color: '#2e3350' }, ticks: { callback: v => '$' + (v/1e6).toFixed(1)+'M' } }
+      }
+    }
+  });
+
+  // 4. Remaining Budget top 10
+  destroyChart('chartRemBudget');
+  const top10rem = [...d].sort((a,b)=>b.rem_budget-a.rem_budget).slice(0,10);
+  charts['chartRemBudget'] = new Chart(document.getElementById('chartRemBudget'), {
+    type: 'bar',
+    data: {
+      labels: top10rem.map(r => r.cost_code),
+      datasets: [{ label: 'Remaining Budget',
+        data: top10rem.map(r=>r.rem_budget),
+        backgroundColor: top10rem.map(r=>r.rem_budget<0?COLORS.red:COLORS.green),
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${fmt(ctx.parsed.y)}` } }
+      },
+      scales: {
+        x: { grid: { color: '#2e3350' } },
+        y: { grid: { color: '#2e3350' }, ticks: { callback: v => '$' + (v/1e6).toFixed(1)+'M' } }
+      }
+    }
+  });
+
+  // 5. Category breakdown pie (actuals)
+  destroyChart('chartCatBreak');
+  charts['chartCatBreak'] = new Chart(document.getElementById('chartCatBreak'), {
+    type: 'pie',
+    data: {
+      labels: ['Subcontracts', 'Supplies', 'Materials'],
+      datasets: [{ data: [suAct, ocAct, maAct],
+        backgroundColor: [COLORS.blue, COLORS.yellow, COLORS.teal],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { color: '#8892a4', padding: 14, boxWidth: 12 } },
+        tooltip: { callbacks: { label: ctx => ` ${fmt(ctx.parsed)}` } }
+      }
+    }
+  });
+}
+
+function renderAll() {
+  renderKPI();
+  renderTable();
+  renderCharts();
+}
+
+// ─── EVENT LISTENERS ─────────────────────────────────────────────────────────
+document.getElementById('searchInput').addEventListener('input', applyFilters);
+document.getElementById('ouFilter').addEventListener('change', applyFilters);
+document.getElementById('catFilter').addEventListener('change', applyFilters);
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+applyFilters();
+</script>
+</body>
+</html>
