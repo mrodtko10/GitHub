@@ -197,6 +197,26 @@ Skip:
         End If
     End If
 
+    ' ── Safety check before writing ─────────────────────────────────────────
+    ' Refuse to write if the path doesn't end in .html / .htm
+    If LCase(Right(Trim(htmlPath), 5)) <> ".html" And _
+       LCase(Right(Trim(htmlPath), 4)) <> ".htm" Then
+        MsgBox "SAFETY STOP: The resolved path does not end in .html:" & vbCrLf & _
+               htmlPath & vbCrLf & vbCrLf & _
+               "Check that cell B4 on the Dashboard sheet contains the" & vbCrLf & _
+               "full path to budget_dashboard.html (not the Excel file).", _
+               vbCritical, "Wrong File Type"
+        Exit Sub
+    End If
+
+    ' Also refuse if it looks like the workbook itself
+    If LCase(htmlPath) = LCase(ThisWorkbook.FullName) Then
+        MsgBox "SAFETY STOP: The path points to this workbook!" & vbCrLf & _
+               "Update cell B4 with the path to budget_dashboard.html.", _
+               vbCritical, "Wrong File"
+        Exit Sub
+    End If
+
     ' ── Write HTML ───────────────────────────────────────────────────────────
     fNum = FreeFile
     Open htmlPath For Output As #fNum
