@@ -125,8 +125,10 @@
 
 <div class="filters">
   <div>
-    <label>Search Cost Code / Item</label>
-    <input type="text" id="searchInput" placeholder="e.g. 4004 or Racking…" style="width:220px">
+    <label>Cost Code / Item</label>
+    <select id="searchInput" style="width:300px">
+      <option value="">All Items</option>
+    </select>
   </div>
   <div>
     <label>Over/Under</label>
@@ -238,12 +240,12 @@ const fmt = (n, compact=false) => {
 
 // ─── FILTER & SORT ───────────────────────────────────────────────────────────
 function applyFilters() {
-  const search = document.getElementById('searchInput').value.toLowerCase();
+  const search = document.getElementById('searchInput').value;
   const ou = document.getElementById('ouFilter').value;
   const cat = document.getElementById('catFilter').value;
 
   filtered = RAW_DATA.filter(r => {
-    if (search && !r.cost_code.toLowerCase().includes(search) && !r.item.toLowerCase().includes(search)) return false;
+    if (search && r.cost_code !== search) return false;
     if (ou && r.ou_status !== ou) return false;
     if (cat) {
       const has = cat === 'su' ? (r.su_actuals || r.su_etc || r.su_committed) :
@@ -275,6 +277,18 @@ function resetFilters() {
   document.getElementById('ouFilter').value = '';
   document.getElementById('catFilter').value = '';
   applyFilters();
+}
+
+function populateCostCodeDropdown() {
+  const sel = document.getElementById('searchInput');
+  [...RAW_DATA]
+    .sort((a, b) => a.cost_code.localeCompare(b.cost_code))
+    .forEach(r => {
+      const opt = document.createElement('option');
+      opt.value = r.cost_code;
+      opt.textContent = r.cost_code + ' — ' + r.item.replace(/^\S+\s*[-–]?\s*/, '').trim() || r.item;
+      sel.appendChild(opt);
+    });
 }
 
 function changePage(dir) {
@@ -494,11 +508,12 @@ function renderAll() {
 }
 
 // ─── EVENT LISTENERS ─────────────────────────────────────────────────────────
-document.getElementById('searchInput').addEventListener('input', applyFilters);
+document.getElementById('searchInput').addEventListener('change', applyFilters);
 document.getElementById('ouFilter').addEventListener('change', applyFilters);
 document.getElementById('catFilter').addEventListener('change', applyFilters);
 
 // ─── INIT ────────────────────────────────────────────────────────────────────
+populateCostCodeDropdown();
 applyFilters();
 </script>
 </body>
