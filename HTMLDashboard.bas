@@ -88,7 +88,7 @@ Sub RefreshHTMLDashboard()
     '  CTD  SU=33 OC=34 MA=35 | Rem  SU=39 OC=40 MA=41
     '  O/U  SU=42 OC=43 MA=44
 
-    lastRow   = wsData.Cells(wsData.Rows.Count, 1).End(xlUp).Row
+    lastRow = wsData.UsedRange.Row + wsData.UsedRange.Rows.Count - 1
     jsonArray = "["
     Dim firstRec As Boolean
     firstRec = True
