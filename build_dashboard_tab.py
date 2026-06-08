@@ -11,6 +11,7 @@ from openpyxl.styles import PatternFill, Font, Alignment
 from openpyxl.utils import get_column_letter
 from openpyxl.chart import BarChart, PieChart, Reference
 from openpyxl.chart.label import DataLabelList
+from openpyxl.chart.axis import ChartLines
 
 HERE       = os.path.dirname(os.path.abspath(__file__))
 HTML_PATH  = os.path.join(HERE, "budget_dashboard.html")
@@ -197,14 +198,15 @@ wc["L3"]="Accrued";   wc["M3"]=round(total_acc)
 wc["L4"]="Committed"; wc["M4"]=round(total_com)
 
 # ── Helper: build & style a bar chart ─────────────────────────────────────────
-def make_bar(title, labels_ref, data_refs, colors, horiz=False):
+def make_bar(title, labels_ref, data_refs, colors, horiz=False,
+             x_title=None, y_title=None):
     ch = BarChart()
     ch.type     = "bar" if horiz else "col"
     ch.grouping = "clustered"
     ch.title    = title
     ch.style    = 10
-    ch.width    = 15    # cm  — fits in 9 cols (~16.6cm available)
-    ch.height   = 11.5  # cm  — 19 rows × ~0.64cm each
+    ch.width    = 15
+    ch.height   = 11.5
     ch.add_data(data_refs[0], titles_from_data=True)
     if len(data_refs) > 1:
         ch.add_data(data_refs[1], titles_from_data=True)
@@ -219,6 +221,23 @@ def make_bar(title, labels_ref, data_refs, colors, horiz=False):
         s.dLbls.showCatName   = False
         s.dLbls.showSerName   = False
         s.dLbls.numFmt = "$#,##0"
+    # Axis titles
+    if horiz:
+        # For horizontal bar: catAx = vertical (items), valAx = horizontal ($)
+        if x_title:
+            ch.y_axis.title = x_title   # category axis (items)
+        if y_title:
+            ch.x_axis.title = y_title   # value axis ($)
+        ch.x_axis.numFmt = "$#,##0"
+    else:
+        if x_title:
+            ch.x_axis.title = x_title
+        if y_title:
+            ch.y_axis.title = y_title
+        ch.y_axis.numFmt = "$#,##0"
+    # Axis number format on value axis
+    ch.y_axis.delete = False
+    ch.x_axis.delete = False
     return ch
 
 def make_pie(title, labels_ref, data_ref):
@@ -247,7 +266,8 @@ chart1 = make_bar(
     Reference(wc, min_col=1, min_row=2, max_row=ch1_end),
     [Reference(wc, min_col=2, min_row=1, max_row=ch1_end),
      Reference(wc, min_col=3, min_row=1, max_row=ch1_end)],
-    [ACCENT, TEAL]
+    [ACCENT, TEAL],
+    x_title="Cost Code", y_title="Amount ($)"
 )
 ws.add_chart(chart1, "B12")   # left half
 
@@ -256,7 +276,8 @@ chart2 = make_bar(
     Reference(wc, min_col=5, min_row=2, max_row=4),
     [Reference(wc, min_col=6, min_row=1, max_row=4),
      Reference(wc, min_col=7, min_row=1, max_row=4)],
-    [PURPLE, GREEN]
+    [PURPLE, GREEN],
+    x_title="Category", y_title="Amount ($)"
 )
 ws.add_chart(chart2, "L12")   # right half (col 12 = L)
 
@@ -272,7 +293,8 @@ chart3 = make_bar(
     Reference(wc, min_col=9,  min_row=2, max_row=ch3_end),
     [Reference(wc, min_col=10, min_row=1, max_row=ch3_end)],
     [ACCENT],
-    horiz=True
+    horiz=True,
+    x_title="Cost Code", y_title="Remaining ($)"
 )
 ws.add_chart(chart3, "B33")
 
