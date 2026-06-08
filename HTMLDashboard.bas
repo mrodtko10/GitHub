@@ -212,20 +212,11 @@ Sub OpenDashboardButton()
         Exit Sub
     End If
 
-    ' Use WScript.Shell to open as a file:/// URL
-    ' This routes to the browser rather than PDF viewer
+    ' FollowHyperlink is Excel-native and never interferes with the workbook
     Dim url As String
     url = "file:///" & Replace(Replace(htmlPath, "\", "/"), " ", "%20")
-
-    Dim wsh As Object
-    Set wsh = CreateObject("WScript.Shell")
     On Error Resume Next
-    wsh.Run url
-    If Err.Number <> 0 Then
-        ' Fallback: use FollowHyperlink
-        Err.Clear
-        ThisWorkbook.FollowHyperlink Address:=htmlPath, NewWindow:=True
-    End If
+    ThisWorkbook.FollowHyperlink Address:=url, NewWindow:=True
     On Error GoTo 0
 End Sub
 
