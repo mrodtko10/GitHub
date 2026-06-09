@@ -91,30 +91,29 @@
   .pagination button:disabled{opacity:.4;cursor:not-allowed}
   .pagination button:hover:not(:disabled){border-color:var(--accent)}
   @media(max-width:900px){.charts-row{grid-template-columns:1fr}}
-  @page{size:11in 8.5in;margin:10mm}
+  @page{size:17in 11in;margin:8mm}
   @media print{
     *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;box-sizing:border-box}
-    body{background:var(--bg)!important;color:var(--text)!important;font-size:10px;width:100%}
+    body{background:var(--bg)!important;color:var(--text)!important;font-size:11px}
     .filters,.btn-reset,.pagination,button[onclick="window.print()"]{display:none!important}
-    .header{padding:8px 14px}
-    .main{padding:8px 14px;gap:8px;width:100%}
-    /* KPI row — single line */
-    .kpi-grid{grid-template-columns:repeat(7,1fr);gap:6px}
+    .header{padding:8px 16px}
+    .main{padding:10px 16px;gap:10px}
+    /* KPI — single row across full width */
+    .kpi-grid{grid-template-columns:repeat(7,1fr);gap:8px}
     .kpi{padding:8px 10px}
-    .kpi-value{font-size:13px}
-    .kpi-sub{font-size:8px}
-    .kpi-label{font-size:9px;margin-bottom:4px}
-    /* Two-column chart rows */
-    .charts-row{grid-template-columns:1fr 1fr;gap:8px;page-break-inside:avoid}
-    .chart-card{padding:10px;overflow:hidden;page-break-inside:avoid}
-    .chart-card.wide{padding:10px;overflow:hidden;page-break-inside:avoid}
-    /* Heights set by JS beforeprint handler — just ensure no overflow */
-    .chart-wrap,.chart-wrap-tall{overflow:visible}
+    .kpi-value{font-size:14px}
+    .kpi-sub{font-size:9px}
+    .kpi-label{font-size:9px;margin-bottom:3px}
+    /* Charts */
+    .charts-row{grid-template-columns:1fr 1fr;gap:10px;page-break-inside:avoid}
+    .chart-card,.chart-card.wide{padding:12px;page-break-inside:avoid}
+    .chart-wrap{height:220px!important}
+    .chart-wrap-tall{height:240px!important}
+    .chart-title{font-size:11px;margin-bottom:4px}
     /* Tables on new page */
     .table-card{page-break-before:always;padding:10px}
-    table{font-size:9.5px}
-    td,th{padding:4px 7px}
-    .chart-title{font-size:11px;margin-bottom:4px}
+    table{font-size:10px}
+    td,th{padding:5px 8px}
   }
 </style>
 </head>
@@ -710,17 +709,18 @@ document.getElementById('ouFilter').addEventListener('change',applyFilters);
 
 // ── Print: resize charts before/after printing ───────────────────────────────
 function resizeChartsForPrint(printing) {
-  const PRINT_H   = 155;
+  const PRINT_H   = 220;
+  const PRINT_HT  = 240;
   const NORMAL_H  = 280;
   const NORMAL_HT = 320;
   document.querySelectorAll('.chart-wrap').forEach(el=>{
     el.style.height = (printing ? PRINT_H : NORMAL_H) + 'px';
   });
   document.querySelectorAll('.chart-wrap-tall').forEach(el=>{
-    el.style.height = (printing ? PRINT_H + 20 : NORMAL_HT) + 'px';
+    el.style.height = (printing ? PRINT_HT : NORMAL_HT) + 'px';
   });
-  // Resize all Chart.js instances so they re-render at the new height
-  Object.values(charts).forEach(c=>{ try{ c.resize(); }catch(e){} });
+  // Give the DOM a moment to reflow then resize Chart.js canvases
+  setTimeout(()=>{ Object.values(charts).forEach(c=>{ try{ c.resize(); }catch(e){} }); }, 100);
 }
 
 window.addEventListener('beforeprint', ()=>resizeChartsForPrint(true));
