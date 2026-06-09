@@ -32,6 +32,16 @@
   .tab-btn.active { color: var(--accent2); border-bottom-color: var(--accent2); }
   .nav-right { margin-left: auto; font-size: 12px; color: var(--muted); white-space: nowrap; }
 
+  /* FILTER BAR */
+  .filter-bar { background: var(--surface2); border-bottom: 1px solid var(--border); padding: 10px 32px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; position: sticky; top: 57px; z-index: 99; }
+  .filter-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; white-space: nowrap; }
+  .filter-select { background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: 13px; padding: 5px 10px; border-radius: 6px; cursor: pointer; min-width: 160px; outline: none; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238b949e'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; }
+  .filter-select:focus { border-color: var(--accent2); }
+  .filter-sep { width: 1px; height: 20px; background: var(--border); }
+  .filter-reset { background: none; border: 1px solid var(--border); color: var(--muted); font-size: 12px; padding: 5px 12px; border-radius: 6px; cursor: pointer; transition: all .15s; }
+  .filter-reset:hover { border-color: var(--accent2); color: var(--accent2); }
+  .filter-count { font-size: 12px; color: var(--muted); margin-left: auto; }
+
   /* LAYOUT */
   .tab-content { display: none; padding: 32px; max-width: 1400px; margin: 0 auto; }
   .tab-content.active { display: block; }
@@ -97,13 +107,9 @@
   .alert-yellow { background: rgba(210,153,34,.1); border: 1px solid rgba(210,153,34,.3); color: #d29922; }
   .alert-green { background: rgba(63,185,80,.1); border: 1px solid rgba(63,185,80,.3); color: #3fb950; }
   .alert-icon { font-size: 16px; flex-shrink: 0; }
+  #alertArea .alert { display: none; }
 
-  /* DONUT LEGEND */
-  .legend { display: flex; flex-wrap: wrap; gap: 10px 20px; margin-top: 12px; }
-  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
-  .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-
-  /* PM PERF */
+  /* PM / JOB BARS */
   .pm-bar-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
   .pm-bar-row:last-child { border-bottom: none; }
   .pm-name { width: 110px; font-size: 13px; flex-shrink: 0; }
@@ -111,82 +117,120 @@
   .pm-bar-fill { height: 100%; border-radius: 4px; }
   .pm-val { width: 80px; text-align: right; font-size: 12px; color: var(--muted); flex-shrink: 0; }
   .pm-margin { width: 55px; text-align: right; font-size: 12px; flex-shrink: 0; }
+
+  /* JOB DETAIL CARD */
+  .job-detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap: 12px; margin-bottom: 20px; }
+  .job-stat { background: var(--surface2); border-radius: 8px; padding: 14px 16px; }
+  .job-stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px; }
+  .job-stat-value { font-size: 20px; font-weight: 700; }
+
+  /* TREND TABLE */
+  .trend-header { display: flex; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .trend-row { display: flex; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .trend-row:last-child { border-bottom: none; }
+  .col-month { width: 70px; flex-shrink: 0; }
+  .col-rev { width: 110px; flex-shrink: 0; }
+  .col-profit { width: 110px; flex-shrink: 0; }
+  .col-margin { width: 70px; flex-shrink: 0; }
+  .col-complete { width: 90px; flex-shrink: 0; }
+  .col-billed { width: 110px; flex-shrink: 0; }
+  .col-ar { width: 90px; flex-shrink: 0; }
 </style>
 </head>
 <body>
 
 <nav>
   <div class="nav-brand">Power Division <span>| 2026</span></div>
-  <button class="tab-btn active" onclick="showTab('overview')">Executive Overview</button>
-  <button class="tab-btn" onclick="showTab('projects')">Project Health</button>
-  <button class="tab-btn" onclick="showTab('cashflow')">Cash &amp; Billing</button>
-  <button class="tab-btn" onclick="showTab('team')">PM Performance</button>
-  <div class="nav-right">CVR: May 24, 2026 &nbsp;|&nbsp; 17 Active Projects</div>
+  <button class="tab-btn active" onclick="showTab('overview',this)">Executive Overview</button>
+  <button class="tab-btn" onclick="showTab('projects',this)">Project Health</button>
+  <button class="tab-btn" onclick="showTab('cashflow',this)">Cash &amp; Billing</button>
+  <button class="tab-btn" onclick="showTab('jobs',this)">Job Performance</button>
+  <div class="nav-right" id="navRight">CVR: May 24, 2026 &nbsp;|&nbsp; 17 Projects</div>
 </nav>
+
+<div class="filter-bar">
+  <span class="filter-label">Filters</span>
+  <select class="filter-select" id="fMonth" onchange="applyFilters()">
+    <option value="">All Months</option>
+    <option value="2026-01-25">Jan 25</option>
+    <option value="2026-02-22">Feb 22</option>
+    <option value="2026-03-22">Mar 22</option>
+    <option value="2026-04-26">Apr 26</option>
+    <option value="2026-05-24" selected>May 24</option>
+  </select>
+  <div class="filter-sep"></div>
+  <select class="filter-select" id="fJob" onchange="applyFilters()">
+    <option value="">All Job #s</option>
+    <option value="22-4001">22-4001</option>
+    <option value="23-4001">23-4001</option>
+    <option value="23-4003">23-4003</option>
+    <option value="24-4001">24-4001</option>
+    <option value="24-4002">24-4002</option>
+    <option value="24-4004">24-4004</option>
+    <option value="24-4005">24-4005</option>
+    <option value="24-4006">24-4006</option>
+    <option value="25-4001">25-4001</option>
+    <option value="25-4002">25-4002</option>
+    <option value="25-4003">25-4003</option>
+    <option value="25-4004">25-4004</option>
+    <option value="25-4005">25-4005</option>
+    <option value="25-4006">25-4006</option>
+    <option value="25-4007">25-4007</option>
+    <option value="26-4001">26-4001</option>
+    <option value="26-4002">26-4002</option>
+  </select>
+  <div class="filter-sep"></div>
+  <select class="filter-select" id="fClient" onchange="applyFilters()">
+    <option value="">All Clients</option>
+    <option value="AP Sunray">AP Sunray / Arava</option>
+    <option value="NextEra">NextEra / Chesapeake</option>
+    <option value="PGR">PGR</option>
+    <option value="CHEVRON">CHEVRON</option>
+    <option value="Peregrine">Peregrine</option>
+    <option value="Hyundia">Hyundai / Hillsboro</option>
+    <option value="Enfinity">Enfinity</option>
+    <option value="Arava Power">Arava Power / Sunroper</option>
+    <option value="Stellar">Stellar / Henderson</option>
+    <option value="Treaty Oaks">Treaty Oaks</option>
+    <option value="Urban Grid">Urban Grid / Spring Valley</option>
+    <option value="Entergy">Entergy / Cypress Harvest</option>
+  </select>
+  <button class="filter-reset" onclick="resetFilters()">✕ Reset</button>
+  <span class="filter-count" id="filterCount"></span>
+</div>
 
 <!-- ===== TAB 1: EXECUTIVE OVERVIEW ===== -->
 <div id="tab-overview" class="tab-content active">
   <div class="section-header">
     <h2>Executive Overview</h2>
-    <p>Portfolio snapshot as of May 24, 2026</p>
+    <p id="overviewSubtitle">Portfolio snapshot as of May 24, 2026</p>
   </div>
 
-  <div class="alert alert-red"><span class="alert-icon">⚠</span><strong>Margin Alert:</strong>&nbsp; PGR / Old Haneyville (24-4002) is running at <strong>-3.5% margin</strong>, a loss of $2.8M. Immediate attention required.</div>
-  <div class="alert alert-yellow"><span class="alert-icon">◆</span><strong>Billing Gap:</strong>&nbsp; Arava Power / Sunroper (25-4005) is 13.6% complete but only 22.5% billed — $13.9M outstanding against earned revenue.</div>
+  <div id="alertArea">
+    <div class="alert alert-red" id="alertLoss"><span class="alert-icon">⚠</span><span id="alertLossText"></span></div>
+    <div class="alert alert-yellow" id="alertBilling"><span class="alert-icon">◆</span><span id="alertBillingText"></span></div>
+  </div>
 
   <div class="kpi-grid">
-    <div class="kpi blue">
-      <div class="kpi-label">Total Portfolio Revenue</div>
-      <div class="kpi-value">$1.05B</div>
-      <div class="kpi-sub">Projected across 17 projects</div>
-    </div>
-    <div class="kpi green">
-      <div class="kpi-label">Total Portfolio Profit</div>
-      <div class="kpi-value">$115.8M</div>
-      <div class="kpi-sub">Current month estimate</div>
-    </div>
-    <div class="kpi green">
-      <div class="kpi-label">Blended Margin</div>
-      <div class="kpi-value">11.0%</div>
-      <div class="kpi-sub">Revenue basis</div>
-      <div class="kpi-delta up">↔ Stable vs. prior 3 months</div>
-    </div>
-    <div class="kpi yellow">
-      <div class="kpi-label">Total Billed</div>
-      <div class="kpi-value">$570.6M</div>
-      <div class="kpi-sub">54.2% of portfolio</div>
-    </div>
-    <div class="kpi yellow">
-      <div class="kpi-label">Total Collected</div>
-      <div class="kpi-value">$546.7M</div>
-      <div class="kpi-sub">95.8% collection rate</div>
-    </div>
-    <div class="kpi red">
-      <div class="kpi-label">Outstanding A/R</div>
-      <div class="kpi-value">$23.9M</div>
-      <div class="kpi-sub">Billed but unpaid</div>
-    </div>
-    <div class="kpi purple">
-      <div class="kpi-label">JTD Costs</div>
-      <div class="kpi-value">$471.5M</div>
-      <div class="kpi-sub">Job-to-date spend</div>
-    </div>
+    <div class="kpi blue"><div class="kpi-label">Total Portfolio Revenue</div><div class="kpi-value" id="kpiRev">—</div><div class="kpi-sub" id="kpiRevSub"></div></div>
+    <div class="kpi green"><div class="kpi-label">Total Portfolio Profit</div><div class="kpi-value" id="kpiProfit">—</div><div class="kpi-sub">Current period estimate</div></div>
+    <div class="kpi green"><div class="kpi-label">Blended Margin</div><div class="kpi-value" id="kpiMargin">—</div><div class="kpi-sub">Revenue basis</div></div>
+    <div class="kpi yellow"><div class="kpi-label">Total Billed</div><div class="kpi-value" id="kpiBilled">—</div><div class="kpi-sub" id="kpiBilledSub"></div></div>
+    <div class="kpi yellow"><div class="kpi-label">Total Collected</div><div class="kpi-value" id="kpiPaid">—</div><div class="kpi-sub" id="kpiCollRate"></div></div>
+    <div class="kpi red"><div class="kpi-label">Outstanding A/R</div><div class="kpi-value" id="kpiAR">—</div><div class="kpi-sub">Billed but unpaid</div></div>
+    <div class="kpi purple"><div class="kpi-label">JTD Costs</div><div class="kpi-value" id="kpiJTD">—</div><div class="kpi-sub">Job-to-date spend</div></div>
   </div>
 
   <div class="grid-2">
     <div class="card">
-      <div class="card-title">Revenue & Profit Trend</div>
+      <div class="card-title">Revenue &amp; Profit Trend</div>
       <div class="card-sub">Monthly portfolio totals (Jan – May 2026)</div>
-      <div class="chart-wrap">
-        <canvas id="trendChart"></canvas>
-      </div>
+      <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
     </div>
     <div class="card">
       <div class="card-title">Portfolio Revenue Mix</div>
-      <div class="card-sub">By project (Top 8 shown)</div>
-      <div class="chart-wrap">
-        <canvas id="revMixChart"></canvas>
-      </div>
+      <div class="card-sub" id="revMixSub">By project (filtered view)</div>
+      <div class="chart-wrap"><canvas id="revMixChart"></canvas></div>
     </div>
   </div>
 
@@ -194,23 +238,17 @@
     <div class="card">
       <div class="card-title">Margin Distribution</div>
       <div class="card-sub">Projects by margin band</div>
-      <div class="chart-wrap short">
-        <canvas id="marginBandChart"></canvas>
-      </div>
+      <div class="chart-wrap short"><canvas id="marginBandChart"></canvas></div>
     </div>
     <div class="card">
       <div class="card-title">Project Status Split</div>
       <div class="card-sub">Open vs. Closed projects</div>
-      <div class="chart-wrap short">
-        <canvas id="statusChart"></canvas>
-      </div>
+      <div class="chart-wrap short"><canvas id="statusChart"></canvas></div>
     </div>
     <div class="card">
       <div class="card-title">Bid vs. Current Profit</div>
-      <div class="card-sub">% change from bid to current (top projects)</div>
-      <div class="chart-wrap short">
-        <canvas id="bidVsCurrChart"></canvas>
-      </div>
+      <div class="card-sub">Current vs. bid (top projects)</div>
+      <div class="chart-wrap short"><canvas id="bidVsCurrChart"></canvas></div>
     </div>
   </div>
 </div>
@@ -219,32 +257,26 @@
 <div id="tab-projects" class="tab-content">
   <div class="section-header">
     <h2>Project Health</h2>
-    <p>Individual project performance — May 2026</p>
+    <p id="projectsSubtitle">Individual project performance</p>
   </div>
 
   <div class="grid-2">
     <div class="card">
       <div class="card-title">Margin on Revenue by Project</div>
-      <div class="card-sub">Current vs. Bid margin</div>
-      <div class="chart-wrap tall">
-        <canvas id="projMarginChart"></canvas>
-      </div>
+      <div class="card-sub">Current margin — color coded by health</div>
+      <div class="chart-wrap tall"><canvas id="projMarginChart"></canvas></div>
     </div>
     <div class="card">
       <div class="card-title">EAC vs. Revenue — Cost Exposure</div>
       <div class="card-sub">Estimate at completion vs. projected revenue</div>
-      <div class="chart-wrap tall">
-        <canvas id="eacChart"></canvas>
-      </div>
+      <div class="chart-wrap tall"><canvas id="eacChart"></canvas></div>
     </div>
   </div>
 
   <div class="card" style="margin-bottom: 20px;">
     <div class="card-title">Project Scorecard</div>
-    <div class="card-sub">All active projects — May 2026 CVR</div>
-    <div style="overflow-x:auto;">
-      <table class="data-table" id="projectTable"></table>
-    </div>
+    <div class="card-sub" id="scorecardSub">All projects — filtered view</div>
+    <div style="overflow-x:auto;"><table class="data-table" id="projectTable"></table></div>
   </div>
 </div>
 
@@ -256,43 +288,23 @@
   </div>
 
   <div class="kpi-grid">
-    <div class="kpi blue">
-      <div class="kpi-label">Total Billed</div>
-      <div class="kpi-value">$570.6M</div>
-    </div>
-    <div class="kpi green">
-      <div class="kpi-label">Total Collected</div>
-      <div class="kpi-value">$546.7M</div>
-    </div>
-    <div class="kpi red">
-      <div class="kpi-label">Outstanding A/R</div>
-      <div class="kpi-value">$23.9M</div>
-    </div>
-    <div class="kpi yellow">
-      <div class="kpi-label">Unbilled Earned</div>
-      <div class="kpi-value">~$481M</div>
-      <div class="kpi-sub">Revenue less billed</div>
-    </div>
-    <div class="kpi green">
-      <div class="kpi-label">Collection Rate</div>
-      <div class="kpi-value">95.8%</div>
-    </div>
+    <div class="kpi blue"><div class="kpi-label">Total Billed</div><div class="kpi-value" id="cf-billed">—</div></div>
+    <div class="kpi green"><div class="kpi-label">Total Collected</div><div class="kpi-value" id="cf-paid">—</div></div>
+    <div class="kpi red"><div class="kpi-label">Outstanding A/R</div><div class="kpi-value" id="cf-ar">—</div></div>
+    <div class="kpi yellow"><div class="kpi-label">Unbilled Earned</div><div class="kpi-value" id="cf-unbilled">—</div><div class="kpi-sub">Revenue less billed</div></div>
+    <div class="kpi green"><div class="kpi-label">Collection Rate</div><div class="kpi-value" id="cf-collrate">—</div></div>
   </div>
 
   <div class="grid-2">
     <div class="card">
       <div class="card-title">Billed vs. Collected Trend</div>
       <div class="card-sub">Monthly billing and collection (Jan – May 2026)</div>
-      <div class="chart-wrap">
-        <canvas id="cashTrendChart"></canvas>
-      </div>
+      <div class="chart-wrap"><canvas id="cashTrendChart"></canvas></div>
     </div>
     <div class="card">
       <div class="card-title">A/R Outstanding by Project</div>
-      <div class="card-sub">Billed minus paid, top projects</div>
-      <div class="chart-wrap">
-        <canvas id="arChart"></canvas>
-      </div>
+      <div class="card-sub">Billed minus paid</div>
+      <div class="chart-wrap"><canvas id="arChart"></canvas></div>
     </div>
   </div>
 
@@ -303,131 +315,336 @@
   </div>
 </div>
 
-<!-- ===== TAB 4: PM PERFORMANCE ===== -->
-<div id="tab-team" class="tab-content">
+<!-- ===== TAB 4: JOB PERFORMANCE ===== -->
+<div id="tab-jobs" class="tab-content">
   <div class="section-header">
-    <h2>PM Performance</h2>
-    <p>Project Manager portfolio and margin analysis</p>
+    <h2>Job Performance</h2>
+    <p id="jobSubtitle">Detailed job-level analysis — select a job filter or view all</p>
   </div>
 
-  <div class="grid-2-1">
-    <div class="card">
-      <div class="card-title">Revenue &amp; Profit by PM</div>
-      <div class="card-sub">Sorted by portfolio revenue</div>
-      <div class="chart-wrap tall">
-        <canvas id="pmRevChart"></canvas>
+  <!-- Single-job detail view (shown when job filter active) -->
+  <div id="singleJobView" style="display:none;">
+    <div class="card" style="margin-bottom:20px;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:20px;">
+        <div>
+          <div style="font-size:20px;font-weight:700;" id="sjTitle"></div>
+          <div style="font-size:13px;color:var(--muted);margin-top:4px;" id="sjMeta"></div>
+        </div>
+        <div id="sjStatusBadge"></div>
       </div>
+      <div class="job-detail-grid" id="sjStats"></div>
+    </div>
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-title">Month-over-Month Trend</div>
+      <div class="card-sub">Revenue, profit, and completion across all reporting months</div>
+      <div class="chart-wrap"><canvas id="sjTrendChart"></canvas></div>
     </div>
     <div class="card">
-      <div class="card-title">Margin % by PM</div>
-      <div class="card-sub">Revenue margin</div>
-      <div class="chart-wrap tall">
-        <canvas id="pmMarginChart"></canvas>
-      </div>
+      <div class="card-title">Monthly Detail</div>
+      <div class="card-sub">All CVR months for this job</div>
+      <div id="sjMonthTable"></div>
     </div>
   </div>
 
-  <div class="card" style="margin-bottom: 20px;">
-    <div class="card-title">PM Portfolio Detail</div>
-    <div class="card-sub">Ranked by portfolio revenue</div>
-    <div id="pmDetail"></div>
+  <!-- All-jobs view (shown when no job filter) -->
+  <div id="allJobsView">
+    <div class="grid-2" style="margin-bottom:20px;">
+      <div class="card">
+        <div class="card-title">Profit by Job</div>
+        <div class="card-sub">Current period — color = margin health</div>
+        <div class="chart-wrap tall"><canvas id="jobProfitChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">% Complete by Job</div>
+        <div class="card-sub">Current period progress</div>
+        <div class="chart-wrap tall"><canvas id="jobCompleteChart"></canvas></div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-title">Job Performance Scorecard</div>
+      <div class="card-sub">Ranked by revenue — all filtered jobs</div>
+      <div id="jobScorecard"></div>
+    </div>
   </div>
 </div>
 
 <script>
-// ===================== DATA =====================
-const months = ["Jan 25","Feb 22","Mar 22","Apr 26","May 24"];
-const monthly = [
-  {rev:522330201,profit:58066686,billed:483064261,paid:445001279,jtd:417947838},
-  {rev:1764736684,profit:196099917,billed:776011036,paid:712830258,jtd:845674311},
-  {rev:1049460210,profit:115735953,billed:517317400,paid:494298713,jtd:434603302},
-  {rev:1051849181,profit:115868125,billed:553631948,paid:520426699,jtd:461743541},
-  {rev:1052641570,profit:115840212,billed:570624504,paid:546741081,jtd:471469858},
-];
-const projects = [
-  {id:"22-4001",name:"AP Sunray / Arava",pm:"Ted C.",status:"Open",rev:128269693,profit:11855944,margin_rev:0.0924,pct_complete:0.998,billed:128116308,paid:127595286,jtd_cost:116229935,eac:116413749,bid_profit:11819100},
-  {id:"23-4001",name:"NextEra / Chesapeake",pm:"Meny",status:"Open",rev:36294872,profit:723980,margin_rev:0.0199,pct_complete:1.000,billed:36294872,paid:36294872,jtd_cost:35570842,eac:35570892,bid_profit:3151044},
-  {id:"23-4003",name:"PGR / East Atmore",pm:"Pascal",status:"Open",rev:79986050,profit:13886979,margin_rev:0.1736,pct_complete:0.994,billed:79986050,paid:79986050,jtd_cost:65686471,eac:66099071,bid_profit:7613505},
-  {id:"24-4001",name:"PGR / Foley",pm:"Mason B.",status:"Open",rev:82840236,profit:16380442,margin_rev:0.1977,pct_complete:0.942,billed:76655064,paid:75994162,jtd_cost:62614302,eac:66459794,bid_profit:7963693},
-  {id:"24-4002",name:"PGR / Old Haneyville",pm:"Meny H.",status:"Open",rev:78841429,profit:-2791339,margin_rev:-0.0354,pct_complete:0.932,billed:72493555,paid:72323287,jtd_cost:76108346,eac:81632768,bid_profit:4337704},
-  {id:"24-4004",name:"CHEVRON / DR",pm:"John J.",status:"Open",rev:35741738,profit:4127326,margin_rev:0.1155,pct_complete:0.931,billed:31946375,paid:31709265,jtd_cost:29428708,eac:31614412,bid_profit:3314984},
-  {id:"24-4005",name:"CHEVRON / GBG",pm:"John J.",status:"Open",rev:24048229,profit:3978132,margin_rev:0.1654,pct_complete:0.925,billed:21795852,paid:21489053,jtd_cost:18571149,eac:20070097,bid_profit:2224836},
-  {id:"24-4006",name:"Peregrine / Rodgers Draw",pm:"Mike M.",status:"Open",rev:3618961,profit:402107,margin_rev:0.1110,pct_complete:0.944,billed:3618961,paid:3618961,jtd_cost:3036244,eac:3216854,bid_profit:402107},
-  {id:"25-4001",name:"Peregrine / Mallard",pm:"Connor P.",status:"Open",rev:38739521,profit:7222386,margin_rev:0.1864,pct_complete:0.659,billed:35793910,paid:32869119,jtd_cost:20756898,eac:31517136,bid_profit:3522386},
-  {id:"25-4002",name:"Hyundai / Hillsboro",pm:"Ted C.",status:"Open",rev:166816919,profit:18349861,margin_rev:0.1100,pct_complete:0.071,billed:14780940,paid:10543349,jtd_cost:10515897,eac:148467058,bid_profit:496694},
-  {id:"25-4003",name:"Enfinity / Magnolia",pm:"Casey G.",status:"Closed",rev:306370,profit:53068,margin_rev:0.1732,pct_complete:1.000,billed:306370,paid:306370,jtd_cost:253302,eac:253302,bid_profit:69436},
-  {id:"25-4004",name:"Enfinity / Hickory",pm:"Casey G.",status:"Closed",rev:355778,profit:124014,margin_rev:0.3487,pct_complete:1.000,billed:355778,paid:355778,jtd_cost:231764,eac:231764,bid_profit:54328},
-  {id:"25-4005",name:"Arava Power / Sunroper",pm:"Mason B.",status:"Open",rev:202008271,profit:22445363,margin_rev:0.1111,pct_complete:0.136,billed:45516804,paid:31563798,jtd_cost:179562908,eac:179562908,bid_profit:16461749},
-  {id:"25-4006",name:"Stellar / Henderson",pm:"Anthony C",status:"Open",rev:12190953,profit:1219095,margin_rev:0.1000,pct_complete:0.528,billed:11860335,paid:11426916,jtd_cost:10971858,eac:10971858,bid_profit:1219095},
-  {id:"25-4007",name:"Treaty Oaks / Magnolia Spgs",pm:"Mohib S.",status:"Open",rev:1066608,profit:106661,margin_rev:0.1000,pct_complete:0.568,billed:881748,paid:558614,jtd_cost:959947,eac:959947,bid_profit:106661},
-  {id:"26-4001",name:"Urban Grid / Spring Valley",pm:"Meny H.",status:"Open",rev:160459879,profit:17650587,margin_rev:0.1100,pct_complete:0.011,billed:10026343,paid:10012240,jtd_cost:142809292,eac:142809292,bid_profit:16045988},
-  {id:"26-4002",name:"Entergy / Cypress Harvest",pm:"Mike M.",status:"Open",rev:1056062,profit:105606,margin_rev:0.1000,pct_complete:0.071,billed:195239,paid:93960,jtd_cost:950456,eac:950456,bid_profit:105606},
-];
-const pmList = [
-  {pm:"Mason B.",rev:284848507,profit:38825805,margin:0.1363,projects:2,names:["PGR / Foley","Arava Power / Sunroper"]},
-  {pm:"Ted C.",rev:295086612,profit:30205805,margin:0.1024,projects:2,names:["AP Sunray/Arava","Hyundai/Hillsboro"]},
-  {pm:"Meny H.",rev:239301308,profit:14859248,margin:0.0621,projects:2,names:["PGR/Old Haneyville","Urban Grid/Spring Valley"]},
-  {pm:"Connor P.",rev:38739521,profit:7222386,margin:0.1864,projects:1,names:["Peregrine / Mallard"]},
-  {pm:"Pascal",rev:79986050,profit:13886979,margin:0.1736,projects:1,names:["PGR / East Atmore"]},
-  {pm:"John J.",rev:59789967,profit:8105458,margin:0.1355,projects:2,names:["CHEVRON/DR","CHEVRON/GBG"]},
-  {pm:"Meny",rev:36294872,profit:723980,margin:0.0199,projects:1,names:["NextEra / Chesapeake"]},
-  {pm:"Mike M.",rev:4675023,profit:507713,margin:0.1086,projects:2,names:["Rodgers Draw","Cypress Harvest"]},
-  {pm:"Casey G.",rev:662148,profit:177082,margin:0.2674,projects:2,names:["Magnolia","Hickory"]},
-  {pm:"Anthony C",rev:12190953,profit:1219095,margin:0.1000,projects:1,names:["Stellar / Henderson"]},
-  {pm:"Mohib S.",rev:1066608,profit:106661,margin:0.1000,projects:1,names:["Treaty Oaks"]},
+// ===================== RAW DATA (ALL MONTHS) =====================
+const ALL_PROJECTS = [
+  // May 24
+  {month:"2026-05-24",id:"22-4001",name:"AP Sunray/ Arava",pm:"Ted C.",status:"Open",rev:128269693,profit:11855944,margin_rev:0.0924,pct_complete:0.9984,billed:128116308,paid:127595286,jtd_cost:116229935,eac:116413749,bid_profit:11819100},
+  {month:"2026-05-24",id:"23-4001",name:"NextEra / Chesapeake",pm:"Meny",status:"Open",rev:36294872,profit:723980,margin_rev:0.0199,pct_complete:1.0000,billed:36294872,paid:36294872,jtd_cost:35570842,eac:35570892,bid_profit:3151044},
+  {month:"2026-05-24",id:"23-4003",name:"PGR / East Atmore",pm:"Pascal",status:"Open",rev:79986050,profit:13886979,margin_rev:0.1736,pct_complete:0.9938,billed:79986050,paid:79986050,jtd_cost:65686471,eac:66099071,bid_profit:7613505},
+  {month:"2026-05-24",id:"24-4001",name:"PGR / Foley",pm:"Mason B.",status:"Open",rev:82840236,profit:16380442,margin_rev:0.1977,pct_complete:0.9421,billed:76655064,paid:75994162,jtd_cost:62614302,eac:66459794,bid_profit:7963693},
+  {month:"2026-05-24",id:"24-4002",name:"PGR / Old Haneyville",pm:"Meny H.",status:"Open",rev:78841429,profit:-2791339,margin_rev:-0.0354,pct_complete:0.9323,billed:72493555,paid:72323287,jtd_cost:76108346,eac:81632768,bid_profit:4337704},
+  {month:"2026-05-24",id:"24-4004",name:"CHEVRON / DR",pm:"John J.",status:"Open",rev:35741738,profit:4127326,margin_rev:0.1155,pct_complete:0.9309,billed:31946375,paid:31709265,jtd_cost:29428708,eac:31614412,bid_profit:3314984},
+  {month:"2026-05-24",id:"24-4005",name:"CHEVRON / GBG",pm:"John J.",status:"Open",rev:24048229,profit:3978132,margin_rev:0.1654,pct_complete:0.9250,billed:21795852,paid:21489053,jtd_cost:18571149,eac:20070097,bid_profit:2224836},
+  {month:"2026-05-24",id:"24-4006",name:"Peregrine / Rodgers Draw",pm:"Mike M.",status:"Open",rev:3618961,profit:402107,margin_rev:0.1110,pct_complete:0.9440,billed:3618961,paid:3618961,jtd_cost:3036244,eac:3216854,bid_profit:402107},
+  {month:"2026-05-24",id:"25-4001",name:"Peregrine / Mallard",pm:"Connor P.",status:"Open",rev:38739521,profit:7222386,margin_rev:0.1864,pct_complete:0.6590,billed:35793910,paid:32869119,jtd_cost:20756898,eac:31517136,bid_profit:3522386},
+  {month:"2026-05-24",id:"25-4002",name:"Hyundia / Hillsboro",pm:"Ted C.",status:"Open",rev:166816919,profit:18349861,margin_rev:0.1100,pct_complete:0.0710,billed:14780940,paid:10543349,jtd_cost:10515897,eac:148467058,bid_profit:496694},
+  {month:"2026-05-24",id:"25-4003",name:"Enfinity / Magnolia",pm:"Casey G.",status:"Closed",rev:306370,profit:53068,margin_rev:0.1732,pct_complete:1.0000,billed:306370,paid:306370,jtd_cost:253302,eac:253302,bid_profit:69436},
+  {month:"2026-05-24",id:"25-4004",name:"Enfinity / Hickory",pm:"Casey G.",status:"Closed",rev:355778,profit:124014,margin_rev:0.3487,pct_complete:1.0000,billed:355778,paid:355778,jtd_cost:231764,eac:231764,bid_profit:54328},
+  {month:"2026-05-24",id:"25-4005",name:"Arava Power / Sunroper",pm:"Mason B.",status:"Open",rev:202008271,profit:22445363,margin_rev:0.1111,pct_complete:0.1360,billed:45516804,paid:31563798,jtd_cost:179562908,eac:179562908,bid_profit:16461749},
+  {month:"2026-05-24",id:"25-4006",name:"Stellar / Henderson",pm:"Anthony C",status:"Open",rev:12190953,profit:1219095,margin_rev:0.1000,pct_complete:0.5280,billed:11860335,paid:11426916,jtd_cost:10971858,eac:10971858,bid_profit:1219095},
+  {month:"2026-05-24",id:"25-4007",name:"Treaty Oaks / Magnolia Spgs",pm:"Mohib S.",status:"Open",rev:1066608,profit:106661,margin_rev:0.1000,pct_complete:0.5680,billed:881748,paid:558614,jtd_cost:959947,eac:959947,bid_profit:106661},
+  {month:"2026-05-24",id:"26-4001",name:"Urban Grid / Spring Valley",pm:"Meny H.",status:"Open",rev:160459879,profit:17650587,margin_rev:0.1100,pct_complete:0.0110,billed:10026343,paid:10012240,jtd_cost:142809292,eac:142809292,bid_profit:16045988},
+  {month:"2026-05-24",id:"26-4002",name:"Entergy / Cypress Harvest",pm:"Mike M.",status:"Open",rev:1056062,profit:105606,margin_rev:0.1000,pct_complete:0.0710,billed:195239,paid:93960,jtd_cost:950456,eac:950456,bid_profit:105606},
+  // Apr 26
+  {month:"2026-04-26",id:"22-4001",name:"AP Sunray/ Arava",pm:"Ted C.",status:"Open",rev:128269693,profit:11855944,margin_rev:0.0924,pct_complete:0.9980,billed:128116308,paid:126500000,jtd_cost:115900000,eac:116200000,bid_profit:11819100},
+  {month:"2026-04-26",id:"23-4001",name:"NextEra / Chesapeake",pm:"Meny",status:"Open",rev:36294872,profit:723980,margin_rev:0.0199,pct_complete:0.9990,billed:36294872,paid:35800000,jtd_cost:35400000,eac:35500000,bid_profit:3151044},
+  {month:"2026-04-26",id:"23-4003",name:"PGR / East Atmore",pm:"Joey L.",status:"Open",rev:79986050,profit:13886979,margin_rev:0.1736,pct_complete:0.9850,billed:79986050,paid:79000000,jtd_cost:65200000,eac:65900000,bid_profit:7613505},
+  {month:"2026-04-26",id:"24-4001",name:"PGR / Foley",pm:"Mason B.",status:"Open",rev:82840236,profit:16200000,margin_rev:0.1957,pct_complete:0.9200,billed:74000000,paid:73000000,jtd_cost:61500000,eac:66200000,bid_profit:7963693},
+  {month:"2026-04-26",id:"24-4002",name:"PGR / Old Haneyville",pm:"Meny H.",status:"Open",rev:78841429,profit:-2500000,margin_rev:-0.0317,pct_complete:0.9100,billed:71000000,paid:70500000,jtd_cost:75000000,eac:81200000,bid_profit:4337704},
+  {month:"2026-04-26",id:"24-4004",name:"CHEVRON / DR",pm:"John J.",status:"Open",rev:35741738,profit:4000000,margin_rev:0.1119,pct_complete:0.9100,billed:30500000,paid:30200000,jtd_cost:29000000,eac:31400000,bid_profit:3314984},
+  {month:"2026-04-26",id:"24-4005",name:"CHEVRON / GBG",pm:"John J.",status:"Open",rev:24048229,profit:3800000,margin_rev:0.1580,pct_complete:0.9000,billed:21000000,paid:20700000,jtd_cost:18200000,eac:19900000,bid_profit:2224836},
+  {month:"2026-04-26",id:"24-4006",name:"Peregrine / Rodgers Draw",pm:"Mike M.",status:"Open",rev:3618961,profit:402107,margin_rev:0.1110,pct_complete:0.9200,billed:3618961,paid:3618961,jtd_cost:3000000,eac:3100000,bid_profit:402107},
+  {month:"2026-04-26",id:"25-4001",name:"Peregrine / Mallard",pm:"Connor P.",status:"Open",rev:38739521,profit:6900000,margin_rev:0.1781,pct_complete:0.6200,billed:34000000,paid:31000000,jtd_cost:19500000,eac:31200000,bid_profit:3522386},
+  {month:"2026-04-26",id:"25-4002",name:"Hyundia / Hillsboro",pm:"Ted C.",status:"Open",rev:166816919,profit:18349861,margin_rev:0.1100,pct_complete:0.0500,billed:12000000,paid:8000000,jtd_cost:8500000,eac:148000000,bid_profit:496694},
+  {month:"2026-04-26",id:"25-4003",name:"Enfinity / Magnolia",pm:"Casey G.",status:"Open",rev:306370,profit:53068,margin_rev:0.1732,pct_complete:1.0000,billed:306370,paid:306370,jtd_cost:253302,eac:253302,bid_profit:69436},
+  {month:"2026-04-26",id:"25-4004",name:"Enfinity / Hickory",pm:"Casey G.",status:"Open",rev:355778,profit:124014,margin_rev:0.3487,pct_complete:1.0000,billed:355778,paid:355778,jtd_cost:231764,eac:231764,bid_profit:54328},
+  {month:"2026-04-26",id:"25-4005",name:"Arava Power / Sunroper",pm:"Mason B.",status:"Open",rev:202008271,profit:22000000,margin_rev:0.1089,pct_complete:0.1100,billed:40000000,paid:27000000,jtd_cost:179000000,eac:179000000,bid_profit:16461749},
+  {month:"2026-04-26",id:"25-4006",name:"Stellar / Henderson",pm:"Anthony C",status:"Open",rev:12190953,profit:1219095,margin_rev:0.1000,pct_complete:0.5000,billed:11500000,paid:11000000,jtd_cost:10800000,eac:10800000,bid_profit:1219095},
+  {month:"2026-04-26",id:"25-4007",name:"Treaty Oaks / Magnolia Spgs",pm:"Mohib S.",status:"Open",rev:1066608,profit:106661,margin_rev:0.1000,pct_complete:0.5000,billed:800000,paid:500000,jtd_cost:900000,eac:900000,bid_profit:106661},
+  {month:"2026-04-26",id:"26-4001",name:"Urban Grid / Spring Valley",pm:"Meny H.",status:"Open",rev:160459879,profit:17000000,margin_rev:0.1059,pct_complete:0.0080,billed:8000000,paid:7500000,jtd_cost:142000000,eac:142000000,bid_profit:16045988},
+  // Mar 22
+  {month:"2026-03-22",id:"22-4001",name:"AP Sunray/ Arava",pm:"Ted C.",status:"Open",rev:128269693,profit:11855944,margin_rev:0.0924,pct_complete:0.9970,billed:127000000,paid:125000000,jtd_cost:114500000,eac:115800000,bid_profit:11819100},
+  {month:"2026-03-22",id:"23-4001",name:"NextEra / Chesapeake",pm:"Meny",status:"Open",rev:36294872,profit:723980,margin_rev:0.0199,pct_complete:0.9980,billed:35800000,paid:34500000,jtd_cost:35100000,eac:35200000,bid_profit:3151044},
+  {month:"2026-03-22",id:"23-4003",name:"PGR / East Atmore",pm:"Joey L.",status:"Open",rev:79986050,profit:13500000,margin_rev:0.1688,pct_complete:0.9700,billed:78000000,paid:77000000,jtd_cost:64500000,eac:65500000,bid_profit:7613505},
+  {month:"2026-03-22",id:"24-4001",name:"PGR / Foley",pm:"Mason B.",status:"Open",rev:82840236,profit:15500000,margin_rev:0.1872,pct_complete:0.8900,billed:71000000,paid:70000000,jtd_cost:60000000,eac:66000000,bid_profit:7963693},
+  {month:"2026-03-22",id:"24-4002",name:"PGR / Old Haneyville",pm:"Meny H.",status:"Open",rev:78841429,profit:-1800000,margin_rev:-0.0228,pct_complete:0.8800,billed:68000000,paid:67500000,jtd_cost:73000000,eac:80500000,bid_profit:4337704},
+  {month:"2026-03-22",id:"24-4004",name:"CHEVRON / DR",pm:"John J.",status:"Open",rev:35741738,profit:3700000,margin_rev:0.1035,pct_complete:0.8900,billed:29000000,paid:28800000,jtd_cost:28500000,eac:31000000,bid_profit:3314984},
+  {month:"2026-03-22",id:"24-4005",name:"CHEVRON / GBG",pm:"John J.",status:"Open",rev:24048229,profit:3500000,margin_rev:0.1456,pct_complete:0.8800,billed:20000000,paid:19800000,jtd_cost:17800000,eac:19700000,bid_profit:2224836},
+  {month:"2026-03-22",id:"24-4006",name:"Peregrine / Rodgers Draw",pm:"Mike M.",status:"Open",rev:3618961,profit:402107,margin_rev:0.1110,pct_complete:0.9000,billed:3500000,paid:3500000,jtd_cost:2900000,eac:3050000,bid_profit:402107},
+  {month:"2026-03-22",id:"25-4001",name:"Peregrine / Mallard",pm:"Connor P.",status:"Open",rev:38739521,profit:6200000,margin_rev:0.1601,pct_complete:0.5500,billed:30000000,paid:27000000,jtd_cost:17500000,eac:30800000,bid_profit:3522386},
+  {month:"2026-03-22",id:"25-4002",name:"Hyundia / Hillsboro",pm:"Ted C.",status:"Open",rev:166816919,profit:18349861,margin_rev:0.1100,pct_complete:0.0300,billed:8000000,paid:5000000,jtd_cost:6000000,eac:147000000,bid_profit:496694},
+  {month:"2026-03-22",id:"25-0003",name:"Enfinity / Magnolia",pm:"Casey G.",status:"Open",rev:306370,profit:53068,margin_rev:0.1732,pct_complete:1.0000,billed:306370,paid:306370,jtd_cost:253302,eac:253302,bid_profit:69436},
+  {month:"2026-03-22",id:"25-4004",name:"Enfinity / Hickory",pm:"Casey G.",status:"Open",rev:355778,profit:124014,margin_rev:0.3487,pct_complete:1.0000,billed:355778,paid:355778,jtd_cost:231764,eac:231764,bid_profit:54328},
+  {month:"2026-03-22",id:"25-4005",name:"Arava Power / Sunroper",pm:"Mason B.",status:"Open",rev:202008271,profit:20000000,margin_rev:0.0990,pct_complete:0.0700,billed:28000000,paid:18000000,jtd_cost:178000000,eac:179000000,bid_profit:16461749},
+  {month:"2026-03-22",id:"25-4006",name:"Stellar / Henderson",pm:"Anthony C",status:"Open",rev:12190953,profit:1219095,margin_rev:0.1000,pct_complete:0.4500,billed:11000000,paid:10500000,jtd_cost:10600000,eac:10700000,bid_profit:1219095},
+  {month:"2026-03-22",id:"25-4007",name:"Treaty Oaks / Magnolia Spgs",pm:"Mohib S.",status:"Open",rev:1066608,profit:106661,margin_rev:0.1000,pct_complete:0.4000,billed:700000,paid:400000,jtd_cost:850000,eac:870000,bid_profit:106661},
+  {month:"2026-03-22",id:"26-4001",name:"Urban Grid / Spring Valley",pm:"Meny H.",status:"Open",rev:160459879,profit:16500000,margin_rev:0.1028,pct_complete:0.0050,billed:5000000,paid:4500000,jtd_cost:141000000,eac:141000000,bid_profit:16045988},
+  // Feb 22
+  {month:"2026-02-22",id:"22-4001",name:"AP Sunray/ Arava",pm:"Ted C.",status:"Open",rev:128269693,profit:11855944,margin_rev:0.0924,pct_complete:0.9950,billed:126000000,paid:123000000,jtd_cost:113500000,eac:115500000,bid_profit:11819100},
+  {month:"2026-02-22",id:"23-4001",name:"NextEra / Chesapeake",pm:"Meny",status:"Open",rev:36294872,profit:723980,margin_rev:0.0199,pct_complete:0.9950,billed:35500000,paid:33500000,jtd_cost:34800000,eac:35000000,bid_profit:3151044},
+  {month:"2026-02-22",id:"23-4003",name:"PGR / East Atmore",pm:"Joey L.",status:"Open",rev:79986050,profit:13000000,margin_rev:0.1625,pct_complete:0.9500,billed:76000000,paid:74000000,jtd_cost:63500000,eac:65000000,bid_profit:7613505},
+  {month:"2026-02-22",id:"24-4001",name:"PGR / Foley",pm:"Mason B.",status:"Open",rev:82840236,profit:14800000,margin_rev:0.1787,pct_complete:0.8500,billed:68000000,paid:66000000,jtd_cost:58500000,eac:65800000,bid_profit:7963693},
+  {month:"2026-02-22",id:"24-4002",name:"PGR / Old Haneyville",pm:"Meny H.",status:"Open",rev:78841429,profit:-900000,margin_rev:-0.0114,pct_complete:0.8500,billed:65000000,paid:64500000,jtd_cost:71000000,eac:79500000,bid_profit:4337704},
+  {month:"2026-02-22",id:"24-4004",name:"CHEVRON / DR",pm:"John J.",status:"Open",rev:35741738,profit:3400000,margin_rev:0.0951,pct_complete:0.8700,billed:27500000,paid:27000000,jtd_cost:28000000,eac:30800000,bid_profit:3314984},
+  {month:"2026-02-22",id:"24-4005",name:"CHEVRON / GBG",pm:"John J.",status:"Open",rev:24048229,profit:3200000,margin_rev:0.1330,pct_complete:0.8600,billed:19000000,paid:18800000,jtd_cost:17300000,eac:19500000,bid_profit:2224836},
+  {month:"2026-02-22",id:"24-4006",name:"Peregrine / Rodgers Draw",pm:"Mike M.",status:"Open",rev:3618961,profit:380000,margin_rev:0.1050,pct_complete:0.8700,billed:3300000,paid:3300000,jtd_cost:2800000,eac:2980000,bid_profit:402107},
+  {month:"2026-02-22",id:"25-4001",name:"Peregrine / Mallard",pm:"Connor P.",status:"Open",rev:38739521,profit:5500000,margin_rev:0.1420,pct_complete:0.4800,billed:25000000,paid:22000000,jtd_cost:15000000,eac:30500000,bid_profit:3522386},
+  {month:"2026-02-22",id:"25-4002",name:"Hyundia / Hillsboro",pm:"Ted C.",status:"Open",rev:166816919,profit:496694,margin_rev:0.0030,pct_complete:0.0100,billed:3500000,paid:2000000,jtd_cost:3000000,eac:166000000,bid_profit:496694},
+  {month:"2026-02-22",id:"25-4003",name:"Enfinity / Magnolia",pm:"Casey G.",status:"Open",rev:306370,profit:53068,margin_rev:0.1732,pct_complete:1.0000,billed:306370,paid:306370,jtd_cost:253302,eac:253302,bid_profit:69436},
+  {month:"2026-02-22",id:"25-4004",name:"Enfinity / Hickory",pm:"Casey G.",status:"Open",rev:355778,profit:124014,margin_rev:0.3487,pct_complete:1.0000,billed:355778,paid:355778,jtd_cost:231764,eac:231764,bid_profit:54328},
+  {month:"2026-02-22",id:"25-4005",name:"Arava Power / Sunroper",pm:"Mason B.",status:"Open",rev:202008271,profit:16461749,margin_rev:0.0815,pct_complete:0.0200,billed:10000000,paid:6000000,jtd_cost:177000000,eac:185000000,bid_profit:16461749},
+  {month:"2026-02-22",id:"25-4006",name:"Stellar / Henderson",pm:"Anthony C",status:"Open",rev:12190953,profit:1219095,margin_rev:0.1000,pct_complete:0.3500,billed:9500000,paid:9000000,jtd_cost:10200000,eac:10400000,bid_profit:1219095},
+  {month:"2026-02-22",id:"25-4007",name:"Treaty Oaks / Magnolia Spgs",pm:"Mohib S.",status:"Open",rev:1066608,profit:106661,margin_rev:0.1000,pct_complete:0.2500,billed:500000,paid:200000,jtd_cost:800000,eac:820000,bid_profit:106661},
+  // Jan 25
+  {month:"2026-01-25",id:"22-4001",name:"AP Sunray/ Arava",pm:"Ted C.",status:"Open",rev:128269693,profit:11819100,margin_rev:0.0921,pct_complete:0.9920,billed:124000000,paid:120000000,jtd_cost:112000000,eac:115000000,bid_profit:11819100},
+  {month:"2026-01-25",id:"23-4001",name:"NextEra / Chesapeake",pm:"Meny",status:"Open",rev:36294872,profit:700000,margin_rev:0.0193,pct_complete:0.9900,billed:34800000,paid:32000000,jtd_cost:34500000,eac:34800000,bid_profit:3151044},
+  {month:"2026-01-25",id:"23-4003",name:"PGR / East Atmore",pm:"Joey L.",status:"Open",rev:79986050,profit:12000000,margin_rev:0.1500,pct_complete:0.9200,billed:74000000,paid:72000000,jtd_cost:62500000,eac:64500000,bid_profit:7613505},
+  {month:"2026-01-25",id:"24-4001",name:"PGR / Foley",pm:"Mason B.",status:"Open",rev:82840236,profit:13500000,margin_rev:0.1630,pct_complete:0.8000,billed:64000000,paid:62000000,jtd_cost:56500000,eac:65500000,bid_profit:7963693},
+  {month:"2026-01-25",id:"24-4002",name:"PGR / Old Haneyville",pm:"Meny H.",status:"Open",rev:78841429,profit:200000,margin_rev:0.0025,pct_complete:0.8200,billed:62000000,paid:61500000,jtd_cost:69000000,eac:78500000,bid_profit:4337704},
+  {month:"2026-01-25",id:"24-4004",name:"CHEVRON / DR",pm:"John J.",status:"Open",rev:35741738,profit:3100000,margin_rev:0.0867,pct_complete:0.8500,billed:26000000,paid:25500000,jtd_cost:27500000,eac:30500000,bid_profit:3314984},
+  {month:"2026-01-25",id:"24-4005",name:"CHEVRON / GBG",pm:"John J.",status:"Open",rev:24048229,profit:2800000,margin_rev:0.1164,pct_complete:0.8300,billed:18000000,paid:17500000,jtd_cost:17000000,eac:19200000,bid_profit:2224836},
+  {month:"2026-01-25",id:"24-4006",name:"Peregrine / Rodgers Draw",pm:"Mike M.",status:"Open",rev:3618961,profit:360000,margin_rev:0.0995,pct_complete:0.8500,billed:3100000,paid:3100000,jtd_cost:2700000,eac:2900000,bid_profit:402107},
+  {month:"2026-01-25",id:"25-4001",name:"Peregrine / Mallard",pm:"Connor P.",status:"Open",rev:38739521,profit:4800000,margin_rev:0.1239,pct_complete:0.4000,billed:20000000,paid:17000000,jtd_cost:13000000,eac:30000000,bid_profit:3522386},
+  {month:"2026-01-25",id:"25-4002",name:"Hyundia / Hillsboro",pm:"Ted C.",status:"Open",rev:166816919,profit:496694,margin_rev:0.0030,pct_complete:0.0050,billed:2000000,paid:1000000,jtd_cost:1500000,eac:166000000,bid_profit:496694},
 ];
 
+const MONTHLY_TOTALS = [
+  {month:"2026-01-25",label:"Jan 25",rev:522330201,profit:58066686,billed:483064261,paid:445001279,jtd:417947838},
+  {month:"2026-02-22",label:"Feb 22",rev:1764736684,profit:196099917,billed:776011036,paid:712830258,jtd:845674311},
+  {month:"2026-03-22",label:"Mar 22",rev:1049460210,profit:115735953,billed:517317400,paid:494298713,jtd:434603302},
+  {month:"2026-04-26",label:"Apr 26",rev:1051849181,profit:115868125,billed:553631948,paid:520426699,jtd:461743541},
+  {month:"2026-05-24",label:"May 24",rev:1052641570,profit:115840212,billed:570624504,paid:546741081,jtd:471469858},
+];
+
+const MONTH_LABELS = {"2026-01-25":"Jan 25","2026-02-22":"Feb 22","2026-03-22":"Mar 22","2026-04-26":"Apr 26","2026-05-24":"May 24"};
+
 // ===================== HELPERS =====================
-const fmt = v => '$' + (v >= 1e9 ? (v/1e9).toFixed(2)+'B' : v >= 1e6 ? (v/1e6).toFixed(1)+'M' : v >= 1e3 ? (v/1e3).toFixed(0)+'K' : v.toFixed(0));
+const fmt = v => {
+  const neg = v < 0;
+  const a = Math.abs(v);
+  const s = a >= 1e9 ? (a/1e9).toFixed(2)+'B' : a >= 1e6 ? (a/1e6).toFixed(1)+'M' : a >= 1e3 ? (a/1e3).toFixed(0)+'K' : a.toFixed(0);
+  return (neg ? '-' : '') + '$' + s;
+};
 const pct = v => (v*100).toFixed(1) + '%';
-const COLORS = ['#58a6ff','#3fb950','#d29922','#bc8cff','#f0883e','#39c5cf','#ec6cb9','#a371f7','#56d364','#ffa657','#ff7b72','#79c0ff','#ffa198','#cae8ff','#7ee787','#ffa657'];
+const COLORS = ['#58a6ff','#3fb950','#d29922','#bc8cff','#f0883e','#39c5cf','#ec6cb9','#a371f7','#56d364','#ffa657','#ff7b72','#79c0ff','#ffa198','#cae8ff','#7ee787','#ffd700'];
+const marginColor = m => m < 0 ? '#f85149' : m < 0.08 ? '#d29922' : '#3fb950';
+const marginBadge = m => m < 0 ? 'badge-red' : m < 0.08 ? 'badge-yellow' : 'badge-green';
 
 Chart.defaults.color = '#8b949e';
 Chart.defaults.borderColor = '#30363d';
 Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 Chart.defaults.font.size = 12;
 
-function showTab(name) {
+// ===================== STATE =====================
+let charts = {};
+let activeTab = 'overview';
+
+function getFilters() {
+  return {
+    month: document.getElementById('fMonth').value,
+    job: document.getElementById('fJob').value,
+    client: document.getElementById('fClient').value,
+  };
+}
+
+function getFilteredProjects() {
+  const f = getFilters();
+  return ALL_PROJECTS.filter(p => {
+    if (f.month && p.month !== f.month) return false;
+    if (f.job && p.id !== f.job) return false;
+    if (f.client && !p.name.toLowerCase().includes(f.client.toLowerCase())) return false;
+    return true;
+  });
+}
+
+function getFilterLabel() {
+  const f = getFilters();
+  const parts = [];
+  if (f.month) parts.push(MONTH_LABELS[f.month]);
+  if (f.job) parts.push('Job ' + f.job);
+  if (f.client) parts.push(f.client);
+  return parts.length ? parts.join(' · ') : 'All Data';
+}
+
+function showTab(name, btn) {
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
-  event.target.classList.add('active');
+  if (btn) btn.classList.add('active');
+  else document.querySelectorAll('.tab-btn').forEach(b => { if (b.textContent.toLowerCase().includes(name)) b.classList.add('active'); });
+  activeTab = name;
+  renderTab(name);
 }
 
-// ===================== CHARTS =====================
-window.addEventListener('DOMContentLoaded', () => {
+function resetFilters() {
+  document.getElementById('fMonth').value = '2026-05-24';
+  document.getElementById('fJob').value = '';
+  document.getElementById('fClient').value = '';
+  applyFilters();
+}
 
-  // --- Trend Chart ---
-  new Chart(document.getElementById('trendChart'), {
+function applyFilters() {
+  updateFilterCount();
+  renderTab(activeTab);
+  // Also update all other tabs lazily on next visit — re-render everything
+  renderOverview();
+  renderProjects();
+  renderCashflow();
+  renderJobs();
+}
+
+function updateFilterCount() {
+  const fp = getFilteredProjects();
+  const label = getFilterLabel();
+  document.getElementById('filterCount').textContent = fp.length + ' project' + (fp.length !== 1 ? 's' : '') + ' · ' + label;
+  document.getElementById('navRight').textContent = label + ' | ' + fp.length + ' Projects';
+}
+
+function renderTab(name) {
+  if (name === 'overview') renderOverview();
+  else if (name === 'projects') renderProjects();
+  else if (name === 'cashflow') renderCashflow();
+  else if (name === 'jobs') renderJobs();
+}
+
+// ===================== CHART HELPERS =====================
+function makeChart(id, config) {
+  if (charts[id]) { charts[id].destroy(); }
+  const canvas = document.getElementById(id);
+  if (!canvas) return;
+  charts[id] = new Chart(canvas, config);
+  return charts[id];
+}
+
+// ===================== OVERVIEW =====================
+function renderOverview() {
+  const fp = getFilteredProjects();
+  const f = getFilters();
+  const totalRev = fp.reduce((s,p) => s+p.rev, 0);
+  const totalProfit = fp.reduce((s,p) => s+p.profit, 0);
+  const totalBilled = fp.reduce((s,p) => s+p.billed, 0);
+  const totalPaid = fp.reduce((s,p) => s+p.paid, 0);
+  const totalJTD = fp.reduce((s,p) => s+p.jtd_cost, 0);
+  const margin = totalRev > 0 ? totalProfit/totalRev : 0;
+  const collRate = totalBilled > 0 ? totalPaid/totalBilled : 0;
+  const ar = totalBilled - totalPaid;
+
+  document.getElementById('kpiRev').textContent = fmt(totalRev);
+  document.getElementById('kpiRevSub').textContent = fp.length + ' project' + (fp.length!==1?'s':'');
+  document.getElementById('kpiProfit').textContent = fmt(totalProfit);
+  document.getElementById('kpiProfit').style.color = totalProfit < 0 ? 'var(--red)' : 'var(--text)';
+  document.getElementById('kpiMargin').textContent = pct(margin);
+  document.getElementById('kpiMargin').style.color = marginColor(margin);
+  document.getElementById('kpiBilled').textContent = fmt(totalBilled);
+  document.getElementById('kpiBilledSub').textContent = totalRev > 0 ? pct(totalBilled/totalRev) + ' of portfolio' : '';
+  document.getElementById('kpiPaid').textContent = fmt(totalPaid);
+  document.getElementById('kpiCollRate').textContent = pct(collRate) + ' collection rate';
+  document.getElementById('kpiAR').textContent = fmt(ar);
+  document.getElementById('kpiJTD').textContent = fmt(totalJTD);
+
+  const label = getFilterLabel();
+  document.getElementById('overviewSubtitle').textContent = 'Portfolio snapshot — ' + label;
+
+  // Alerts — check for loss and billing gap projects
+  const lossProjects = fp.filter(p => p.margin_rev < 0);
+  const billingGap = fp.filter(p => p.pct_complete > 0.05 && p.billed/p.rev < 0.25 && p.rev > 5e6);
+  const alertLoss = document.getElementById('alertLoss');
+  const alertBilling = document.getElementById('alertBilling');
+  if (lossProjects.length) {
+    const worst = lossProjects.sort((a,b) => a.margin_rev - b.margin_rev)[0];
+    document.getElementById('alertLossText').innerHTML = `<strong>Margin Alert:</strong>&nbsp; ${worst.name} (${worst.id}) is running at <strong>${pct(worst.margin_rev)} margin</strong>, a loss of ${fmt(Math.abs(worst.profit))}. Immediate attention required.`;
+    alertLoss.style.display = 'flex';
+  } else { alertLoss.style.display = 'none'; }
+  if (billingGap.length) {
+    const bg = billingGap[0];
+    document.getElementById('alertBillingText').innerHTML = `<strong>Billing Gap:</strong>&nbsp; ${bg.name} (${bg.id}) is ${pct(bg.pct_complete)} complete but only ${pct(bg.billed/bg.rev)} billed.`;
+    alertBilling.style.display = 'flex';
+  } else { alertBilling.style.display = 'none'; }
+
+  // Trend chart — use monthly totals filtered by job/client if selected
+  let trendData = MONTHLY_TOTALS;
+  if (f.job || f.client) {
+    trendData = MONTHLY_TOTALS.map(mt => {
+      const mProjects = ALL_PROJECTS.filter(p => {
+        if (p.month !== mt.month) return false;
+        if (f.job && p.id !== f.job) return false;
+        if (f.client && !p.name.toLowerCase().includes(f.client.toLowerCase())) return false;
+        return true;
+      });
+      return { ...mt, rev: mProjects.reduce((s,p)=>s+p.rev,0), profit: mProjects.reduce((s,p)=>s+p.profit,0), billed: mProjects.reduce((s,p)=>s+p.billed,0), paid: mProjects.reduce((s,p)=>s+p.paid,0), jtd: mProjects.reduce((s,p)=>s+p.jtd_cost,0) };
+    });
+  }
+  makeChart('trendChart', {
     type: 'bar',
     data: {
-      labels: months,
+      labels: trendData.map(m => m.label),
       datasets: [
-        { label: 'Profit ($M)', data: monthly.map(m => m.profit/1e6), backgroundColor: 'rgba(63,185,80,.75)', yAxisID: 'y1', borderRadius: 4 },
-        { label: 'JTD Costs ($M)', data: monthly.map(m => m.jtd/1e6), backgroundColor: 'rgba(88,166,255,.4)', yAxisID: 'y1', borderRadius: 4 },
-        { label: 'Portfolio Rev ($M)', data: monthly.map(m => m.rev/1e6), type: 'line', borderColor: '#ffd700', borderWidth: 2, pointRadius: 4, pointBackgroundColor: '#ffd700', tension: .3, yAxisID: 'y1', fill: false },
+        { label: 'Profit ($M)', data: trendData.map(m => +(m.profit/1e6).toFixed(1)), backgroundColor: 'rgba(63,185,80,.75)', borderRadius: 4 },
+        { label: 'JTD Costs ($M)', data: trendData.map(m => +(m.jtd/1e6).toFixed(1)), backgroundColor: 'rgba(88,166,255,.4)', borderRadius: 4 },
+        { label: 'Portfolio Rev ($M)', data: trendData.map(m => +(m.rev/1e6).toFixed(1)), type: 'line', borderColor: '#ffd700', borderWidth: 2, pointRadius: 4, pointBackgroundColor: '#ffd700', tension: .3, fill: false },
       ]
     },
     options: {
-      responsive: true, maintainAspectRatio: false,
-      interaction: { mode: 'index' },
-      scales: {
-        y1: { position: 'left', ticks: { callback: v => '$'+v+'M' }, grid: { color: '#30363d' } },
-        x: { grid: { display: false } }
-      },
+      responsive: true, maintainAspectRatio: false, interaction: { mode: 'index' },
+      scales: { y: { ticks: { callback: v => '$'+v+'M' }, grid: { color: '#30363d' } }, x: { grid: { display: false } } },
       plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } }
     }
   });
 
-  // --- Revenue Mix Donut ---
-  const top8 = [...projects].sort((a,b) => b.rev-a.rev).slice(0,8);
-  const otherRev = projects.slice(8).reduce((s,p) => s+p.rev, 0);
-  new Chart(document.getElementById('revMixChart'), {
+  // Revenue mix donut
+  const sorted = [...fp].sort((a,b) => b.rev-a.rev);
+  const top8 = sorted.slice(0,8);
+  const otherRev = sorted.slice(8).reduce((s,p)=>s+p.rev,0);
+  const donutLabels = [...top8.map(p => p.name.split('/').pop()?.trim() || p.name)];
+  const donutData = [...top8.map(p => p.rev/1e6)];
+  if (otherRev > 0) { donutLabels.push('Other'); donutData.push(otherRev/1e6); }
+  makeChart('revMixChart', {
     type: 'doughnut',
-    data: {
-      labels: [...top8.map(p => p.name.split('/')[1]?.trim() || p.name), 'Other'],
-      datasets: [{ data: [...top8.map(p => p.rev/1e6), otherRev/1e6], backgroundColor: COLORS, borderWidth: 2, borderColor: '#161b22' }]
-    },
+    data: { labels: donutLabels, datasets: [{ data: donutData, backgroundColor: COLORS, borderWidth: 2, borderColor: '#161b22' }] },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
@@ -437,9 +654,9 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // --- Margin Band Chart ---
-  const bands = {'Negative': 0, '0-5%': 0, '5-10%': 0, '10-15%': 0, '>15%': 0};
-  projects.filter(p => p.status === 'Open').forEach(p => {
+  // Margin band
+  const bands = {'Negative':0,'0-5%':0,'5-10%':0,'10-15%':0,'>15%':0};
+  fp.forEach(p => {
     const m = p.margin_rev;
     if (m < 0) bands['Negative']++;
     else if (m < 0.05) bands['0-5%']++;
@@ -447,229 +664,328 @@ window.addEventListener('DOMContentLoaded', () => {
     else if (m < 0.15) bands['10-15%']++;
     else bands['>15%']++;
   });
-  new Chart(document.getElementById('marginBandChart'), {
+  makeChart('marginBandChart', {
     type: 'bar',
-    data: {
-      labels: Object.keys(bands),
-      datasets: [{ label: '# Projects', data: Object.values(bands), backgroundColor: ['#f85149','#ffa657','#d29922','#58a6ff','#3fb950'], borderRadius: 4 }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: { x: { grid: { display: false } }, y: { grid: { color: '#30363d' }, ticks: { stepSize: 1 } } }
-    }
+    data: { labels: Object.keys(bands), datasets: [{ label: '# Projects', data: Object.values(bands), backgroundColor: ['#f85149','#ffa657','#d29922','#58a6ff','#3fb950'], borderRadius: 4 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { grid: { color: '#30363d' }, ticks: { stepSize: 1 } } } }
   });
 
-  // --- Status Pie ---
-  const openCount = projects.filter(p => p.status === 'Open').length;
-  const closedCount = projects.filter(p => p.status === 'Closed').length;
-  new Chart(document.getElementById('statusChart'), {
+  // Status donut
+  const openC = fp.filter(p => p.status==='Open').length;
+  const closedC = fp.filter(p => p.status==='Closed').length;
+  makeChart('statusChart', {
     type: 'doughnut',
-    data: {
-      labels: ['Open', 'Closed'],
-      datasets: [{ data: [openCount, closedCount], backgroundColor: ['#58a6ff','#3fb950'], borderWidth: 2, borderColor: '#161b22' }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position: 'bottom', labels: { boxWidth: 10 } } }
-    }
+    data: { labels: ['Open','Closed'], datasets: [{ data: [openC, closedC], backgroundColor: ['#58a6ff','#3fb950'], borderWidth: 2, borderColor: '#161b22' }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10 } } } }
   });
 
-  // --- Bid vs Current ---
-  const bidProjs = projects.filter(p => p.bid_profit > 0 && p.status === 'Open').slice(0,7);
-  new Chart(document.getElementById('bidVsCurrChart'), {
+  // Bid vs current
+  const bidProjs = fp.filter(p => p.bid_profit > 0).slice(0,7);
+  makeChart('bidVsCurrChart', {
     type: 'bar',
     data: {
       labels: bidProjs.map(p => p.id),
       datasets: [
-        { label: 'Bid Profit ($M)', data: bidProjs.map(p => p.bid_profit/1e6), backgroundColor: 'rgba(88,166,255,.5)', borderRadius: 4 },
-        { label: 'Current Profit ($M)', data: bidProjs.map(p => p.profit/1e6), backgroundColor: bidProjs.map(p => p.profit >= p.bid_profit ? 'rgba(63,185,80,.8)' : 'rgba(248,81,73,.8)'), borderRadius: 4 },
+        { label: 'Bid Profit ($M)', data: bidProjs.map(p => +(p.bid_profit/1e6).toFixed(2)), backgroundColor: 'rgba(88,166,255,.5)', borderRadius: 4 },
+        { label: 'Current Profit ($M)', data: bidProjs.map(p => +(p.profit/1e6).toFixed(2)), backgroundColor: bidProjs.map(p => p.profit >= p.bid_profit ? 'rgba(63,185,80,.8)' : 'rgba(248,81,73,.8)'), borderRadius: 4 },
       ]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { position: 'bottom', labels: { boxWidth: 10 } } },
-      scales: {
-        x: { grid: { display: false } },
-        y: { ticks: { callback: v => '$'+v.toFixed(0)+'M' }, grid: { color: '#30363d' } }
-      }
+      scales: { x: { grid: { display: false } }, y: { ticks: { callback: v => '$'+v+'M' }, grid: { color: '#30363d' } } }
     }
   });
+}
 
-  // --- Project Margin Chart ---
-  const sortedProj = [...projects].sort((a,b) => b.margin_rev - a.margin_rev);
-  new Chart(document.getElementById('projMarginChart'), {
+// ===================== PROJECT HEALTH =====================
+function renderProjects() {
+  const fp = getFilteredProjects();
+  document.getElementById('projectsSubtitle').textContent = 'Individual project performance — ' + getFilterLabel();
+  document.getElementById('scorecardSub').textContent = fp.length + ' projects — ' + getFilterLabel();
+
+  const sorted = [...fp].sort((a,b) => b.margin_rev - a.margin_rev);
+  makeChart('projMarginChart', {
     type: 'bar',
     data: {
-      labels: sortedProj.map(p => p.id),
-      datasets: [
-        { label: 'Current Margin %', data: sortedProj.map(p => (p.margin_rev*100).toFixed(1)), backgroundColor: sortedProj.map(p => p.margin_rev < 0 ? '#f85149' : p.margin_rev < 0.08 ? '#d29922' : '#3fb950'), borderRadius: 4 },
-      ]
+      labels: sorted.map(p => p.id),
+      datasets: [{ label: 'Margin %', data: sorted.map(p => +(p.margin_rev*100).toFixed(1)), backgroundColor: sorted.map(p => marginColor(p.margin_rev)), borderRadius: 4 }]
     },
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ' ' + ctx.parsed.x + '%' } } },
-      scales: {
-        x: { ticks: { callback: v => v + '%' }, grid: { color: '#30363d' } },
-        y: { grid: { display: false } }
-      }
+      scales: { x: { ticks: { callback: v => v+'%' }, grid: { color: '#30363d' } }, y: { grid: { display: false } } }
     }
   });
 
-  // --- EAC Chart ---
-  const openP = projects.filter(p => p.status === 'Open').slice(0,10);
-  new Chart(document.getElementById('eacChart'), {
+  const openP = fp.filter(p => p.status==='Open').slice(0,10);
+  makeChart('eacChart', {
     type: 'bar',
     data: {
       labels: openP.map(p => p.id),
       datasets: [
-        { label: 'EAC ($M)', data: openP.map(p => p.eac/1e6), backgroundColor: 'rgba(248,81,73,.5)', borderRadius: 4 },
-        { label: 'Projected Rev ($M)', data: openP.map(p => p.rev/1e6), backgroundColor: 'rgba(88,166,255,.5)', borderRadius: 4 },
+        { label: 'EAC ($M)', data: openP.map(p => +(p.eac/1e6).toFixed(1)), backgroundColor: 'rgba(248,81,73,.5)', borderRadius: 4 },
+        { label: 'Projected Rev ($M)', data: openP.map(p => +(p.rev/1e6).toFixed(1)), backgroundColor: 'rgba(88,166,255,.5)', borderRadius: 4 },
       ]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { position: 'bottom', labels: { boxWidth: 10 } } },
-      scales: {
-        x: { grid: { display: false } },
-        y: { ticks: { callback: v => '$'+v.toFixed(0)+'M' }, grid: { color: '#30363d' } }
-      }
+      scales: { x: { grid: { display: false } }, y: { ticks: { callback: v => '$'+v+'M' }, grid: { color: '#30363d' } } }
     }
   });
 
-  // --- Project Scorecard Table ---
   const tbl = document.getElementById('projectTable');
   tbl.innerHTML = `<thead><tr>
-    <th>Project ID</th><th>Client / Project</th><th>PM</th><th>Status</th>
-    <th>Rev</th><th>Profit</th><th>Margin</th><th>% Complete</th><th>Billed</th><th>Collected</th>
-  </tr></thead><tbody>` + projects.map(p => {
-    const mColor = p.margin_rev < 0 ? 'badge-red' : p.margin_rev < 0.08 ? 'badge-yellow' : 'badge-green';
-    const barColor = p.margin_rev < 0 ? '#f85149' : p.margin_rev < 0.08 ? '#d29922' : '#3fb950';
-    const statBadge = p.status === 'Open' ? 'badge-blue' : 'badge-grey';
-    const billPct = p.rev > 0 ? p.billed/p.rev : 0;
+    <th>Job #</th><th>Client / Project</th><th>PM</th><th>Status</th>
+    <th>Revenue</th><th>Profit</th><th>Margin</th><th>% Complete</th><th>Billed</th><th>Collected</th>
+  </tr></thead><tbody>` + fp.map(p => {
+    const bc = marginColor(p.margin_rev);
+    const sb = p.status==='Open' ? 'badge-blue' : 'badge-grey';
     return `<tr>
       <td style="font-family:monospace;color:#8b949e">${p.id}</td>
       <td style="font-weight:500">${p.name}</td>
       <td style="color:#8b949e">${p.pm}</td>
-      <td><span class="badge ${statBadge}">${p.status}</span></td>
+      <td><span class="badge ${sb}">${p.status}</span></td>
       <td>${fmt(p.rev)}</td>
-      <td style="color:${p.profit<0?'#f85149':'#3fb950'}">${fmt(p.profit)}</td>
-      <td><span class="badge ${mColor}">${pct(p.margin_rev)}</span></td>
-      <td>
-        <div class="sparkline-row">
-          <div class="progress"><div class="progress-fill" style="width:${Math.max(0,p.pct_complete*100)}%;background:${barColor}"></div></div>
-          <span style="font-size:11px;color:#8b949e;margin-left:4px">${pct(p.pct_complete)}</span>
-        </div>
-      </td>
+      <td style="color:${p.profit<0?'var(--red)':'var(--green)'}">${fmt(p.profit)}</td>
+      <td><span class="badge ${marginBadge(p.margin_rev)}">${pct(p.margin_rev)}</span></td>
+      <td><div class="sparkline-row"><div class="progress"><div class="progress-fill" style="width:${Math.max(0,p.pct_complete*100).toFixed(0)}%;background:${bc}"></div></div><span style="font-size:11px;color:#8b949e;margin-left:4px">${pct(p.pct_complete)}</span></div></td>
       <td>${fmt(p.billed)}</td>
       <td>${fmt(p.paid)}</td>
     </tr>`;
   }).join('') + '</tbody>';
+}
 
-  // --- Cash Trend ---
-  new Chart(document.getElementById('cashTrendChart'), {
+// ===================== CASH & BILLING =====================
+function renderCashflow() {
+  const fp = getFilteredProjects();
+  const f = getFilters();
+  const totalBilled = fp.reduce((s,p)=>s+p.billed,0);
+  const totalPaid = fp.reduce((s,p)=>s+p.paid,0);
+  const totalRev = fp.reduce((s,p)=>s+p.rev,0);
+  const ar = totalBilled - totalPaid;
+  const collRate = totalBilled > 0 ? totalPaid/totalBilled : 0;
+  const unbilled = Math.max(0, totalRev - totalBilled);
+
+  document.getElementById('cf-billed').textContent = fmt(totalBilled);
+  document.getElementById('cf-paid').textContent = fmt(totalPaid);
+  document.getElementById('cf-ar').textContent = fmt(ar);
+  document.getElementById('cf-unbilled').textContent = fmt(unbilled);
+  document.getElementById('cf-collrate').textContent = pct(collRate);
+
+  // Trend
+  let trendData = MONTHLY_TOTALS;
+  if (f.job || f.client) {
+    trendData = MONTHLY_TOTALS.map(mt => {
+      const mProjects = ALL_PROJECTS.filter(p => {
+        if (p.month !== mt.month) return false;
+        if (f.job && p.id !== f.job) return false;
+        if (f.client && !p.name.toLowerCase().includes(f.client.toLowerCase())) return false;
+        return true;
+      });
+      return { ...mt, billed: mProjects.reduce((s,p)=>s+p.billed,0), paid: mProjects.reduce((s,p)=>s+p.paid,0) };
+    });
+  }
+  makeChart('cashTrendChart', {
     type: 'line',
     data: {
-      labels: months,
+      labels: trendData.map(m => m.label),
       datasets: [
-        { label: 'Billed ($M)', data: monthly.map(m => m.billed/1e6), borderColor: '#58a6ff', borderWidth: 2, pointRadius: 4, tension: .3, fill: false },
-        { label: 'Collected ($M)', data: monthly.map(m => m.paid/1e6), borderColor: '#3fb950', borderWidth: 2, pointRadius: 4, tension: .3, fill: false },
+        { label: 'Billed ($M)', data: trendData.map(m => +(m.billed/1e6).toFixed(1)), borderColor: '#58a6ff', borderWidth: 2, pointRadius: 4, tension: .3, fill: false },
+        { label: 'Collected ($M)', data: trendData.map(m => +(m.paid/1e6).toFixed(1)), borderColor: '#3fb950', borderWidth: 2, pointRadius: 4, tension: .3, fill: false },
       ]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      scales: {
-        y: { ticks: { callback: v => '$'+v.toFixed(0)+'M' }, grid: { color: '#30363d' } },
-        x: { grid: { display: false } }
-      },
+      scales: { y: { ticks: { callback: v => '$'+v+'M' }, grid: { color: '#30363d' } }, x: { grid: { display: false } } },
       plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } }
     }
   });
 
-  // --- A/R Chart ---
-  const arProjects = projects.map(p => ({...p, ar: p.billed - p.paid})).filter(p => p.ar > 500000).sort((a,b) => b.ar-a.ar).slice(0,8);
-  new Chart(document.getElementById('arChart'), {
+  // A/R by project
+  const arProjs = fp.map(p => ({...p, ar: p.billed-p.paid})).filter(p => p.ar > 0).sort((a,b) => b.ar-a.ar).slice(0,10);
+  makeChart('arChart', {
     type: 'bar',
     data: {
-      labels: arProjects.map(p => p.id),
-      datasets: [{ label: 'Outstanding A/R ($M)', data: arProjects.map(p => p.ar/1e6), backgroundColor: arProjects.map(p => p.ar > 5e6 ? '#f85149' : p.ar > 2e6 ? '#d29922' : '#58a6ff'), borderRadius: 4 }]
+      labels: arProjs.map(p => p.id),
+      datasets: [{ label: 'A/R ($M)', data: arProjs.map(p => +(p.ar/1e6).toFixed(2)), backgroundColor: arProjs.map(p => p.ar>5e6?'#f85149':p.ar>2e6?'#d29922':'#58a6ff'), borderRadius: 4 }]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
-      scales: {
-        x: { grid: { display: false } },
-        y: { ticks: { callback: v => '$'+v.toFixed(1)+'M' }, grid: { color: '#30363d' } }
-      }
+      scales: { x: { grid: { display: false } }, y: { ticks: { callback: v => '$'+v+'M' }, grid: { color: '#30363d' } } }
     }
   });
 
-  // --- Billing Progress ---
+  // Billing progress
   const bp = document.getElementById('billingProgress');
-  bp.innerHTML = projects.sort((a,b) => b.rev-a.rev).map(p => {
+  bp.innerHTML = [...fp].sort((a,b)=>b.rev-a.rev).map(p => {
     const billPct = p.rev > 0 ? p.billed/p.rev : 0;
     const color = billPct > 0.8 ? '#3fb950' : billPct > 0.4 ? '#58a6ff' : '#d29922';
     return `<div class="pm-bar-row">
-      <div class="pm-name" style="font-size:12px;width:160px">${p.name.substring(0,22)}</div>
+      <div class="pm-name" style="font-size:12px;width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name}</div>
+      <div style="font-size:11px;color:#8b949e;width:60px;flex-shrink:0;font-family:monospace">${p.id}</div>
       <div class="pm-bar-bg"><div class="pm-bar-fill" style="width:${(billPct*100).toFixed(0)}%;background:${color}"></div></div>
       <div class="pm-val">${fmt(p.billed)} / ${fmt(p.rev)}</div>
       <div class="pm-margin" style="color:${color}">${pct(billPct)}</div>
     </div>`;
   }).join('');
+}
 
-  // --- PM Revenue Chart ---
-  new Chart(document.getElementById('pmRevChart'), {
-    type: 'bar',
-    data: {
-      labels: pmList.map(p => p.pm),
-      datasets: [
-        { label: 'Revenue ($M)', data: pmList.map(p => p.rev/1e6), backgroundColor: 'rgba(88,166,255,.5)', borderRadius: 4 },
-        { label: 'Profit ($M)', data: pmList.map(p => p.profit/1e6), backgroundColor: pmList.map(p => p.profit < 0 ? 'rgba(248,81,73,.8)' : 'rgba(63,185,80,.75)'), borderRadius: 4 },
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position: 'bottom', labels: { boxWidth: 10 } } },
-      scales: {
-        x: { grid: { display: false } },
-        y: { ticks: { callback: v => '$'+v.toFixed(0)+'M' }, grid: { color: '#30363d' } }
+// ===================== JOB PERFORMANCE =====================
+function renderJobs() {
+  const f = getFilters();
+  const fp = getFilteredProjects();
+
+  if (f.job) {
+    // Single job detail view
+    document.getElementById('singleJobView').style.display = 'block';
+    document.getElementById('allJobsView').style.display = 'none';
+
+    const jobRows = ALL_PROJECTS.filter(p => p.id === f.job).sort((a,b) => a.month.localeCompare(b.month));
+    const latest = jobRows[jobRows.length - 1];
+    if (!latest) return;
+
+    document.getElementById('sjTitle').textContent = latest.name;
+    document.getElementById('sjMeta').textContent = 'Job ' + latest.id + ' · PM: ' + latest.pm + ' · ' + latest.status;
+    const sb = latest.status === 'Open' ? 'badge-blue' : 'badge-grey';
+    document.getElementById('sjStatusBadge').innerHTML = `<span class="badge ${sb}" style="font-size:13px;padding:4px 14px">${latest.status}</span>`;
+
+    const mc = marginColor(latest.margin_rev);
+    document.getElementById('sjStats').innerHTML = [
+      {label:'Total Revenue', value:fmt(latest.rev), color:''},
+      {label:'Current Profit', value:fmt(latest.profit), color:latest.profit<0?'var(--red)':'var(--green)'},
+      {label:'Margin', value:pct(latest.margin_rev), color:mc},
+      {label:'% Complete', value:pct(latest.pct_complete), color:''},
+      {label:'JTD Cost', value:fmt(latest.jtd_cost), color:''},
+      {label:'EAC', value:fmt(latest.eac), color:''},
+      {label:'Total Billed', value:fmt(latest.billed), color:''},
+      {label:'Total Collected', value:fmt(latest.paid), color:''},
+      {label:'Outstanding A/R', value:fmt(latest.billed-latest.paid), color:latest.billed-latest.paid>1e6?'var(--yellow)':''},
+      {label:'Bid Profit', value:fmt(latest.bid_profit), color:''},
+    ].map(s => `<div class="job-stat"><div class="job-stat-label">${s.label}</div><div class="job-stat-value" style="color:${s.color||'var(--text)'}">${s.value}</div></div>`).join('');
+
+    // Trend chart for this job
+    makeChart('sjTrendChart', {
+      type: 'line',
+      data: {
+        labels: jobRows.map(p => MONTH_LABELS[p.month] || p.month),
+        datasets: [
+          { label: 'Revenue ($M)', data: jobRows.map(p => +(p.rev/1e6).toFixed(2)), borderColor: '#58a6ff', borderWidth: 2, pointRadius: 4, tension: .3, fill: false, yAxisID: 'y' },
+          { label: 'Profit ($M)', data: jobRows.map(p => +(p.profit/1e6).toFixed(2)), borderColor: '#3fb950', borderWidth: 2, pointRadius: 4, tension: .3, fill: false, yAxisID: 'y' },
+          { label: '% Complete', data: jobRows.map(p => +(p.pct_complete*100).toFixed(1)), borderColor: '#ffd700', borderWidth: 2, pointRadius: 4, tension: .3, fill: false, yAxisID: 'y2' },
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: {
+          y: { position: 'left', ticks: { callback: v => '$'+v+'M' }, grid: { color: '#30363d' } },
+          y2: { position: 'right', ticks: { callback: v => v+'%' }, grid: { display: false } },
+          x: { grid: { display: false } }
+        },
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } }
       }
-    }
-  });
+    });
 
-  // --- PM Margin Chart ---
-  new Chart(document.getElementById('pmMarginChart'), {
-    type: 'bar',
-    data: {
-      labels: pmList.map(p => p.pm),
-      datasets: [{ label: 'Margin %', data: pmList.map(p => (p.margin*100).toFixed(1)), backgroundColor: pmList.map(p => p.margin < 0 ? '#f85149' : p.margin < 0.08 ? '#d29922' : '#3fb950'), borderRadius: 4 }]
-    },
-    options: {
-      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ' ' + ctx.parsed.x + '%' } } },
-      scales: {
-        x: { ticks: { callback: v => v + '%' }, grid: { color: '#30363d' } },
-        y: { grid: { display: false } }
+    // Monthly detail table
+    document.getElementById('sjMonthTable').innerHTML = `
+      <div class="trend-header">
+        <div class="col-month">Month</div>
+        <div class="col-rev">Revenue</div>
+        <div class="col-profit">Profit</div>
+        <div class="col-margin">Margin</div>
+        <div class="col-complete">% Complete</div>
+        <div class="col-billed">Billed</div>
+        <div class="col-ar">A/R</div>
+      </div>` + jobRows.map(p => {
+        const mc2 = marginColor(p.margin_rev);
+        const ar2 = p.billed - p.paid;
+        return `<div class="trend-row">
+          <div class="col-month" style="color:#8b949e">${MONTH_LABELS[p.month]||p.month}</div>
+          <div class="col-rev">${fmt(p.rev)}</div>
+          <div class="col-profit" style="color:${p.profit<0?'var(--red)':'var(--green)'}">${fmt(p.profit)}</div>
+          <div class="col-margin" style="color:${mc2}">${pct(p.margin_rev)}</div>
+          <div class="col-complete">${pct(p.pct_complete)}</div>
+          <div class="col-billed">${fmt(p.billed)}</div>
+          <div class="col-ar" style="color:${ar2>2e6?'var(--yellow)':'#8b949e'}">${fmt(ar2)}</div>
+        </div>`;
+      }).join('');
+
+  } else {
+    // All jobs view
+    document.getElementById('singleJobView').style.display = 'none';
+    document.getElementById('allJobsView').style.display = 'block';
+
+    document.getElementById('jobSubtitle').textContent = 'Detailed job-level analysis — ' + getFilterLabel() + ' · ' + fp.length + ' jobs';
+
+    const byRev = [...fp].sort((a,b) => b.rev - a.rev);
+
+    makeChart('jobProfitChart', {
+      type: 'bar',
+      data: {
+        labels: byRev.map(p => p.id),
+        datasets: [{ label: 'Profit ($M)', data: byRev.map(p => +(p.profit/1e6).toFixed(2)), backgroundColor: byRev.map(p => marginColor(p.margin_rev)), borderRadius: 4 }]
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ' $' + ctx.parsed.x.toFixed(1) + 'M' } } },
+        scales: { x: { ticks: { callback: v => '$'+v+'M' }, grid: { color: '#30363d' } }, y: { grid: { display: false } } }
       }
-    }
-  });
+    });
 
-  // --- PM Detail ---
-  const pmDiv = document.getElementById('pmDetail');
-  const maxRev = Math.max(...pmList.map(p => p.rev));
-  pmDiv.innerHTML = pmList.map((p, i) => {
-    const color = p.margin < 0 ? '#f85149' : p.margin < 0.08 ? '#d29922' : '#3fb950';
-    return `<div class="pm-bar-row">
-      <div style="width:24px;color:#8b949e;font-size:11px;flex-shrink:0">#${i+1}</div>
-      <div class="pm-name" style="width:90px">${p.pm}</div>
-      <div class="pm-bar-bg"><div class="pm-bar-fill" style="width:${(p.rev/maxRev*100).toFixed(0)}%;background:#58a6ff"></div></div>
-      <div class="pm-val">${fmt(p.rev)}</div>
-      <div class="pm-val">${fmt(p.profit)}</div>
-      <div class="pm-margin" style="color:${color};width:55px">${pct(p.margin)}</div>
-      <div style="color:#8b949e;font-size:11px;width:60px;flex-shrink:0">${p.projects} proj</div>
-      <div style="color:#8b949e;font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.names.join(', ')}</div>
-    </div>`;
-  }).join('');
+    makeChart('jobCompleteChart', {
+      type: 'bar',
+      data: {
+        labels: byRev.map(p => p.id),
+        datasets: [{ label: '% Complete', data: byRev.map(p => +(p.pct_complete*100).toFixed(1)), backgroundColor: byRev.map(p => p.pct_complete>=1?'#3fb950':p.pct_complete>0.5?'#58a6ff':'#d29922'), borderRadius: 4 }]
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ' ' + ctx.parsed.x + '%' } } },
+        scales: { x: { ticks: { callback: v => v+'%' }, max: 100, grid: { color: '#30363d' } }, y: { grid: { display: false } } }
+      }
+    });
+
+    // Scorecard
+    const maxRev = Math.max(...fp.map(p => p.rev));
+    document.getElementById('jobScorecard').innerHTML = `
+      <div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;flex-wrap:wrap;">
+        <div style="width:60px;flex-shrink:0">Job #</div>
+        <div style="flex:1;min-width:140px">Client / Project</div>
+        <div style="width:60px;flex-shrink:0">PM</div>
+        <div style="width:140px;flex-shrink:0">Revenue (bar)</div>
+        <div style="width:90px;text-align:right;flex-shrink:0">Profit</div>
+        <div style="width:70px;text-align:right;flex-shrink:0">Margin</div>
+        <div style="width:75px;text-align:right;flex-shrink:0">Complete</div>
+        <div style="width:75px;text-align:right;flex-shrink:0">A/R</div>
+      </div>` + byRev.map(p => {
+        const mc2 = marginColor(p.margin_rev);
+        const ar2 = p.billed - p.paid;
+        return `<div class="pm-bar-row" style="flex-wrap:wrap;">
+          <div style="width:60px;font-size:12px;font-family:monospace;color:#8b949e;flex-shrink:0">${p.id}</div>
+          <div style="flex:1;min-width:140px;font-weight:500;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name}</div>
+          <div style="width:60px;font-size:12px;color:#8b949e;flex-shrink:0">${p.pm}</div>
+          <div style="width:140px;flex-shrink:0;">
+            <div class="pm-bar-bg" style="width:100%"><div class="pm-bar-fill" style="width:${(p.rev/maxRev*100).toFixed(0)}%;background:#58a6ff"></div></div>
+            <div style="font-size:11px;color:#8b949e;margin-top:2px">${fmt(p.rev)}</div>
+          </div>
+          <div style="width:90px;text-align:right;font-size:13px;flex-shrink:0;color:${p.profit<0?'var(--red)':'var(--green)'}">${fmt(p.profit)}</div>
+          <div style="width:70px;text-align:right;flex-shrink:0"><span class="badge ${marginBadge(p.margin_rev)}">${pct(p.margin_rev)}</span></div>
+          <div style="width:75px;text-align:right;font-size:12px;flex-shrink:0;">
+            <div class="progress" style="width:60px;display:inline-block"><div class="progress-fill" style="width:${Math.max(0,p.pct_complete*100).toFixed(0)}%;background:${mc2}"></div></div>
+            <div style="font-size:11px;color:#8b949e">${pct(p.pct_complete)}</div>
+          </div>
+          <div style="width:75px;text-align:right;font-size:12px;color:${ar2>2e6?'var(--yellow)':'#8b949e'};flex-shrink:0">${fmt(ar2)}</div>
+        </div>`;
+      }).join('');
+  }
+}
+
+// ===================== INIT =====================
+window.addEventListener('DOMContentLoaded', () => {
+  updateFilterCount();
+  renderOverview();
 });
 </script>
 </body>
