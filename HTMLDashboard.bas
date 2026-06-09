@@ -225,16 +225,14 @@ Private Function GetHtmlPath() As String
     If HTML_PATH_OVERRIDE <> "" Then
         GetHtmlPath = HTML_PATH_OVERRIDE: Exit Function
     End If
-    Dim wsDash As Worksheet
+    ' Read from B4 on whichever sheet the button is on (ActiveSheet)
+    ' — so renaming the tab never breaks anything
+    Dim p As String
     On Error Resume Next
-    Set wsDash = ThisWorkbook.Sheets("Dashboard")
+    p = Trim(CStr(ActiveSheet.Cells(4, 2).Value))
     On Error GoTo 0
-    If Not wsDash Is Nothing Then
-        Dim p As String
-        p = Trim(CStr(wsDash.Cells(4, 2).Value))
-        If p <> "" And p <> "0" Then
-            GetHtmlPath = p: Exit Function
-        End If
+    If p <> "" And p <> "0" Then
+        GetHtmlPath = p: Exit Function
     End If
     If ThisWorkbook.Path <> "" Then
         GetHtmlPath = ThisWorkbook.Path & "\budget_dashboard.html"
