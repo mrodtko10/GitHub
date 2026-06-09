@@ -7,394 +7,372 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
   :root {
-    --bg: #0f1923;
-    --card: #1a2535;
-    --card2: #1e2d42;
+    --bg: #0f1923; --card: #1a2535; --card2: #1e2d42;
     --border: #2a3f5a;
-    --blue: #3b82f6;
-    --green: #22c55e;
-    --red: #ef4444;
-    --amber: #f59e0b;
-    --purple: #a855f7;
-    --cyan: #06b6d4;
-    --text: #e2e8f0;
-    --text-muted: #94a3b8;
-    --text-dim: #64748b;
-    --header-h: 120px;
+    --blue: #3b82f6; --green: #22c55e; --red: #ef4444;
+    --amber: #f59e0b; --purple: #a855f7; --cyan: #06b6d4;
+    --text: #e2e8f0; --text-muted: #94a3b8; --text-dim: #64748b;
   }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    font-size: 14px;
-  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI',system-ui,sans-serif; background:var(--bg); color:var(--text); font-size:14px; }
 
   /* ── HEADER ── */
   .header {
-    background: linear-gradient(135deg, #0d1b2e 0%, #1a2d4a 100%);
-    border-bottom: 1px solid var(--border);
-    padding: 20px 28px 0;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    box-shadow: 0 4px 24px rgba(0,0,0,.4);
+    background: linear-gradient(135deg,#0d1b2e 0%,#1a2d4a 100%);
+    border-bottom:1px solid var(--border);
+    padding:16px 28px;
+    position:sticky; top:0; z-index:200;
+    box-shadow:0 4px 24px rgba(0,0,0,.4);
   }
-  .header-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 16px;
-  }
-  .header-title { font-size: 22px; font-weight: 700; letter-spacing: -.3px; color: #fff; }
-  .header-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .header-row1 { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .header-title { font-size:20px; font-weight:700; letter-spacing:-.3px; }
+  .header-subtitle { font-size:11px; color:var(--text-muted); margin-top:2px; }
   .header-badge {
-    background: rgba(59,130,246,.15);
-    border: 1px solid rgba(59,130,246,.35);
-    color: var(--blue);
-    font-size: 11px;
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-weight: 600;
+    background:rgba(59,130,246,.15); border:1px solid rgba(59,130,246,.35);
+    color:var(--blue); font-size:11px; padding:4px 10px; border-radius:20px; font-weight:600;
   }
-  .tabs {
-    display: flex;
-    gap: 4px;
-    padding-bottom: 0;
-  }
-  .tab {
-    padding: 8px 16px;
-    border: none;
-    background: transparent;
-    color: var(--text-muted);
-    cursor: pointer;
-    border-radius: 6px 6px 0 0;
-    font-size: 13px;
-    font-weight: 500;
-    transition: all .2s;
-    border-bottom: 3px solid transparent;
-    position: relative;
-    top: 1px;
-  }
-  .tab:hover { color: var(--text); background: rgba(255,255,255,.05); }
-  .tab.active { color: var(--blue); border-bottom-color: var(--blue); background: rgba(59,130,246,.08); font-weight: 600; }
-  .tab .tab-mw { font-size: 10px; color: var(--text-dim); display: block; }
-  .tab.active .tab-mw { color: rgba(59,130,246,.7); }
+  .header-row2 { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
 
-  /* ── MAIN CONTENT ── */
-  .main { padding: 24px 28px; max-width: 1600px; margin: 0 auto; }
+  /* page nav */
+  .page-nav { display:flex; gap:4px; }
+  .page-btn {
+    padding:7px 16px; border:1px solid var(--border); background:transparent;
+    color:var(--text-muted); cursor:pointer; border-radius:6px;
+    font-size:12px; font-weight:600; transition:all .2s; letter-spacing:.3px;
+  }
+  .page-btn:hover { color:var(--text); background:rgba(255,255,255,.05); }
+  .page-btn.active { color:var(--blue); border-color:rgba(59,130,246,.5); background:rgba(59,130,246,.1); }
+
+  /* project filter dropdown */
+  .filter-wrap { position:relative; }
+  .filter-btn {
+    display:flex; align-items:center; gap:8px;
+    padding:7px 14px; background:var(--card); border:1px solid var(--border);
+    border-radius:6px; color:var(--text); cursor:pointer; font-size:12px;
+    font-weight:600; transition:border-color .2s; white-space:nowrap;
+  }
+  .filter-btn:hover { border-color:var(--blue); }
+  .filter-btn .arrow { font-size:10px; color:var(--text-muted); transition:transform .2s; }
+  .filter-btn.open .arrow { transform:rotate(180deg); }
+  .filter-dropdown {
+    display:none; position:absolute; top:calc(100% + 6px); left:0;
+    background:#0d1b2e; border:1px solid var(--border); border-radius:8px;
+    min-width:240px; box-shadow:0 8px 32px rgba(0,0,0,.6); z-index:500;
+    overflow:hidden;
+  }
+  .filter-dropdown.open { display:block; }
+  .filter-header {
+    padding:10px 14px 8px; border-bottom:1px solid var(--border);
+    font-size:10.5px; font-weight:700; text-transform:uppercase;
+    letter-spacing:.5px; color:var(--text-muted);
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .filter-header a { color:var(--blue); text-decoration:none; font-size:10px; cursor:pointer; }
+  .filter-option {
+    display:flex; align-items:center; gap:10px;
+    padding:9px 14px; cursor:pointer; transition:background .15s;
+    border-bottom:1px solid rgba(42,63,90,.3);
+  }
+  .filter-option:last-child { border-bottom:none; }
+  .filter-option:hover { background:rgba(59,130,246,.08); }
+  .filter-option input[type=checkbox] { accent-color:var(--blue); width:14px; height:14px; cursor:pointer; }
+  .filter-option .proj-name { font-size:12px; font-weight:500; }
+  .filter-option .proj-meta { font-size:10px; color:var(--text-dim); }
+  .filter-apply {
+    padding:10px 14px; border-top:1px solid var(--border);
+    display:flex; gap:8px;
+  }
+  .btn-apply {
+    flex:1; padding:6px 12px; background:var(--blue); border:none;
+    color:#fff; border-radius:5px; cursor:pointer; font-size:12px; font-weight:600;
+  }
+  .btn-apply:hover { background:#2563eb; }
+
+  /* unit rate category filter */
+  .cat-nav { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:16px; }
+  .cat-btn {
+    padding:5px 12px; border:1px solid var(--border); background:transparent;
+    color:var(--text-muted); cursor:pointer; border-radius:20px;
+    font-size:11px; font-weight:600; transition:all .15s;
+  }
+  .cat-btn:hover { color:var(--text); }
+  .cat-btn.active { color:var(--blue); border-color:rgba(59,130,246,.5); background:rgba(59,130,246,.1); }
+
+  /* search */
+  .search-wrap { position:relative; margin-bottom:16px; }
+  .search-input {
+    width:100%; padding:8px 14px 8px 34px; background:var(--card);
+    border:1px solid var(--border); border-radius:6px; color:var(--text);
+    font-size:12px; outline:none; transition:border-color .2s;
+  }
+  .search-input:focus { border-color:var(--blue); }
+  .search-icon { position:absolute; left:11px; top:50%; transform:translateY(-50%); font-size:13px; color:var(--text-dim); pointer-events:none; }
+
+  /* ── MAIN ── */
+  .main { padding:24px 28px; max-width:1600px; margin:0 auto; }
+  .page { display:none; }
+  .page.active { display:block; }
 
   /* ── KPI CARDS ── */
-  .kpi-grid {
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 14px;
-    margin-bottom: 24px;
-  }
+  .kpi-grid { display:grid; grid-template-columns:repeat(6,1fr); gap:14px; margin-bottom:24px; }
   .kpi-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 16px;
-    transition: transform .2s, box-shadow .2s;
-    position: relative;
-    overflow: hidden;
+    background:var(--card); border:1px solid var(--border); border-radius:10px;
+    padding:16px; transition:transform .2s,box-shadow .2s; position:relative; overflow:hidden;
   }
-  .kpi-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 3px;
-    border-radius: 10px 10px 0 0;
-  }
-  .kpi-card.blue::before { background: var(--blue); }
-  .kpi-card.green::before { background: var(--green); }
-  .kpi-card.red::before { background: var(--red); }
-  .kpi-card.amber::before { background: var(--amber); }
-  .kpi-card.purple::before { background: var(--purple); }
-  .kpi-card.cyan::before { background: var(--cyan); }
-  .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.3); }
-  .kpi-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
-  .kpi-value { font-size: 26px; font-weight: 700; color: #fff; line-height: 1; }
-  .kpi-sub { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
-  .kpi-delta { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 4px; margin-top: 6px; }
-  .kpi-delta.pos { background: rgba(34,197,94,.15); color: var(--green); }
-  .kpi-delta.neg { background: rgba(239,68,68,.15); color: var(--red); }
-  .kpi-delta.neu { background: rgba(148,163,184,.12); color: var(--text-muted); }
+  .kpi-card::before { content:''; position:absolute; top:0;left:0;right:0; height:3px; border-radius:10px 10px 0 0; }
+  .kpi-card.blue::before { background:var(--blue); }
+  .kpi-card.green::before { background:var(--green); }
+  .kpi-card.red::before { background:var(--red); }
+  .kpi-card.amber::before { background:var(--amber); }
+  .kpi-card.purple::before { background:var(--purple); }
+  .kpi-card.cyan::before { background:var(--cyan); }
+  .kpi-card:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,.3); }
+  .kpi-label { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px; }
+  .kpi-value { font-size:24px; font-weight:700; color:#fff; line-height:1; }
+  .kpi-sub { font-size:11px; color:var(--text-muted); margin-top:6px; }
+  .kpi-delta { display:inline-flex; align-items:center; gap:3px; font-size:11px; font-weight:600; padding:2px 6px; border-radius:4px; margin-top:6px; }
+  .kpi-delta.pos { background:rgba(34,197,94,.15); color:var(--green); }
+  .kpi-delta.neg { background:rgba(239,68,68,.15); color:var(--red); }
 
   /* ── SECTION ── */
-  .section { margin-bottom: 28px; }
+  .section { margin-bottom:28px; }
   .section-title {
-    font-size: 14px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .6px;
-    color: var(--text-muted);
-    margin-bottom: 14px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.6px;
+    color:var(--text-muted); margin-bottom:14px;
+    display:flex; align-items:center; gap:8px;
   }
-  .section-title::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--border);
-  }
+  .section-title::after { content:''; flex:1; height:1px; background:var(--border); }
 
   /* ── TABLE ── */
-  .table-wrap {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    overflow: hidden;
-  }
-  .table-scroll { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .table-wrap { background:var(--card); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+  .table-scroll { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:12.5px; }
   thead th {
-    background: #162030;
-    color: var(--text-muted);
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: 10.5px;
-    letter-spacing: .5px;
-    padding: 11px 14px;
-    text-align: right;
-    border-bottom: 1px solid var(--border);
-    white-space: nowrap;
+    background:#162030; color:var(--text-muted); font-weight:600;
+    text-transform:uppercase; font-size:10.5px; letter-spacing:.5px;
+    padding:11px 14px; text-align:right; border-bottom:1px solid var(--border); white-space:nowrap;
   }
-  thead th:first-child { text-align: left; position: sticky; left: 0; background: #162030; z-index: 2; min-width: 170px; }
-  tbody td {
-    padding: 10px 14px;
-    text-align: right;
-    border-bottom: 1px solid rgba(42,63,90,.5);
-    vertical-align: middle;
-    white-space: nowrap;
-  }
-  tbody td:first-child { text-align: left; position: sticky; left: 0; background: var(--card); z-index: 1; font-weight: 500; }
-  tbody tr:hover td { background: rgba(59,130,246,.06); }
-  tbody tr:hover td:first-child { background: rgba(59,130,246,.1); }
-  tbody tr:last-child td { border-bottom: none; }
-  .row-group { background: #162030 !important; color: var(--text-muted) !important; font-size: 10px !important; text-transform: uppercase; letter-spacing: .5px; font-weight: 700 !important; }
-  .row-group td:first-child { background: #162030 !important; }
-
-  .cell-good { color: var(--green); font-weight: 600; }
-  .cell-bad  { color: var(--red);   font-weight: 600; }
-  .cell-warn { color: var(--amber); font-weight: 600; }
-  .cell-neutral { color: var(--text); }
-
-  /* tooltip on cells */
-  [data-tip] { cursor: help; position: relative; border-bottom: 1px dashed rgba(148,163,184,.3); }
+  thead th:first-child { text-align:left; position:sticky; left:0; background:#162030; z-index:2; min-width:200px; }
+  tbody td { padding:9px 14px; text-align:right; border-bottom:1px solid rgba(42,63,90,.5); white-space:nowrap; }
+  tbody td:first-child { text-align:left; position:sticky; left:0; background:var(--card); z-index:1; font-weight:500; }
+  tbody tr:hover td { background:rgba(59,130,246,.06); }
+  tbody tr:hover td:first-child { background:rgba(59,130,246,.1); }
+  tbody tr:last-child td { border-bottom:none; }
+  .row-group td { background:#162030 !important; color:var(--text-muted) !important; font-size:10px !important; text-transform:uppercase; letter-spacing:.5px; font-weight:700 !important; }
+  .row-group td:first-child { background:#162030 !important; }
+  .cell-good { color:var(--green); font-weight:600; }
+  .cell-bad  { color:var(--red);   font-weight:600; }
+  .cell-warn { color:var(--amber); font-weight:600; }
+  .cell-neutral { color:var(--text); }
+  .cell-na { color:var(--text-dim); font-style:italic; }
+  [data-tip] { cursor:help; border-bottom:1px dashed rgba(148,163,184,.3); position:relative; }
   [data-tip]:hover::after {
-    content: attr(data-tip);
-    position: absolute;
-    bottom: calc(100% + 6px);
-    left: 50%;
-    transform: translateX(-50%);
-    background: #0a1220;
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-size: 11px;
-    padding: 5px 9px;
-    border-radius: 5px;
-    white-space: nowrap;
-    z-index: 1000;
-    pointer-events: none;
-    box-shadow: 0 4px 12px rgba(0,0,0,.5);
+    content:attr(data-tip); position:absolute; bottom:calc(100% + 6px); left:50%;
+    transform:translateX(-50%); background:#0a1220; border:1px solid var(--border);
+    color:var(--text); font-size:11px; padding:5px 9px; border-radius:5px;
+    white-space:nowrap; z-index:1000; pointer-events:none; box-shadow:0 4px 12px rgba(0,0,0,.5);
   }
-
-  /* status badges */
-  .badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 10.5px;
-    font-weight: 600;
-    padding: 2px 7px;
-    border-radius: 12px;
-  }
-  .badge-ok   { background: rgba(34,197,94,.15);  color: var(--green); border: 1px solid rgba(34,197,94,.3); }
-  .badge-warn { background: rgba(245,158,11,.15); color: var(--amber); border: 1px solid rgba(245,158,11,.3); }
-  .badge-risk { background: rgba(239,68,68,.15);  color: var(--red);   border: 1px solid rgba(239,68,68,.3); }
+  .badge { display:inline-flex; align-items:center; gap:4px; font-size:10.5px; font-weight:600; padding:2px 7px; border-radius:12px; }
+  .badge-ok   { background:rgba(34,197,94,.15);  color:var(--green); border:1px solid rgba(34,197,94,.3); }
+  .badge-warn { background:rgba(245,158,11,.15); color:var(--amber); border:1px solid rgba(245,158,11,.3); }
+  .badge-risk { background:rgba(239,68,68,.15);  color:var(--red);   border:1px solid rgba(239,68,68,.3); }
 
   /* ── CHARTS ── */
-  .charts-row {
-    display: grid;
-    gap: 16px;
-    margin-bottom: 24px;
-  }
-  .charts-row.cols-2 { grid-template-columns: 1fr 1fr; }
-  .charts-row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .charts-row { display:grid; gap:16px; margin-bottom:24px; }
+  .charts-row.cols-2 { grid-template-columns:1fr 1fr; }
   .chart-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 20px;
-    transition: box-shadow .2s;
+    background:var(--card); border:1px solid var(--border); border-radius:10px;
+    padding:20px; transition:box-shadow .2s;
   }
-  .chart-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,.25); }
-  .chart-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
-  .chart-subtitle { font-size: 11px; color: var(--text-dim); margin-bottom: 16px; }
-  .chart-wrap { position: relative; }
+  .chart-card:hover { box-shadow:0 4px 20px rgba(0,0,0,.25); }
+  .chart-title { font-size:13px; font-weight:600; margin-bottom:3px; }
+  .chart-subtitle { font-size:11px; color:var(--text-dim); margin-bottom:14px; }
 
-  /* ── PROFIT TABLE ── */
-  .profit-highlight { background: rgba(59,130,246,.07); }
-
-  /* ── PER PROJECT HIGHLIGHT ── */
-  .proj-highlight td { background: rgba(59,130,246,.07) !important; }
-  .proj-highlight td:first-child { background: rgba(59,130,246,.12) !important; }
+  /* ── UNIT RATES ── */
+  .ur-controls { display:flex; gap:12px; align-items:flex-start; margin-bottom:20px; flex-wrap:wrap; }
+  .ur-controls .filter-wrap { flex:0 0 auto; }
 
   /* ── RESPONSIVE ── */
-  @media (max-width: 1200px) {
-    .kpi-grid { grid-template-columns: repeat(3, 1fr); }
-    .charts-row.cols-3 { grid-template-columns: 1fr 1fr; }
-  }
-  @media (max-width: 768px) {
-    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-    .charts-row.cols-2, .charts-row.cols-3 { grid-template-columns: 1fr; }
-    .header { padding: 14px 14px 0; }
-    .main { padding: 14px; }
-    .tab { padding: 7px 10px; font-size: 11px; }
+  @media (max-width:1200px) { .kpi-grid { grid-template-columns:repeat(3,1fr); } }
+  @media (max-width:900px) {
+    .kpi-grid { grid-template-columns:repeat(2,1fr); }
+    .charts-row.cols-2 { grid-template-columns:1fr; }
+    .header { padding:12px 14px; }
+    .main { padding:14px; }
   }
 </style>
 </head>
 <body>
 
-<!-- ═══════════════════════════════════════════════════════════ HEADER -->
+<!-- ══════════════════════════════════════════ HEADER -->
 <div class="header">
-  <div class="header-top">
+  <div class="header-row1">
     <div>
       <div class="header-title">☀ Solar EPC Construction — Bid Performance Review</div>
       <div class="header-subtitle" id="hdr-date"></div>
     </div>
-    <div class="header-badge">5 Active Projects · 677.4 MW</div>
+    <div class="header-badge" id="hdr-badge">5 Projects · 627.4 MW</div>
   </div>
-  <div class="tabs">
-    <button class="tab active" onclick="setProject(-1)">
-      All Projects<span class="tab-mw">677.4 MW</span>
-    </button>
-    <button class="tab" onclick="setProject(0)">
-      East Atmore-PGR<span class="tab-mw">115 MW · #23-4003</span>
-    </button>
-    <button class="tab" onclick="setProject(1)">
-      Foley-PGR<span class="tab-mw">108 MW · #24-4001</span>
-    </button>
-    <button class="tab" onclick="setProject(2)">
-      OH-PGR<span class="tab-mw">112 MW · #24-4002</span>
-    </button>
-    <button class="tab" onclick="setProject(3)">
-      Sunray<span class="tab-mw">272.4 MW · #22-4001</span>
-    </button>
-    <button class="tab" onclick="setProject(4)">
-      DWR Chevron<span class="tab-mw">70 MW · #24-4004</span>
-    </button>
-  </div>
-</div>
+  <div class="header-row2">
+    <!-- page nav -->
+    <div class="page-nav">
+      <button class="page-btn active" onclick="setPage('perf')">📊 Performance Overview</button>
+      <button class="page-btn" onclick="setPage('ur')">📋 Unit Rates</button>
+    </div>
 
-<!-- ═══════════════════════════════════════════════════════════ MAIN -->
-<div class="main">
-
-  <!-- KPI CARDS -->
-  <div class="kpi-grid" id="kpi-grid"></div>
-
-  <!-- SECTION 1: PROJECT OVERVIEW TABLE -->
-  <div class="section">
-    <div class="section-title">Project Overview</div>
-    <div class="table-wrap">
-      <div class="table-scroll">
-        <table id="overview-table"></table>
+    <!-- project multi-select filter -->
+    <div class="filter-wrap" id="filterWrap">
+      <div class="filter-btn" id="filterBtn" onclick="toggleFilter()">
+        <span>🏗</span>
+        <span id="filterLabel">All Projects</span>
+        <span class="arrow">▼</span>
+      </div>
+      <div class="filter-dropdown" id="filterDropdown">
+        <div class="filter-header">
+          Filter Projects
+          <span>
+            <a onclick="selectAllProjects()">All</a> &nbsp;·&nbsp;
+            <a onclick="clearProjects()">None</a>
+          </span>
+        </div>
+        <label class="filter-option">
+          <input type="checkbox" value="0" checked onchange="updateFilter()">
+          <div><div class="proj-name">East Atmore-PGR</div><div class="proj-meta">#23-4003 · 115 MW</div></div>
+        </label>
+        <label class="filter-option">
+          <input type="checkbox" value="1" checked onchange="updateFilter()">
+          <div><div class="proj-name">Foley-PGR</div><div class="proj-meta">#24-4001 · 108 MW</div></div>
+        </label>
+        <label class="filter-option">
+          <input type="checkbox" value="2" checked onchange="updateFilter()">
+          <div><div class="proj-name">OH-PGR</div><div class="proj-meta">#24-4002 · 112 MW</div></div>
+        </label>
+        <label class="filter-option">
+          <input type="checkbox" value="3" checked onchange="updateFilter()">
+          <div><div class="proj-name">Sunray</div><div class="proj-meta">#22-4001 · 272.4 MW</div></div>
+        </label>
+        <label class="filter-option">
+          <input type="checkbox" value="4" checked onchange="updateFilter()">
+          <div><div class="proj-name">DWR Chevron</div><div class="proj-meta">#24-4004 · 70 MW</div></div>
+        </label>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- CHARTS ROW 1 -->
+<!-- ══════════════════════════════════════════ MAIN -->
+<div class="main">
+
+<!-- ═══════ PAGE: PERFORMANCE ═══════ -->
+<div class="page active" id="page-perf">
+
+  <div class="kpi-grid" id="kpi-grid"></div>
+
+  <div class="section">
+    <div class="section-title">Project Overview</div>
+    <div class="table-wrap"><div class="table-scroll"><table id="overview-table"></table></div></div>
+  </div>
+
   <div class="charts-row cols-2">
     <div class="chart-card">
       <div class="chart-title">Budget vs Actual — Total Cost</div>
       <div class="chart-subtitle">$ Millions per project</div>
-      <div class="chart-wrap"><canvas id="chartCost" height="220"></canvas></div>
+      <canvas id="chartCost" height="220"></canvas>
     </div>
     <div class="chart-card">
       <div class="chart-title">Budget vs Actual — Profit</div>
       <div class="chart-subtitle">$ Millions per project</div>
-      <div class="chart-wrap"><canvas id="chartProfit" height="220"></canvas></div>
+      <canvas id="chartProfit" height="220"></canvas>
     </div>
   </div>
 
-  <!-- CHARTS ROW 2 -->
   <div class="charts-row cols-2">
     <div class="chart-card">
       <div class="chart-title">Cost Performance Index (CPI)</div>
       <div class="chart-subtitle">PV · Civil · Total — reference line at 1.00 (higher = under budget)</div>
-      <div class="chart-wrap"><canvas id="chartCPI" height="240"></canvas></div>
+      <canvas id="chartCPI" height="240"></canvas>
     </div>
     <div class="chart-card">
       <div class="chart-title">Production Factor (PF)</div>
       <div class="chart-subtitle">PV · Civil · Total — reference line at 1.00 (higher = faster pace)</div>
-      <div class="chart-wrap"><canvas id="chartPF" height="240"></canvas></div>
+      <canvas id="chartPF" height="240"></canvas>
     </div>
   </div>
 
-  <!-- CHARTS ROW 3 -->
   <div class="charts-row cols-2">
     <div class="chart-card">
       <div class="chart-title">Hours per Watt — Budget vs Actual</div>
-      <div class="chart-subtitle">PV, Civil, and Total man-hours per watt installed</div>
-      <div class="chart-wrap"><canvas id="chartHPW" height="240"></canvas></div>
+      <div class="chart-subtitle">PV and Civil man-hours per watt installed</div>
+      <canvas id="chartHPW" height="240"></canvas>
     </div>
     <div class="chart-card">
       <div class="chart-title">Actual Cost Breakdown by Category</div>
       <div class="chart-subtitle">Stacked $ Millions — actual spend per project</div>
-      <div class="chart-wrap"><canvas id="chartCostBreak" height="240"></canvas></div>
+      <canvas id="chartCostBreak" height="240"></canvas>
     </div>
   </div>
 
-  <!-- CHARTS ROW 4 -->
   <div class="charts-row cols-2">
     <div class="chart-card">
       <div class="chart-title">Cost per Watt & Revenue per Watt</div>
-      <div class="chart-subtitle">Budget vs Actual $ per watt — all projects</div>
-      <div class="chart-wrap"><canvas id="chartCPW" height="220"></canvas></div>
+      <div class="chart-subtitle">Budget vs Actual $ per watt</div>
+      <canvas id="chartCPW" height="220"></canvas>
     </div>
     <div class="chart-card">
       <div class="chart-title">Cost/Pile Analysis</div>
       <div class="chart-subtitle">EAC vs Total Cost per pile — Budget vs Actual ($)</div>
-      <div class="chart-wrap"><canvas id="chartPile" height="220"></canvas></div>
+      <canvas id="chartPile" height="220"></canvas>
     </div>
   </div>
 
-  <!-- SECTION: PROFIT & MARGIN TABLE -->
   <div class="section">
     <div class="section-title">Profit & Margin Detail</div>
-    <div class="table-wrap">
-      <div class="table-scroll">
-        <table id="profit-table"></table>
-      </div>
+    <div class="table-wrap"><div class="table-scroll"><table id="profit-table"></table></div></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Other Costs — Actual ($M)</div>
+    <div class="table-wrap"><div class="table-scroll"><table id="cost-table"></table></div></div>
+  </div>
+
+</div><!-- /page-perf -->
+
+<!-- ═══════ PAGE: UNIT RATES ═══════ -->
+<div class="page" id="page-ur">
+
+  <div class="ur-controls">
+    <div class="search-wrap" style="flex:1;min-width:220px;max-width:360px;margin-bottom:0">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" id="urSearch" type="text" placeholder="Search cost code or description…" oninput="renderURTable()">
+    </div>
+    <div>
+      <div class="cat-nav" id="catNav"></div>
     </div>
   </div>
 
-  <!-- SECTION: COST BREAKDOWN TABLE -->
-  <div class="section">
-    <div class="section-title">Other Costs — Actual ($M)</div>
-    <div class="table-wrap">
-      <div class="table-scroll">
-        <table id="cost-table"></table>
-      </div>
+  <div class="section" style="margin-bottom:20px">
+    <div class="section-title">Unit Rate Chart — Actual HR/QTY by Project</div>
+    <div class="chart-card">
+      <div class="chart-subtitle" style="margin-bottom:12px">Showing top rates for selected category (hover for values)</div>
+      <canvas id="chartUR" height="160"></canvas>
     </div>
   </div>
+
+  <div class="section">
+    <div class="section-title">Unit Rates Table — Actual Values</div>
+    <div class="table-wrap"><div class="table-scroll"><table id="ur-table"></table></div></div>
+  </div>
+
+</div><!-- /page-ur -->
 
 </div><!-- /main -->
 
 <script>
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════
 // DATA
-// ═══════════════════════════════════════════════════
-const TODAY = new Date();
+// ══════════════════════════════════════════════
 document.getElementById('hdr-date').textContent =
-  TODAY.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'}) +
+  new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'}) +
   ' · JTD Performance Dashboard';
 
 const PROJECTS = ['East Atmore-PGR','Foley-PGR','OH-PGR','Sunray','DWR Chevron'];
@@ -403,36 +381,28 @@ const MW       = [115, 108, 112, 272.4, 70];
 
 const DATA = {
   pvHpW:     { b:[2280,2547,2453,1589,1822], a:[2253,2221,2673,1595,2387] },
-  civHpW:    { b:[303,254,210,77,359],       a:[215,261,445,152,205]  },
+  civHpW:    { b:[303,254,210,77,359],       a:[215,261,445,152,205] },
   totHpW:    { b:[2584,2802,2782,1666,2181], a:[2468,2482,3197,1747,2592] },
-
   costPV:    { b:[61.43,65.78,56.39,113.10,25.37], a:[59.76,60.22,61.45,112.68,25.84] },
-  costCiv:   { b:[7.74,6.51,13.32,2.85,4.84],      a:[6.34,6.24,19.22,3.73,5.77]  },
+  costCiv:   { b:[7.74,6.51,13.32,2.85,4.84],      a:[6.34,6.24,19.22,3.73,5.77] },
   costTot:   { b:[69.16,72.30,71.02,115.95,30.20], a:[66.10,66.46,81.63,116.41,31.61] },
-
   rev:       { b:[76.78,80.26,75.35,127.77,33.52], a:[79.99,82.84,78.84,128.27,35.74] },
-
   pvHrs:     { b:[262.2,275.1,274.7,432.9,127.5],  a:[259.1,239.9,299.4,434.5,167.1] },
-  civHrs:    { b:[34.9,27.5,23.6,21.1,25.2],       a:[24.7,28.1,49.9,41.3,14.3]  },
+  civHrs:    { b:[34.9,27.5,23.6,21.1,25.2],       a:[24.7,28.1,49.9,41.3,14.3] },
   totHrs:    { b:[297.1,302.6,311.5,453.9,152.7],  a:[283.8,268.0,358.1,475.8,181.4] },
-
-  cpiPV:     { b:[1,1,1,1,1], a:[1.028,1.092,0.918,1.004,0.982] },
-  cpiCiv:    { b:[1,1,1,1,1], a:[1.220,1.044,0.693,0.762,0.837] },
-  cpiTot:    { b:[1,1,1,1,1], a:[1.046,1.088,0.870,0.996,0.955] },
-
-  pfPV:      { b:[1,1,1,1,1], a:[1.012,1.147,0.918,0.996,0.763] },
-  pfCiv:     { b:[1,1,1,1,1], a:[1.411,null,1.506,null,null] },
-  pfTot:     { b:[1,1,1,1,1], a:[1.047,1.129,0.870,0.954,0.842] },
-
+  cpiPV:     { a:[1.028,1.092,0.918,1.004,0.982] },
+  cpiCiv:    { a:[1.220,1.044,0.693,0.762,0.837] },
+  cpiTot:    { a:[1.046,1.088,0.870,0.996,0.955] },
+  pfPV:      { a:[1.012,1.147,0.918,0.996,0.763] },
+  pfCiv:     { a:[1.411,null,1.506,null,null] },
+  pfTot:     { a:[1.047,1.129,0.870,0.954,0.842] },
   cpw:       { b:[0.601,0.669,0.634,0.426,0.431], a:[0.575,0.615,0.729,0.427,0.452] },
   rpw:       { b:[0.668,0.743,0.673,0.469,0.479], a:[0.696,0.767,0.704,0.471,0.511] },
-
-  profit:    { b:[7.61,7.96,4.34,11.82,3.31],     a:[13.89,16.38,-2.79,11.86,4.13]  },
-  marginRev: { b:[9.9,9.9,5.8,9.3,9.9],            a:[17.4,19.8,-3.5,9.2,11.5]  },
-  marginCost:{ b:[11.0,11.0,6.1,10.2,11.0],        a:[21.0,24.6,-3.4,10.2,13.1]  },
+  profit:    { b:[7.61,7.96,4.34,11.82,3.31],     a:[13.89,16.38,-2.79,11.86,4.13] },
+  marginRev: { b:[9.9,9.9,5.8,9.3,9.9],           a:[17.4,19.8,-3.5,9.2,11.5] },
+  marginCost:{ b:[11.0,11.0,6.1,10.2,11.0],       a:[21.0,24.6,-3.4,10.2,13.1] },
   pctComp:   [99.4,94.2,93.2,99.8,93.1],
   cash:      [14.51,13.45,-3.65,11.36,2.34],
-
   materials: [31.65,33.96,0,70.87,8.85],
   racking:   [15.97,13.02,13.13,36.90,4.52],
   inverters: [4.68,4.39,4.43,9.44,0],
@@ -441,115 +411,236 @@ const DATA = {
   eng:       [1.869,1.739,2.015,1.541,1.489],
   labor:     [14.39,13.69,18.57,23.29,9.19],
   equip:     [4.00,3.99,7.33,7.05,3.80],
-
   pileEAC:   { b:[60.62,64.13,46.00,47.93,48.46], a:[56.72,30.95,47.60,46.67,73.62] },
   pileTot:   { b:[60.62,64.13,46.00,47.93,48.46], a:[71.11,30.95,56.90,46.67,108.00] },
 };
 
-// project status
-function projStatus(i) {
-  const m = DATA.marginCost.a[i];
-  if (m < 0) return 'risk';
-  if (DATA.cpiTot.a[i] < 0.95) return 'warn';
-  return 'ok';
-}
-const BADGE_LABEL = { ok:'✓ On Budget', warn:'⚠ Over Budget', risk:'✗ At Risk' };
-const BADGE_CLASS = { ok:'badge-ok', warn:'badge-warn', risk:'badge-risk' };
+// ── UNIT RATES DATA (actual only — budget=0 for all)
+// Columns: [East Atmore, Foley, OH-PGR, Sunray, DWR Chevron]
+const UR_CATEGORIES = [
+  { id:'all',    label:'All Codes' },
+  { id:'gen',    label:'General/Site' },
+  { id:'mech',   label:'Mechanical' },
+  { id:'eldc',   label:'Electrical DC' },
+  { id:'elmv',   label:'Electrical MV' },
+  { id:'inv',    label:'Inverter Skid' },
+  { id:'scada',  label:'SCADA/Comm' },
+  { id:'civil',  label:'Civil' },
+];
 
-// ═══════════════════════════════════════════════════
-// HELPERS
-// ═══════════════════════════════════════════════════
-const fM  = v => v == null ? '—' : (v < 0 ? '-$' + Math.abs(v).toFixed(2) + 'M' : '$' + v.toFixed(2) + 'M');
-const fPct= v => v == null ? '—' : v.toFixed(1) + '%';
-const fN  = (v,d=3) => v == null ? '—' : v.toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d});
-const fDol= v => v == null ? '—' : '$' + v.toFixed(2);
-const fCPI= v => v == null ? '—' : v.toFixed(3);
+const UNIT_RATES = [
+  // ── GENERAL/SITE
+  { cat:'gen', code:'4005', label:'FOE',                             unit:'HR/DAY', a:[157.19, 136.30, 161.06, 0,      114.36] },
+  { cat:'gen', code:'4006', label:'Yard and Trailer',                unit:'HR/DAY', a:[76.83,  18.10,  28.41,  0,      52.98]  },
+  { cat:'gen', code:'4031', label:'Hire-In and Orientation',         unit:'HR/DAY', a:[150.47, 166.06, 316.90, 0,      25.41]  },
+  { cat:'gen', code:'4115', label:'Clean Up',                        unit:'HR/QTY', a:[0,      0,      0,      0,      0]      },
+  { cat:'gen', code:'4116', label:'Mowing',                          unit:'HR/QTY', a:[0,      209.42, 80.34,  0,      0]      },
+  // ── MECHANICAL
+  { cat:'mech', code:'4300', label:'Mechanical Receiving',           unit:'HR/QTY', a:[25.99,  53.15,  105.64, 0,      94.88]  },
+  { cat:'mech', code:'4301', label:'Pile Layout',                    unit:'HR/QTY', a:[0,      0.0525, 0.0852, 0,      0.0867] },
+  { cat:'mech', code:'4302', label:'Pile Install',                   unit:'HR/QTY', a:[0,      0.1847, 0.215,  0,      0.3906] },
+  { cat:'mech', code:'4303', label:'Pile QAQC',                      unit:'HR/QTY', a:[0.0519, 0.0799, 0.0716, 0,      0.0737] },
+  { cat:'mech', code:'4304', label:'Racking Layout',                 unit:'HR/QTY', a:[2.881,  1.955,  2.295,  0,      2.644]  },
+  { cat:'mech', code:'4305', label:'Racking Install',                unit:'HR/QTY', a:[18.637, 12.888, 16.875, 0,      16.743] },
+  { cat:'mech', code:'4306', label:'Racking QAQC',                   unit:'HR/QTY', a:[1.303,  1.007,  1.975,  0,      1.251]  },
+  { cat:'mech', code:'4307', label:'Modules Layout',                 unit:'HR/QTY', a:[0.00627,0.01886,0.01900,0,      0.02846]},
+  { cat:'mech', code:'4308', label:'Modules Install',                unit:'HR/QTY', a:[0.1001, 0.0941, 0.0906, 0,      0.1060] },
+  { cat:'mech', code:'4309', label:'Modules QAQC',                   unit:'HR/QTY', a:[0.00963,0.01120,0.00885,0,      0.00941]},
+  { cat:'mech', code:'4309-01', label:'Module Mapping',              unit:'HR/QTY', a:[0.00413,0.00344,0.00649,0,      0]      },
+  { cat:'mech', code:'4320', label:'Mechanical Punch List',          unit:'HR/QTY', a:[1.641,  0.620,  1.383,  0,      0.476]  },
+  // ── ELECTRICAL DC
+  { cat:'eldc', code:'4401', label:'DC Trenching',                   unit:'HR/QTY', a:[0.2885, 0.3305, 0.2177, 0,      2.4769] },
+  { cat:'eldc', code:'4402', label:'Transitions Pre-Fab',            unit:'HR/QTY', a:[0.4965, 0.8715, 1.1354, 0,      0.4118] },
+  { cat:'eldc', code:'4403', label:'DC Transitions',                 unit:'HR/QTY', a:[1.069,  2.662,  3.972,  0,      68.647] },
+  { cat:'eldc', code:'4405', label:'DC Feeder',                      unit:'HR/QTY', a:[0.01860,0.03732,0.04725,0,      0.00747]},
+  { cat:'eldc', code:'4406', label:'Road Conduit Install',           unit:'HR/QTY', a:[45.804, 50.156, 0,      0,      0]      },
+  { cat:'eldc', code:'4407', label:'Module Wiring',                  unit:'HR/QTY', a:[0.01758,1.8478, 0.02198,0,      0.04093]},
+  { cat:'eldc', code:'4408', label:'String Cable AG',                unit:'HR/QTY', a:[0.00428,4.1090, 0.00454,0,      0.00406]},
+  { cat:'eldc', code:'4410', label:'DC Terminations @ Inv & LBD',    unit:'HR/QTY', a:[0.3819, 0.6562, 1.0529, 0,      0.4738] },
+  { cat:'eldc', code:'4411', label:'LBDs (Combiner Boxes)',          unit:'HR/QTY', a:[1.254,  4.099,  2.755,  0,      4.585]  },
+  { cat:'eldc', code:'4412', label:'CAB System Install',             unit:'HR/QTY', a:[0.03906,0.04179,0.04527,0,      0.12039]},
+  { cat:'eldc', code:'4413', label:'DC Testing',                     unit:'HR/QTY', a:[0.5947, 56.261, 0.6847, 0,      29.265] },
+  { cat:'eldc', code:'4416', label:'Trunk Cable',                    unit:'HR/QTY', a:[0.00917,0.00920,0.00760,0,      0.00920]},
+  { cat:'eldc', code:'4420', label:'Electrical DC Punch List',       unit:'HR/QTY', a:[2.397,  2.645,  2.710,  0,      198.706]},
+  // ── ELECTRICAL MV/AC
+  { cat:'elmv', code:'4503', label:'AC-MV Cabling',                  unit:'HR/QTY', a:[180.975,57.826, 125.696,0,      75.471] },
+  { cat:'elmv', code:'4501', label:'AC-MV Terminations',             unit:'HR/QTY', a:[4.737,  2.816,  6.430,  0,      5.272]  },
+  { cat:'elmv', code:'4511', label:'Junction Box',                   unit:'HR/QTY', a:[56.938, 162.0,  250.75, 0,      0]      },
+  { cat:'elmv', code:'4512', label:'AC Testing',                     unit:'HR/QTY', a:[16.696, 26.019, 42.520, 0,      4.190]  },
+  { cat:'elmv', code:'4520', label:'Electrical MV Punch List',       unit:'HR/QTY', a:[1.471,  81.587, 0.556,  0,      39.206] },
+  // ── INVERTER SKID
+  { cat:'inv', code:'4700', label:'Inv Skid Excavation',             unit:'HR/QTY', a:[23.783, 23.739, 39.0,   0,      20.235] },
+  { cat:'inv', code:'4701', label:'Inv Skid Conduit',                unit:'HR/QTY', a:[53.217, 48.348, 90.783, 0,      43.529] },
+  { cat:'inv', code:'4702', label:'Inv Skid Backfill',               unit:'HR/QTY', a:[27.652, 38.478, 34.630, 0,      17.678] },
+  { cat:'inv', code:'4703', label:'Inv Skid Pad',                    unit:'HR/QTY', a:[12.696, 70.457, 0,      0,      37.647] },
+  { cat:'inv', code:'4704', label:'Inv Skid Setting',                unit:'HR/QTY', a:[24.261, 41.565, 44.130, 0,      31.176] },
+  // ── SCADA/COMM
+  { cat:'scada', code:'4614', label:'SCADA Met',                     unit:'HR/QTY', a:[40.019, 27.121, 31.745, 0,      90.250] },
+  { cat:'scada', code:'4414', label:'Commissioning',                 unit:'HR/QTY', a:[427.645,598.661,545.559,0,     843.056] },
+  { cat:'scada', code:'4602', label:'Fiber Terms',                   unit:'HR/QTY', a:[2.980,  21.839, 21.250, 0,      25.884] },
+  // ── CIVIL
+  { cat:'civil', code:'4101', label:'Brush Hog',                     unit:'HR/QTY', a:[0.382,  0,      0,      0,      0]      },
+  { cat:'civil', code:'4125', label:'SWPPP Maintenance',             unit:'HR/QTY', a:[4.654,  0,      63.691, 0,      51.457] },
+  { cat:'civil', code:'4100', label:'Silt Fence and Erosion Ctl',    unit:'HR/QTY', a:[0.05409,0.02748,0,      0,      0.05860]},
+  { cat:'civil', code:'4102', label:'Clearing & Grubbing',           unit:'HR/QTY', a:[0,      368.085,40.819, 0,      6.524]  },
+  { cat:'civil', code:'4103', label:'Cut and Fill',                  unit:'HR/QTY', a:[0.04303,0.12299,0,      0,      0.4465] },
+  { cat:'civil', code:'4104', label:'Site Grading',                  unit:'HR/QTY', a:[0,      0.27852,0,      0,      4.871]  },
+  { cat:'civil', code:'4104-01', label:'Substation & Grading',       unit:'HR/QTY', a:[0.01130,0.01908,0,      0,      0]      },
+  { cat:'civil', code:'4105', label:'Top Soil Stripping',            unit:'HR/QTY', a:[0.01234,0.00501,0,      0,      0.000423]},
+  { cat:'civil', code:'4106', label:'Respread Top Soil',             unit:'HR/QTY', a:[0.00398,0.000658,0,     0,      0.000634]},
+  { cat:'civil', code:'4108', label:'Site Drainage',                 unit:'HR/QTY', a:[0.0272, 0.09792,0,      0,      0]      },
+  { cat:'civil', code:'4109', label:'Gravel Roadways',               unit:'HR/QTY', a:[0.05730,0.10669,0,      0,      0.03796]},
+  { cat:'civil', code:'4112', label:'Seeding',                       unit:'HR/QTY', a:[0,      0,      0,      0,      0]      },
+  { cat:'civil', code:'4118', label:'Clean Up (Civil)',              unit:'HR/QTY', a:[200.796,0,      0,      0,      0]      },
+  { cat:'civil', code:'4120', label:'Site Entrances',                unit:'HR/QTY', a:[129.351,0,      0,      0,      0]      },
+  { cat:'civil', code:'4121', label:'Laydown Yard',                  unit:'HR/QTY', a:[48.558, 13.532, 331.333,0,      45.845] },
+  { cat:'civil', code:'4122', label:'Equipment Pad Installation',    unit:'HR/QTY', a:[6.522,  0,      0,      0,      37.647] },
+  { cat:'civil', code:'4128', label:'Basin Excavation',              unit:'HR/QTY', a:[0.03064,0.02054,0,      0,      0]      },
+  { cat:'civil', code:'4129', label:'Basin Structure Install',       unit:'HR/QTY', a:[115.538,93.636, 0,      0,      131.500]},
+  { cat:'civil', code:'4123', label:'Dust Control',                  unit:'HR/QTY', a:[0,      0,      5.175,  0,      0]      },
+];
 
-function varTip(b, a, fmt) {
-  if (a == null || b == null) return '';
-  const v = b - a;
-  const sign = v >= 0 ? '+' : '';
-  return 'Var: ' + sign + fmt(v) + ' (B=' + fmt(b) + ', A=' + fmt(a) + ')';
-}
-
-function colorCell(val, goodHigh, warn=null) {
-  if (val == null) return '';
-  if (warn !== null && Math.abs(val) <= warn) return 'cell-neutral';
-  return val > 0 === goodHigh ? 'cell-good' : 'cell-bad';
-}
-
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════
 // STATE
-// ═══════════════════════════════════════════════════
-let activeProject = -1;
+// ══════════════════════════════════════════════
+let activePage = 'perf';
+let activeProjects = [0,1,2,3,4];
+let activeURCat = 'all';
 
-function setProject(idx) {
-  activeProject = idx;
-  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', i === idx + 1));
+// ══════════════════════════════════════════════
+// FILTER LOGIC
+// ══════════════════════════════════════════════
+function toggleFilter() {
+  const btn = document.getElementById('filterBtn');
+  const dd  = document.getElementById('filterDropdown');
+  btn.classList.toggle('open');
+  dd.classList.toggle('open');
+}
+document.addEventListener('click', e => {
+  if (!document.getElementById('filterWrap').contains(e.target)) {
+    document.getElementById('filterBtn').classList.remove('open');
+    document.getElementById('filterDropdown').classList.remove('open');
+  }
+});
+function getChecked() {
+  return [...document.querySelectorAll('#filterDropdown input[type=checkbox]')]
+    .filter(c => c.checked).map(c => +c.value);
+}
+function updateFilter() {
+  activeProjects = getChecked();
+  if (!activeProjects.length) {
+    // prevent empty selection — recheck all
+    document.querySelectorAll('#filterDropdown input').forEach(c => c.checked = true);
+    activeProjects = [0,1,2,3,4];
+  }
+  const label = activeProjects.length === 5
+    ? 'All Projects'
+    : activeProjects.length === 1
+    ? PROJECTS[activeProjects[0]]
+    : activeProjects.length + ' Projects';
+  document.getElementById('filterLabel').textContent = label;
+  const totalMW = activeProjects.reduce((s,i) => s + MW[i], 0);
+  document.getElementById('hdr-badge').textContent =
+    activeProjects.length + ' Project' + (activeProjects.length>1?'s':'') +
+    ' · ' + totalMW.toLocaleString() + ' MW';
   renderAll();
 }
+function selectAllProjects() {
+  document.querySelectorAll('#filterDropdown input').forEach(c => c.checked = true);
+  updateFilter();
+}
+function clearProjects() {
+  const inputs = document.querySelectorAll('#filterDropdown input');
+  inputs.forEach((c,i) => c.checked = i===0); // keep at least one
+  updateFilter();
+}
 
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════
+// PAGE SWITCHING
+// ══════════════════════════════════════════════
+function setPage(p) {
+  activePage = p;
+  document.querySelectorAll('.page-btn').forEach((b,i) =>
+    b.classList.toggle('active', ['perf','ur'][i] === p));
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  document.getElementById('page-' + p).classList.add('active');
+  if (p === 'ur') renderURPage();
+}
+
+// ══════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════
+const fM   = v => v==null?'—':(v<0?'-$'+Math.abs(v).toFixed(2)+'M':'$'+v.toFixed(2)+'M');
+const fPct = v => v==null?'—':v.toFixed(1)+'%';
+const fN   = (v,d=3) => v==null?'—':v.toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d});
+const fDol = v => v==null?'—':'$'+v.toFixed(2);
+const fCPI = v => v==null?'—':v.toFixed(3);
+const fUR  = v => !v || v===0 ? '—' : v >= 10 ? v.toFixed(1) : v.toFixed(4);
+
+function varTip(b,a,fmt) {
+  if (a==null||b==null) return '';
+  const v=b-a, s=v>=0?'+':'';
+  return 'Var: '+s+fmt(v)+' (B='+fmt(b)+', A='+fmt(a)+')';
+}
+function colorCell(val,goodHigh) {
+  if (val==null) return '';
+  return val>0===goodHigh?'cell-good':'cell-bad';
+}
+function projStatus(i) {
+  if (DATA.marginCost.a[i]<0) return 'risk';
+  if (DATA.cpiTot.a[i]<0.95)  return 'warn';
+  return 'ok';
+}
+const BADGE_LABEL = {ok:'✓ On Budget',warn:'⚠ Over Budget',risk:'✗ At Risk'};
+const BADGE_CLASS = {ok:'badge-ok',warn:'badge-warn',risk:'badge-risk'};
+const PROJ_COLORS = ['#3b82f6','#22c55e','#f59e0b','#a855f7','#06b6d4'];
+
+// ══════════════════════════════════════════════
 // KPI CARDS
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════
 function renderKPIs() {
+  const idx = activeProjects;
   const g = document.getElementById('kpi-grid');
-  const p = activeProject;
+  let cards;
 
-  let cards = [];
-
-  if (p === -1) {
-    // Aggregate
-    const totMW      = MW.reduce((a,b)=>a+b,0);
-    const totRevB    = DATA.rev.b.reduce((a,b)=>a+b,0);
-    const totRevA    = DATA.rev.a.reduce((a,b)=>a+b,0);
-    const totCostB   = DATA.costTot.b.reduce((a,b)=>a+b,0);
-    const totCostA   = DATA.costTot.a.reduce((a,b)=>a+b,0);
-    const totProfA   = DATA.profit.a.reduce((a,b)=>a+b,0);
-    const blendMarg  = (totProfA / totRevA * 100);
-    const bestI      = DATA.marginCost.a.indexOf(Math.max(...DATA.marginCost.a));
-    const worstI     = DATA.marginCost.a.indexOf(Math.min(...DATA.marginCost.a));
-
+  if (idx.length > 1) {
+    const totRevB  = idx.reduce((s,i)=>s+DATA.rev.b[i],0);
+    const totRevA  = idx.reduce((s,i)=>s+DATA.rev.a[i],0);
+    const totCostB = idx.reduce((s,i)=>s+DATA.costTot.b[i],0);
+    const totCostA = idx.reduce((s,i)=>s+DATA.costTot.a[i],0);
+    const totProfA = idx.reduce((s,i)=>s+DATA.profit.a[i],0);
+    const blendM   = totProfA/totRevA*100;
+    const bestI    = idx.reduce((a,b)=>DATA.marginCost.a[a]>DATA.marginCost.a[b]?a:b);
+    const worstI   = idx.reduce((a,b)=>DATA.marginCost.a[a]<DATA.marginCost.a[b]?a:b);
     cards = [
-      { color:'blue',  label:'Total Portfolio MW', value: totMW.toLocaleString() + ' MW',
-        sub: '5 Projects', delta:'', dt:'' },
-      { color:'cyan',  label:'Total Revenue', value: '$'+totRevA.toFixed(1)+'M',
-        sub: 'Budget: $'+totRevB.toFixed(1)+'M',
-        delta:(totRevA-totRevB>=0?'+':'')+fM(totRevA-totRevB), dt: totRevA>=totRevB?'pos':'neg' },
-      { color:'amber', label:'Total Cost', value: '$'+totCostA.toFixed(1)+'M',
-        sub: 'Budget: $'+totCostB.toFixed(1)+'M',
-        delta:(totCostA<=totCostB?'Under':'Over')+' '+fM(Math.abs(totCostA-totCostB)), dt: totCostA<=totCostB?'pos':'neg' },
-      { color:'green', label:'Blended Margin (Actual)', value: fPct(blendMarg),
-        sub: 'on Revenue — 5 projects',
-        delta: totProfA>=0?'$'+totProfA.toFixed(2)+'M profit':'LOSS', dt: totProfA>=0?'pos':'neg' },
-      { color:'green', label:'Best: '+PROJECTS[bestI], value: fPct(DATA.marginCost.a[bestI]),
-        sub: 'Margin on Cost · '+PROJECTS[bestI],
-        delta: '<span class="badge badge-ok">✓ On Budget</span>', dt:'raw' },
-      { color:'red',   label:'At Risk: '+PROJECTS[worstI], value: fPct(DATA.marginCost.a[worstI]),
-        sub: 'Margin on Cost · '+PROJECTS[worstI],
-        delta: '<span class="badge badge-risk">✗ At Risk</span>', dt:'raw' },
+      {color:'blue', label:'Portfolio MW', value:idx.reduce((s,i)=>s+MW[i],0).toLocaleString()+' MW', sub:idx.length+' Projects', delta:''},
+      {color:'cyan', label:'Total Revenue', value:'$'+totRevA.toFixed(1)+'M', sub:'Budget: $'+totRevB.toFixed(1)+'M',
+        delta:(totRevA>=totRevB?'+':'')+fM(totRevA-totRevB), dt:totRevA>=totRevB?'pos':'neg'},
+      {color:'amber', label:'Total Cost', value:'$'+totCostA.toFixed(1)+'M', sub:'Budget: $'+totCostB.toFixed(1)+'M',
+        delta:(totCostA<=totCostB?'Under ':'Over ')+fM(Math.abs(totCostA-totCostB)), dt:totCostA<=totCostB?'pos':'neg'},
+      {color:'green', label:'Blended Margin', value:fPct(blendM), sub:'on Revenue',
+        delta:totProfA>=0?'$'+totProfA.toFixed(2)+'M profit':'LOSS', dt:totProfA>=0?'pos':'neg'},
+      {color:'green', label:'Best: '+PROJECTS[bestI], value:fPct(DATA.marginCost.a[bestI]),
+        sub:'Margin on Cost', delta:'<span class="badge badge-ok">✓ On Budget</span>', dt:'raw'},
+      {color:'red', label:'At Risk: '+PROJECTS[worstI], value:fPct(DATA.marginCost.a[worstI]),
+        sub:'Margin on Cost', delta:'<span class="badge '+BADGE_CLASS[projStatus(worstI)]+'">'+BADGE_LABEL[projStatus(worstI)]+'</span>', dt:'raw'},
     ];
   } else {
-    const i = p;
+    const i = idx[0];
     const status = projStatus(i);
     cards = [
-      { color:'blue',  label:'Project MW', value: MW[i]+' MW', sub: 'Job #'+JOBS[i], delta:'', dt:'' },
-      { color:'cyan',  label:'Revenue', value: fM(DATA.rev.a[i]),
-        sub: 'Budget: '+fM(DATA.rev.b[i]),
-        delta: (DATA.rev.a[i]-DATA.rev.b[i]>=0?'+':'')+fM(DATA.rev.a[i]-DATA.rev.b[i]), dt:DATA.rev.a[i]>=DATA.rev.b[i]?'pos':'neg' },
-      { color:'amber', label:'Total Cost', value: fM(DATA.costTot.a[i]),
-        sub: 'Budget: '+fM(DATA.costTot.b[i]),
-        delta: (DATA.costTot.a[i]<=DATA.costTot.b[i]?'Under ':'Over ')+fM(Math.abs(DATA.costTot.a[i]-DATA.costTot.b[i])), dt:DATA.costTot.a[i]<=DATA.costTot.b[i]?'pos':'neg' },
-      { color: DATA.profit.a[i]>=0?'green':'red', label:'Profit', value: fM(DATA.profit.a[i]),
-        sub: 'Budget: '+fM(DATA.profit.b[i]),
-        delta: fPct(DATA.marginCost.a[i])+' margin on cost', dt: DATA.profit.a[i]>=0?'pos':'neg' },
-      { color:'purple', label:'CPI Total', value: fCPI(DATA.cpiTot.a[i]),
-        sub: 'Cost Perf Index (>1.0 = under budget)',
-        delta: DATA.cpiTot.a[i]>=1?'Under budget':'Over budget', dt:DATA.cpiTot.a[i]>=1?'pos':'neg' },
-      { color: status==='ok'?'green':status==='warn'?'amber':'red',
-        label:'% Complete WIP', value: DATA.pctComp[i]+'%',
-        sub: 'Cash: '+fM(DATA.cash[i]),
-        delta: '<span class="badge '+BADGE_CLASS[status]+'">'+BADGE_LABEL[status]+'</span>', dt:'raw' },
+      {color:'blue',  label:'Project MW',   value:MW[i]+' MW', sub:'Job #'+JOBS[i], delta:''},
+      {color:'cyan',  label:'Revenue',       value:fM(DATA.rev.a[i]), sub:'Budget: '+fM(DATA.rev.b[i]),
+        delta:(DATA.rev.a[i]-DATA.rev.b[i]>=0?'+':'')+fM(DATA.rev.a[i]-DATA.rev.b[i]), dt:DATA.rev.a[i]>=DATA.rev.b[i]?'pos':'neg'},
+      {color:'amber', label:'Total Cost',    value:fM(DATA.costTot.a[i]), sub:'Budget: '+fM(DATA.costTot.b[i]),
+        delta:(DATA.costTot.a[i]<=DATA.costTot.b[i]?'Under ':'Over ')+fM(Math.abs(DATA.costTot.a[i]-DATA.costTot.b[i])), dt:DATA.costTot.a[i]<=DATA.costTot.b[i]?'pos':'neg'},
+      {color:DATA.profit.a[i]>=0?'green':'red', label:'Profit', value:fM(DATA.profit.a[i]),
+        sub:'Budget: '+fM(DATA.profit.b[i]), delta:fPct(DATA.marginCost.a[i])+' margin on cost', dt:DATA.profit.a[i]>=0?'pos':'neg'},
+      {color:'purple', label:'CPI Total', value:fCPI(DATA.cpiTot.a[i]), sub:'>1.0 = under budget',
+        delta:DATA.cpiTot.a[i]>=1?'Under budget':'Over budget', dt:DATA.cpiTot.a[i]>=1?'pos':'neg'},
+      {color:status==='ok'?'green':status==='warn'?'amber':'red', label:'% Complete WIP',
+        value:DATA.pctComp[i]+'%', sub:'Cash: '+fM(DATA.cash[i]),
+        delta:'<span class="badge '+BADGE_CLASS[status]+'">'+BADGE_LABEL[status]+'</span>', dt:'raw'},
     ];
   }
 
@@ -558,400 +649,363 @@ function renderKPIs() {
       <div class="kpi-label">${c.label}</div>
       <div class="kpi-value">${c.value}</div>
       <div class="kpi-sub">${c.sub}</div>
-      ${c.dt==='raw' ? '<div style="margin-top:6px">'+c.delta+'</div>' :
-        c.delta ? '<div class="kpi-delta '+c.dt+'">'+c.delta+'</div>' : ''}
-    </div>
-  `).join('');
+      ${c.dt==='raw'?'<div style="margin-top:6px">'+c.delta+'</div>':
+        c.delta?'<div class="kpi-delta '+(c.dt||'')+'">'+c.delta+'</div>':''}
+    </div>`).join('');
 }
 
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════
 // OVERVIEW TABLE
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════
 function renderOverviewTable() {
+  const idx = activeProjects;
   const t = document.getElementById('overview-table');
-  const proj = activeProject === -1 ? [0,1,2,3,4] : [activeProject];
-
-  const headers = ['Metric', ...proj.map(i =>
-    `${PROJECTS[i]}<br><span style="font-size:9.5px;color:var(--text-dim);">#${JOBS[i]} · ${MW[i]} MW</span>`)];
+  const headers = ['Metric', ...idx.map(i =>
+    `${PROJECTS[i]}<br><span style="font-size:9px;color:var(--text-dim)">#${JOBS[i]} · ${MW[i]} MW</span>`)];
 
   const rows = [
-    { label:'— FINANCIALS —', group:true },
-    { label:'Revenue Budget ($M)',    vals: proj.map(i => ({v:fM(DATA.rev.b[i]),cls:'cell-neutral'})) },
-    { label:'Revenue Actual ($M)',    vals: proj.map(i => ({v:fM(DATA.rev.a[i]),tip:varTip(DATA.rev.b[i],DATA.rev.a[i],fM),cls:colorCell(DATA.rev.a[i]-DATA.rev.b[i],true)})) },
-    { label:'Total Cost Budget ($M)', vals: proj.map(i => ({v:fM(DATA.costTot.b[i]),cls:'cell-neutral'})) },
-    { label:'Total Cost Actual ($M)', vals: proj.map(i => ({v:fM(DATA.costTot.a[i]),tip:varTip(DATA.costTot.b[i],DATA.costTot.a[i],fM),cls:colorCell(DATA.costTot.a[i]-DATA.costTot.b[i],false)})) },
-    { label:'Profit Budget ($M)',     vals: proj.map(i => ({v:fM(DATA.profit.b[i]),cls:'cell-neutral'})) },
-    { label:'Profit Actual ($M)',     vals: proj.map(i => ({v:fM(DATA.profit.a[i]),tip:varTip(DATA.profit.b[i],DATA.profit.a[i],fM),cls:colorCell(DATA.profit.a[i]-DATA.profit.b[i],true)})) },
-    { label:'Margin on Rev % (Bdgt)', vals: proj.map(i => ({v:fPct(DATA.marginRev.b[i]),cls:'cell-neutral'})) },
-    { label:'Margin on Rev % (Actl)', vals: proj.map(i => ({v:fPct(DATA.marginRev.a[i]),tip:varTip(DATA.marginRev.b[i],DATA.marginRev.a[i],fPct),cls:colorCell(DATA.marginRev.a[i]-DATA.marginRev.b[i],true)})) },
-    { label:'Margin on Cost % (Bdgt)',vals: proj.map(i => ({v:fPct(DATA.marginCost.b[i]),cls:'cell-neutral'})) },
-    { label:'Margin on Cost % (Actl)',vals: proj.map(i => ({v:fPct(DATA.marginCost.a[i]),tip:varTip(DATA.marginCost.b[i],DATA.marginCost.a[i],fPct),cls:colorCell(DATA.marginCost.a[i]-DATA.marginCost.b[i],true)})) },
-
-    { label:'— PERFORMANCE INDICES —', group:true },
-    { label:'CPI – PV',               vals: proj.map(i => ({v:fCPI(DATA.cpiPV.a[i]),tip:'Budget=1.000',cls:colorCell(DATA.cpiPV.a[i]-1,true,0)})) },
-    { label:'CPI – Civil',            vals: proj.map(i => ({v:fCPI(DATA.cpiCiv.a[i]),tip:'Budget=1.000',cls:colorCell(DATA.cpiCiv.a[i]-1,true,0)})) },
-    { label:'CPI – Total',            vals: proj.map(i => ({v:fCPI(DATA.cpiTot.a[i]),tip:'Budget=1.000',cls:colorCell(DATA.cpiTot.a[i]-1,true,0)})) },
-    { label:'PF – PV',                vals: proj.map(i => ({v:fCPI(DATA.pfPV.a[i]),tip:'Budget=1.000',cls:colorCell(DATA.pfPV.a[i]-1,true,0)})) },
-    { label:'PF – Civil',             vals: proj.map(i => ({v:DATA.pfCiv.a[i]==null?'N/A':fCPI(DATA.pfCiv.a[i]),tip:'Budget=1.000',cls:DATA.pfCiv.a[i]==null?'cell-neutral':colorCell(DATA.pfCiv.a[i]-1,true,0)})) },
-    { label:'PF – Total',             vals: proj.map(i => ({v:fCPI(DATA.pfTot.a[i]),tip:'Budget=1.000',cls:colorCell(DATA.pfTot.a[i]-1,true,0)})) },
-
-    { label:'— HOURS —', group:true },
-    { label:'Total Hrs/Watt (Budget)', vals: proj.map(i => ({v:fN(DATA.totHpW.b[i],0),cls:'cell-neutral'})) },
-    { label:'Total Hrs/Watt (Actual)', vals: proj.map(i => ({v:fN(DATA.totHpW.a[i],0),tip:varTip(DATA.totHpW.b[i],DATA.totHpW.a[i],v=>v.toFixed(0)),cls:colorCell(DATA.totHpW.a[i]-DATA.totHpW.b[i],false)})) },
-    { label:'Total Hours k (Budget)',  vals: proj.map(i => ({v:fN(DATA.totHrs.b[i],1)+'k',cls:'cell-neutral'})) },
-    { label:'Total Hours k (Actual)',  vals: proj.map(i => ({v:fN(DATA.totHrs.a[i],1)+'k',tip:varTip(DATA.totHrs.b[i],DATA.totHrs.a[i],v=>v.toFixed(1)+'k'),cls:colorCell(DATA.totHrs.a[i]-DATA.totHrs.b[i],false)})) },
-
-    { label:'— COST/WATT & STATUS —', group:true },
-    { label:'Cost/Watt Budget ($)',    vals: proj.map(i => ({v:fDol(DATA.cpw.b[i]),cls:'cell-neutral'})) },
-    { label:'Cost/Watt Actual ($)',    vals: proj.map(i => ({v:fDol(DATA.cpw.a[i]),tip:varTip(DATA.cpw.b[i],DATA.cpw.a[i],v=>'$'+Math.abs(v).toFixed(3)),cls:colorCell(DATA.cpw.a[i]-DATA.cpw.b[i],false)})) },
-    { label:'Revenue/Watt Budget ($)', vals: proj.map(i => ({v:fDol(DATA.rpw.b[i]),cls:'cell-neutral'})) },
-    { label:'Revenue/Watt Actual ($)', vals: proj.map(i => ({v:fDol(DATA.rpw.a[i]),tip:varTip(DATA.rpw.b[i],DATA.rpw.a[i],v=>'$'+Math.abs(v).toFixed(3)),cls:colorCell(DATA.rpw.a[i]-DATA.rpw.b[i],true)})) },
-    { label:'% Complete WIP',          vals: proj.map(i => ({v:DATA.pctComp[i]+'%',cls:DATA.pctComp[i]>=99?'cell-good':'cell-warn'})) },
-    { label:'Cash Position',           vals: proj.map(i => ({v:fM(DATA.cash[i]),cls:colorCell(DATA.cash[i],true)})) },
-    { label:'Status',                  vals: proj.map(i => ({v:`<span class="badge ${BADGE_CLASS[projStatus(i)]}">${BADGE_LABEL[projStatus(i)]}</span>`,cls:''})) },
+    {g:'— FINANCIALS —'},
+    {label:'Revenue Budget ($M)',     vals:idx.map(i=>({v:fM(DATA.rev.b[i]),cls:'cell-neutral'}))},
+    {label:'Revenue Actual ($M)',     vals:idx.map(i=>({v:fM(DATA.rev.a[i]),tip:varTip(DATA.rev.b[i],DATA.rev.a[i],fM),cls:colorCell(DATA.rev.a[i]-DATA.rev.b[i],true)}))},
+    {label:'Total Cost Budget ($M)',  vals:idx.map(i=>({v:fM(DATA.costTot.b[i]),cls:'cell-neutral'}))},
+    {label:'Total Cost Actual ($M)',  vals:idx.map(i=>({v:fM(DATA.costTot.a[i]),tip:varTip(DATA.costTot.b[i],DATA.costTot.a[i],fM),cls:colorCell(DATA.costTot.a[i]-DATA.costTot.b[i],false)}))},
+    {label:'Profit Budget ($M)',      vals:idx.map(i=>({v:fM(DATA.profit.b[i]),cls:'cell-neutral'}))},
+    {label:'Profit Actual ($M)',      vals:idx.map(i=>({v:fM(DATA.profit.a[i]),tip:varTip(DATA.profit.b[i],DATA.profit.a[i],fM),cls:colorCell(DATA.profit.a[i]-DATA.profit.b[i],true)}))},
+    {label:'Margin on Rev % (Bdgt)',  vals:idx.map(i=>({v:fPct(DATA.marginRev.b[i]),cls:'cell-neutral'}))},
+    {label:'Margin on Rev % (Actl)',  vals:idx.map(i=>({v:fPct(DATA.marginRev.a[i]),tip:varTip(DATA.marginRev.b[i],DATA.marginRev.a[i],fPct),cls:colorCell(DATA.marginRev.a[i]-DATA.marginRev.b[i],true)}))},
+    {label:'Margin on Cost % (Bdgt)', vals:idx.map(i=>({v:fPct(DATA.marginCost.b[i]),cls:'cell-neutral'}))},
+    {label:'Margin on Cost % (Actl)', vals:idx.map(i=>({v:fPct(DATA.marginCost.a[i]),tip:varTip(DATA.marginCost.b[i],DATA.marginCost.a[i],fPct),cls:colorCell(DATA.marginCost.a[i]-DATA.marginCost.b[i],true)}))},
+    {g:'— PERFORMANCE INDICES —'},
+    {label:'CPI – PV',    vals:idx.map(i=>({v:fCPI(DATA.cpiPV.a[i]),tip:'Budget=1.000',cls:colorCell(DATA.cpiPV.a[i]-1,true)}))},
+    {label:'CPI – Civil', vals:idx.map(i=>({v:fCPI(DATA.cpiCiv.a[i]),tip:'Budget=1.000',cls:colorCell(DATA.cpiCiv.a[i]-1,true)}))},
+    {label:'CPI – Total', vals:idx.map(i=>({v:fCPI(DATA.cpiTot.a[i]),tip:'Budget=1.000',cls:colorCell(DATA.cpiTot.a[i]-1,true)}))},
+    {label:'PF – PV',     vals:idx.map(i=>({v:fCPI(DATA.pfPV.a[i]),tip:'Budget=1.000',cls:colorCell(DATA.pfPV.a[i]-1,true)}))},
+    {label:'PF – Civil',  vals:idx.map(i=>({v:DATA.pfCiv.a[i]==null?'N/A':fCPI(DATA.pfCiv.a[i]),tip:'Budget=1.000',cls:DATA.pfCiv.a[i]==null?'cell-na':colorCell(DATA.pfCiv.a[i]-1,true)}))},
+    {label:'PF – Total',  vals:idx.map(i=>({v:fCPI(DATA.pfTot.a[i]),tip:'Budget=1.000',cls:colorCell(DATA.pfTot.a[i]-1,true)}))},
+    {g:'— HOURS —'},
+    {label:'Total Hrs/Watt (Budget)', vals:idx.map(i=>({v:fN(DATA.totHpW.b[i],0),cls:'cell-neutral'}))},
+    {label:'Total Hrs/Watt (Actual)', vals:idx.map(i=>({v:fN(DATA.totHpW.a[i],0),tip:varTip(DATA.totHpW.b[i],DATA.totHpW.a[i],v=>v.toFixed(0)),cls:colorCell(DATA.totHpW.a[i]-DATA.totHpW.b[i],false)}))},
+    {label:'Total Hours k (Budget)',  vals:idx.map(i=>({v:fN(DATA.totHrs.b[i],1)+'k',cls:'cell-neutral'}))},
+    {label:'Total Hours k (Actual)',  vals:idx.map(i=>({v:fN(DATA.totHrs.a[i],1)+'k',tip:varTip(DATA.totHrs.b[i],DATA.totHrs.a[i],v=>v.toFixed(1)+'k'),cls:colorCell(DATA.totHrs.a[i]-DATA.totHrs.b[i],false)}))},
+    {g:'— COST/WATT & STATUS —'},
+    {label:'Cost/Watt Budget ($)',    vals:idx.map(i=>({v:fDol(DATA.cpw.b[i]),cls:'cell-neutral'}))},
+    {label:'Cost/Watt Actual ($)',    vals:idx.map(i=>({v:fDol(DATA.cpw.a[i]),tip:varTip(DATA.cpw.b[i],DATA.cpw.a[i],v=>'$'+Math.abs(v).toFixed(3)),cls:colorCell(DATA.cpw.a[i]-DATA.cpw.b[i],false)}))},
+    {label:'Revenue/Watt Budget ($)', vals:idx.map(i=>({v:fDol(DATA.rpw.b[i]),cls:'cell-neutral'}))},
+    {label:'Revenue/Watt Actual ($)', vals:idx.map(i=>({v:fDol(DATA.rpw.a[i]),tip:varTip(DATA.rpw.b[i],DATA.rpw.a[i],v=>'$'+Math.abs(v).toFixed(3)),cls:colorCell(DATA.rpw.a[i]-DATA.rpw.b[i],true)}))},
+    {label:'% Complete WIP',          vals:idx.map(i=>({v:DATA.pctComp[i]+'%',cls:DATA.pctComp[i]>=99?'cell-good':'cell-warn'}))},
+    {label:'Cash Position',           vals:idx.map(i=>({v:fM(DATA.cash[i]),cls:colorCell(DATA.cash[i],true)}))},
+    {label:'Status',                  vals:idx.map(i=>({v:`<span class="badge ${BADGE_CLASS[projStatus(i)]}">${BADGE_LABEL[projStatus(i)]}</span>`,cls:''}))},
   ];
 
-  t.innerHTML = `
-    <thead><tr>${headers.map((h,i)=>`<th${i===0?'':' style="min-width:160px"'}>${h}</th>`).join('')}</tr></thead>
-    <tbody>${rows.map(r => r.group
-      ? `<tr class="row-group"><td colspan="${headers.length}">${r.label}</td></tr>`
-      : `<tr><td>${r.label}</td>${r.vals.map(c=>`<td class="${c.cls}"${c.tip?` data-tip="${c.tip}"`:''}>${c.v}</td>`).join('')}</tr>`
-    ).join('')}</tbody>`;
+  t.innerHTML = `<thead><tr>${headers.map((h,i)=>`<th${i?` style="min-width:150px"`:''} >${h}</th>`).join('')}</tr></thead>
+  <tbody>${rows.map(r=>r.g
+    ?`<tr class="row-group"><td colspan="${headers.length}">${r.g}</td></tr>`
+    :`<tr><td>${r.label}</td>${r.vals.map(c=>`<td class="${c.cls}"${c.tip?` data-tip="${c.tip}"`:''}>${c.v}</td>`).join('')}</tr>`
+  ).join('')}</tbody>`;
 }
 
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════
 // CHART HELPERS
-// ═══════════════════════════════════════════════════
-const PROJ_COLORS = ['#3b82f6','#22c55e','#f59e0b','#a855f7','#06b6d4'];
-const PROJ_COLORS_ALPHA = c => c+'88';
-
+// ══════════════════════════════════════════════
 const chartInstances = {};
 function makeChart(id, config) {
   if (chartInstances[id]) chartInstances[id].destroy();
-  const ctx = document.getElementById(id).getContext('2d');
-  chartInstances[id] = new Chart(ctx, config);
+  const el = document.getElementById(id);
+  if (!el) return;
+  chartInstances[id] = new Chart(el.getContext('2d'), config);
 }
-
-const commonOpts = (yLabel='', pct=false) => ({
-  responsive: true,
-  maintainAspectRatio: true,
-  plugins: {
-    legend: { labels: { color:'#94a3b8', font:{size:11}, boxWidth:12, padding:14 } },
-    tooltip: {
-      backgroundColor:'#0a1220', borderColor:'#2a3f5a', borderWidth:1,
-      titleColor:'#e2e8f0', bodyColor:'#94a3b8',
-      callbacks: pct ? { label: ctx => ' ' + ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(3) } : undefined
-    }
+const commonOpts = (yLabel='') => ({
+  responsive:true, maintainAspectRatio:true,
+  plugins:{
+    legend:{labels:{color:'#94a3b8',font:{size:11},boxWidth:12,padding:14}},
+    tooltip:{backgroundColor:'#0a1220',borderColor:'#2a3f5a',borderWidth:1,titleColor:'#e2e8f0',bodyColor:'#94a3b8'}
   },
-  scales: {
-    x: { grid:{ color:'rgba(42,63,90,.5)', drawBorder:false }, ticks:{ color:'#94a3b8', font:{size:11} } },
-    y: {
-      grid:{ color:'rgba(42,63,90,.5)', drawBorder:false },
-      ticks:{ color:'#94a3b8', font:{size:11} },
-      title:{ display:!!yLabel, text:yLabel, color:'#64748b', font:{size:10} }
-    }
+  scales:{
+    x:{grid:{color:'rgba(42,63,90,.5)'},ticks:{color:'#94a3b8',font:{size:11}}},
+    y:{grid:{color:'rgba(42,63,90,.5)'},ticks:{color:'#94a3b8',font:{size:11}},
+       title:{display:!!yLabel,text:yLabel,color:'#64748b',font:{size:10}}}
   }
 });
+const idx = () => activeProjects;
+const labels = () => activeProjects.map(i => PROJECTS[i]);
 
-function projLabels() {
-  const p = activeProject;
-  if (p === -1) return PROJECTS.map((n,i) => n.replace('-PGR','\n-PGR'));
-  return [PROJECTS[p]];
-}
-
-function projIdx() {
-  return activeProject === -1 ? [0,1,2,3,4] : [activeProject];
-}
-
-// ═══════════════════════════════════════════════════
-// CHARTS
-// ═══════════════════════════════════════════════════
 function renderChartCost() {
-  const idx = projIdx();
-  makeChart('chartCost', {
-    type: 'bar',
-    data: {
-      labels: idx.map(i => PROJECTS[i]),
-      datasets: [
-        { label:'Budget ($M)',  data: idx.map(i=>DATA.costTot.b[i]), backgroundColor:'rgba(59,130,246,.5)', borderColor:'#3b82f6', borderWidth:1.5, borderRadius:4 },
-        { label:'Actual ($M)', data: idx.map(i=>DATA.costTot.a[i]), backgroundColor: idx.map(i=>DATA.costTot.a[i]<=DATA.costTot.b[i]?'rgba(34,197,94,.6)':'rgba(239,68,68,.6)'), borderColor: idx.map(i=>DATA.costTot.a[i]<=DATA.costTot.b[i]?'#22c55e':'#ef4444'), borderWidth:1.5, borderRadius:4 },
-      ]
-    },
-    options: { ...commonOpts('$ Millions'), plugins: { ...commonOpts().plugins, tooltip:{
-      ...commonOpts().plugins.tooltip,
-      callbacks:{ label: ctx => ' ' + ctx.dataset.label + ': $' + ctx.parsed.y.toFixed(2) + 'M' }
-    }}}
-  });
+  const i = idx();
+  makeChart('chartCost', {type:'bar', data:{
+    labels:labels(),
+    datasets:[
+      {label:'Budget ($M)', data:i.map(j=>DATA.costTot.b[j]), backgroundColor:'rgba(59,130,246,.5)', borderColor:'#3b82f6', borderWidth:1.5, borderRadius:4},
+      {label:'Actual ($M)', data:i.map(j=>DATA.costTot.a[j]),
+        backgroundColor:i.map(j=>DATA.costTot.a[j]<=DATA.costTot.b[j]?'rgba(34,197,94,.65)':'rgba(239,68,68,.65)'),
+        borderColor:i.map(j=>DATA.costTot.a[j]<=DATA.costTot.b[j]?'#22c55e':'#ef4444'), borderWidth:1.5, borderRadius:4},
+    ]
+  }, options:{...commonOpts('$M'), plugins:{...commonOpts().plugins, tooltip:{...commonOpts().plugins.tooltip,
+    callbacks:{label:ctx=>' '+ctx.dataset.label+': $'+ctx.parsed.y.toFixed(2)+'M'}}}}});
 }
 
 function renderChartProfit() {
-  const idx = projIdx();
-  makeChart('chartProfit', {
-    type: 'bar',
-    data: {
-      labels: idx.map(i => PROJECTS[i]),
-      datasets: [
-        { label:'Budget ($M)', data: idx.map(i=>DATA.profit.b[i]), backgroundColor:'rgba(59,130,246,.5)', borderColor:'#3b82f6', borderWidth:1.5, borderRadius:4 },
-        { label:'Actual ($M)', data: idx.map(i=>DATA.profit.a[i]), backgroundColor: idx.map(i=>DATA.profit.a[i]>=DATA.profit.b[i]?'rgba(34,197,94,.6)':'rgba(239,68,68,.6)'), borderColor: idx.map(i=>DATA.profit.a[i]>=DATA.profit.b[i]?'#22c55e':'#ef4444'), borderWidth:1.5, borderRadius:4 },
-      ]
-    },
-    options: { ...commonOpts('$ Millions'), plugins: { ...commonOpts().plugins, tooltip:{
-      ...commonOpts().plugins.tooltip,
-      callbacks:{ label: ctx => ' ' + ctx.dataset.label + ': $' + ctx.parsed.y.toFixed(2) + 'M' }
-    }}}
-  });
+  const i = idx();
+  makeChart('chartProfit', {type:'bar', data:{
+    labels:labels(),
+    datasets:[
+      {label:'Budget ($M)', data:i.map(j=>DATA.profit.b[j]), backgroundColor:'rgba(59,130,246,.5)', borderColor:'#3b82f6', borderWidth:1.5, borderRadius:4},
+      {label:'Actual ($M)', data:i.map(j=>DATA.profit.a[j]),
+        backgroundColor:i.map(j=>DATA.profit.a[j]>=DATA.profit.b[j]?'rgba(34,197,94,.65)':'rgba(239,68,68,.65)'),
+        borderColor:i.map(j=>DATA.profit.a[j]>=DATA.profit.b[j]?'#22c55e':'#ef4444'), borderWidth:1.5, borderRadius:4},
+    ]
+  }, options:{...commonOpts('$M'), plugins:{...commonOpts().plugins, tooltip:{...commonOpts().plugins.tooltip,
+    callbacks:{label:ctx=>' '+ctx.dataset.label+': $'+ctx.parsed.y.toFixed(2)+'M'}}}}});
 }
 
 function renderChartCPI() {
-  const idx = projIdx();
-  const opts = commonOpts('CPI', true);
-  opts.plugins.annotation = {};
-  makeChart('chartCPI', {
-    type: 'bar',
-    data: {
-      labels: idx.map(i => PROJECTS[i]),
-      datasets: [
-        { label:'CPI PV',    data: idx.map(i=>DATA.cpiPV.a[i]),  backgroundColor:'rgba(59,130,246,.6)',  borderColor:'#3b82f6', borderWidth:1.5, borderRadius:3 },
-        { label:'CPI Civil', data: idx.map(i=>DATA.cpiCiv.a[i]), backgroundColor:'rgba(168,85,247,.6)', borderColor:'#a855f7', borderWidth:1.5, borderRadius:3 },
-        { label:'CPI Total', data: idx.map(i=>DATA.cpiTot.a[i]), backgroundColor:'rgba(34,197,94,.6)',  borderColor:'#22c55e', borderWidth:1.5, borderRadius:3 },
-      ]
-    },
-    options: {
-      ...opts,
-      plugins: { ...opts.plugins },
-      scales: {
-        ...opts.scales,
-        y: { ...opts.scales.y, min: 0.5, max: 1.6,
-          afterDataLimits: sc => { sc.max = Math.max(sc.max, 1.65); sc.min = Math.min(sc.min, 0.55); }
-        }
-      },
-      plugins: {
-        ...opts.plugins,
-        annotation: {
-          annotations: {
-            refLine: { type:'line', yMin:1, yMax:1, borderColor:'#f59e0b', borderWidth:2, borderDash:[6,3],
-              label:{ content:'Budget = 1.00', display:true, position:'end', color:'#f59e0b', font:{size:10}, backgroundColor:'rgba(0,0,0,.5)', padding:3 } }
-          }
-        }
-      }
-    }
-  });
+  const i = idx();
+  const refAnnotation = {type:'line',yMin:1,yMax:1,borderColor:'#f59e0b',borderWidth:2,borderDash:[6,3],
+    label:{content:'Budget = 1.00',display:true,position:'end',color:'#f59e0b',font:{size:10},backgroundColor:'rgba(0,0,0,.5)',padding:3}};
+  makeChart('chartCPI', {type:'bar', data:{labels:labels(), datasets:[
+    {label:'CPI PV',    data:i.map(j=>DATA.cpiPV.a[j]),  backgroundColor:'rgba(59,130,246,.6)',  borderColor:'#3b82f6', borderWidth:1.5, borderRadius:3},
+    {label:'CPI Civil', data:i.map(j=>DATA.cpiCiv.a[j]), backgroundColor:'rgba(168,85,247,.6)', borderColor:'#a855f7', borderWidth:1.5, borderRadius:3},
+    {label:'CPI Total', data:i.map(j=>DATA.cpiTot.a[j]), backgroundColor:'rgba(34,197,94,.6)',  borderColor:'#22c55e', borderWidth:1.5, borderRadius:3},
+  ]}, options:{...commonOpts('CPI'),
+    scales:{...commonOpts().scales, y:{...commonOpts().scales.y, min:0.5, suggestedMax:1.6}},
+    plugins:{...commonOpts().plugins, annotation:{annotations:{ref:refAnnotation}}}}});
 }
 
 function renderChartPF() {
-  const idx = projIdx();
-  const opts = commonOpts('PF', true);
-  makeChart('chartPF', {
-    type: 'bar',
-    data: {
-      labels: idx.map(i => PROJECTS[i]),
-      datasets: [
-        { label:'PF PV',    data: idx.map(i=>DATA.pfPV.a[i]),  backgroundColor:'rgba(59,130,246,.6)',  borderColor:'#3b82f6', borderWidth:1.5, borderRadius:3 },
-        { label:'PF Civil', data: idx.map(i=>DATA.pfCiv.a[i]), backgroundColor:'rgba(168,85,247,.6)', borderColor:'#a855f7', borderWidth:1.5, borderRadius:3 },
-        { label:'PF Total', data: idx.map(i=>DATA.pfTot.a[i]), backgroundColor:'rgba(34,197,94,.6)',  borderColor:'#22c55e', borderWidth:1.5, borderRadius:3 },
-      ]
-    },
-    options: {
-      ...opts,
-      scales: {
-        ...opts.scales,
-        y: { ...opts.scales.y, min: 0.5, max: 1.7 }
-      },
-      plugins: {
-        ...opts.plugins,
-        annotation: {
-          annotations: {
-            refLine: { type:'line', yMin:1, yMax:1, borderColor:'#f59e0b', borderWidth:2, borderDash:[6,3],
-              label:{ content:'Budget = 1.00', display:true, position:'end', color:'#f59e0b', font:{size:10}, backgroundColor:'rgba(0,0,0,.5)', padding:3 } }
-          }
-        }
-      }
-    }
-  });
+  const i = idx();
+  const refAnnotation = {type:'line',yMin:1,yMax:1,borderColor:'#f59e0b',borderWidth:2,borderDash:[6,3],
+    label:{content:'Budget = 1.00',display:true,position:'end',color:'#f59e0b',font:{size:10},backgroundColor:'rgba(0,0,0,.5)',padding:3}};
+  makeChart('chartPF', {type:'bar', data:{labels:labels(), datasets:[
+    {label:'PF PV',    data:i.map(j=>DATA.pfPV.a[j]),  backgroundColor:'rgba(59,130,246,.6)',  borderColor:'#3b82f6', borderWidth:1.5, borderRadius:3},
+    {label:'PF Civil', data:i.map(j=>DATA.pfCiv.a[j]), backgroundColor:'rgba(168,85,247,.6)', borderColor:'#a855f7', borderWidth:1.5, borderRadius:3},
+    {label:'PF Total', data:i.map(j=>DATA.pfTot.a[j]), backgroundColor:'rgba(34,197,94,.6)',  borderColor:'#22c55e', borderWidth:1.5, borderRadius:3},
+  ]}, options:{...commonOpts('PF'),
+    scales:{...commonOpts().scales, y:{...commonOpts().scales.y, min:0.4, suggestedMax:1.7}},
+    plugins:{...commonOpts().plugins, annotation:{annotations:{ref:refAnnotation}}}}});
 }
 
 function renderChartHPW() {
-  const idx = projIdx();
-  makeChart('chartHPW', {
-    type: 'bar',
-    data: {
-      labels: idx.map(i => PROJECTS[i]),
-      datasets: [
-        { label:'PV H/W Budget', data: idx.map(i=>DATA.pvHpW.b[i]),  backgroundColor:'rgba(59,130,246,.4)',  borderColor:'#3b82f6', borderWidth:1, borderRadius:3 },
-        { label:'PV H/W Actual', data: idx.map(i=>DATA.pvHpW.a[i]),  backgroundColor:'rgba(59,130,246,.75)', borderColor:'#3b82f6', borderWidth:1, borderRadius:3 },
-        { label:'Civil H/W Budget', data: idx.map(i=>DATA.civHpW.b[i]), backgroundColor:'rgba(168,85,247,.4)', borderColor:'#a855f7', borderWidth:1, borderRadius:3 },
-        { label:'Civil H/W Actual', data: idx.map(i=>DATA.civHpW.a[i]), backgroundColor:'rgba(168,85,247,.75)',borderColor:'#a855f7', borderWidth:1, borderRadius:3 },
-      ]
-    },
-    options: commonOpts('Hours per Watt')
-  });
+  const i = idx();
+  makeChart('chartHPW', {type:'bar', data:{labels:labels(), datasets:[
+    {label:'PV H/W Budget',    data:i.map(j=>DATA.pvHpW.b[j]),  backgroundColor:'rgba(59,130,246,.4)',  borderColor:'#3b82f6', borderWidth:1, borderRadius:3},
+    {label:'PV H/W Actual',    data:i.map(j=>DATA.pvHpW.a[j]),  backgroundColor:'rgba(59,130,246,.75)', borderColor:'#3b82f6', borderWidth:1, borderRadius:3},
+    {label:'Civil H/W Budget', data:i.map(j=>DATA.civHpW.b[j]), backgroundColor:'rgba(168,85,247,.4)', borderColor:'#a855f7', borderWidth:1, borderRadius:3},
+    {label:'Civil H/W Actual', data:i.map(j=>DATA.civHpW.a[j]), backgroundColor:'rgba(168,85,247,.75)',borderColor:'#a855f7', borderWidth:1, borderRadius:3},
+  ]}, options:commonOpts('Hours per Watt')});
 }
 
 function renderChartCostBreak() {
-  const idx = projIdx();
+  const i = idx();
   const cats = [
-    { key:'materials', label:'Materials',  color:'#3b82f6' },
-    { key:'racking',   label:'Racking',    color:'#06b6d4' },
-    { key:'labor',     label:'Labor',      color:'#22c55e' },
-    { key:'equip',     label:'Equipment',  color:'#f59e0b' },
-    { key:'fog',       label:'FOG',        color:'#ef4444' },
-    { key:'supplies',  label:'Supplies',   color:'#a855f7' },
-    { key:'eng',       label:'Engineering',color:'#fb923c' },
-    { key:'inverters', label:'Inverters',  color:'#e2e8f0' },
+    {key:'materials',label:'Materials', color:'#3b82f6'},
+    {key:'racking',  label:'Racking',   color:'#06b6d4'},
+    {key:'labor',    label:'Labor',     color:'#22c55e'},
+    {key:'equip',    label:'Equipment', color:'#f59e0b'},
+    {key:'fog',      label:'FOG',       color:'#ef4444'},
+    {key:'supplies', label:'Supplies',  color:'#a855f7'},
+    {key:'eng',      label:'Engineering',color:'#fb923c'},
+    {key:'inverters',label:'Inverters', color:'#e2e8f0'},
   ];
-  makeChart('chartCostBreak', {
-    type: 'bar',
-    data: {
-      labels: idx.map(i => PROJECTS[i]),
-      datasets: cats.map(c => ({
-        label: c.label,
-        data: idx.map(i => DATA[c.key][i]),
-        backgroundColor: c.color + 'bb',
-        borderColor: c.color,
-        borderWidth: 1,
-        borderRadius: 2,
-      }))
-    },
-    options: {
-      ...commonOpts('$ Millions'),
-      scales: { ...commonOpts().scales, x: { ...commonOpts().scales.x, stacked:true }, y: { ...commonOpts().scales.y, stacked:true } }
-    }
-  });
+  makeChart('chartCostBreak', {type:'bar', data:{labels:labels(), datasets:cats.map(c=>({
+    label:c.label, data:i.map(j=>DATA[c.key][j]),
+    backgroundColor:c.color+'bb', borderColor:c.color, borderWidth:1, borderRadius:2}))},
+  options:{...commonOpts('$M'), scales:{
+    x:{...commonOpts().scales.x, stacked:true},
+    y:{...commonOpts().scales.y, stacked:true}}}});
 }
 
 function renderChartCPW() {
-  const idx = projIdx();
-  const labels = idx.map(i => PROJECTS[i]);
-  makeChart('chartCPW', {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [
-        { label:'Cost/W Budget ($)', data: idx.map(i=>DATA.cpw.b[i]), backgroundColor:'rgba(239,68,68,.4)',  borderColor:'#ef4444', borderWidth:1.5, borderRadius:3 },
-        { label:'Cost/W Actual ($)', data: idx.map(i=>DATA.cpw.a[i]), backgroundColor:'rgba(239,68,68,.75)', borderColor:'#ef4444', borderWidth:1.5, borderRadius:3 },
-        { label:'Rev/W Budget ($)',  data: idx.map(i=>DATA.rpw.b[i]), backgroundColor:'rgba(34,197,94,.4)',  borderColor:'#22c55e', borderWidth:1.5, borderRadius:3 },
-        { label:'Rev/W Actual ($)',  data: idx.map(i=>DATA.rpw.a[i]), backgroundColor:'rgba(34,197,94,.75)', borderColor:'#22c55e', borderWidth:1.5, borderRadius:3 },
-      ]
-    },
-    options: {
-      ...commonOpts('$ per Watt'),
-      plugins: { ...commonOpts().plugins, tooltip:{
-        ...commonOpts().plugins.tooltip,
-        callbacks:{ label: ctx => ' ' + ctx.dataset.label + ': $' + ctx.parsed.y.toFixed(3) }
-      }}
-    }
-  });
+  const i = idx();
+  makeChart('chartCPW', {type:'bar', data:{labels:labels(), datasets:[
+    {label:'Cost/W Budget ($)',data:i.map(j=>DATA.cpw.b[j]),backgroundColor:'rgba(239,68,68,.4)', borderColor:'#ef4444',borderWidth:1.5,borderRadius:3},
+    {label:'Cost/W Actual ($)',data:i.map(j=>DATA.cpw.a[j]),backgroundColor:'rgba(239,68,68,.75)',borderColor:'#ef4444',borderWidth:1.5,borderRadius:3},
+    {label:'Rev/W Budget ($)', data:i.map(j=>DATA.rpw.b[j]),backgroundColor:'rgba(34,197,94,.4)', borderColor:'#22c55e',borderWidth:1.5,borderRadius:3},
+    {label:'Rev/W Actual ($)', data:i.map(j=>DATA.rpw.a[j]),backgroundColor:'rgba(34,197,94,.75)',borderColor:'#22c55e',borderWidth:1.5,borderRadius:3},
+  ]}, options:{...commonOpts('$/W'), plugins:{...commonOpts().plugins, tooltip:{...commonOpts().plugins.tooltip,
+    callbacks:{label:ctx=>' '+ctx.dataset.label+': $'+ctx.parsed.y.toFixed(3)}}}}});
 }
 
 function renderChartPile() {
-  const idx = projIdx();
-  makeChart('chartPile', {
-    type: 'bar',
-    data: {
-      labels: idx.map(i => PROJECTS[i]),
-      datasets: [
-        { label:'EAC Budget ($)',  data: idx.map(i=>DATA.pileEAC.b[i]), backgroundColor:'rgba(59,130,246,.4)',  borderColor:'#3b82f6', borderWidth:1.5, borderRadius:3 },
-        { label:'EAC Actual ($)',  data: idx.map(i=>DATA.pileEAC.a[i]), backgroundColor: idx.map(i=>DATA.pileEAC.a[i]<=DATA.pileEAC.b[i]?'rgba(34,197,94,.75)':'rgba(239,68,68,.75)'), borderColor: idx.map(i=>DATA.pileEAC.a[i]<=DATA.pileEAC.b[i]?'#22c55e':'#ef4444'), borderWidth:1.5, borderRadius:3 },
-        { label:'Total Budget ($)',data: idx.map(i=>DATA.pileTot.b[i]), backgroundColor:'rgba(168,85,247,.4)', borderColor:'#a855f7', borderWidth:1.5, borderRadius:3 },
-        { label:'Total Actual ($)',data: idx.map(i=>DATA.pileTot.a[i]), backgroundColor: idx.map(i=>DATA.pileTot.a[i]<=DATA.pileTot.b[i]?'rgba(6,182,212,.75)':'rgba(245,158,11,.75)'), borderColor: idx.map(i=>DATA.pileTot.a[i]<=DATA.pileTot.b[i]?'#06b6d4':'#f59e0b'), borderWidth:1.5, borderRadius:3 },
-      ]
-    },
-    options: {
-      ...commonOpts('$ per Pile'),
-      plugins: { ...commonOpts().plugins, tooltip:{
-        ...commonOpts().plugins.tooltip,
-        callbacks:{ label: ctx => ' ' + ctx.dataset.label + ': $' + ctx.parsed.y.toFixed(2) }
-      }}
-    }
-  });
+  const i = idx();
+  makeChart('chartPile', {type:'bar', data:{labels:labels(), datasets:[
+    {label:'EAC Budget ($)', data:i.map(j=>DATA.pileEAC.b[j]),backgroundColor:'rgba(59,130,246,.4)', borderColor:'#3b82f6',borderWidth:1.5,borderRadius:3},
+    {label:'EAC Actual ($)', data:i.map(j=>DATA.pileEAC.a[j]),
+      backgroundColor:i.map(j=>DATA.pileEAC.a[j]<=DATA.pileEAC.b[j]?'rgba(34,197,94,.75)':'rgba(239,68,68,.75)'),
+      borderColor:i.map(j=>DATA.pileEAC.a[j]<=DATA.pileEAC.b[j]?'#22c55e':'#ef4444'),borderWidth:1.5,borderRadius:3},
+    {label:'Total Budget ($)',data:i.map(j=>DATA.pileTot.b[j]),backgroundColor:'rgba(168,85,247,.4)',borderColor:'#a855f7',borderWidth:1.5,borderRadius:3},
+    {label:'Total Actual ($)',data:i.map(j=>DATA.pileTot.a[j]),
+      backgroundColor:i.map(j=>DATA.pileTot.a[j]<=DATA.pileTot.b[j]?'rgba(6,182,212,.75)':'rgba(245,158,11,.75)'),
+      borderColor:i.map(j=>DATA.pileTot.a[j]<=DATA.pileTot.b[j]?'#06b6d4':'#f59e0b'),borderWidth:1.5,borderRadius:3},
+  ]}, options:{...commonOpts('$/pile'), plugins:{...commonOpts().plugins, tooltip:{...commonOpts().plugins.tooltip,
+    callbacks:{label:ctx=>' '+ctx.dataset.label+': $'+ctx.parsed.y.toFixed(2)}}}}});
 }
 
-// ═══════════════════════════════════════════════════
-// PROFIT TABLE
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════
+// PROFIT & COST TABLES
+// ══════════════════════════════════════════════
 function renderProfitTable() {
+  const i = idx();
   const t = document.getElementById('profit-table');
-  const idx = projIdx();
-  const cols = ['Metric', ...idx.map(i => `${PROJECTS[i]}<br><span style="font-size:9.5px;color:var(--text-dim)">#${JOBS[i]}</span>`)];
-
+  const cols = ['Metric', ...i.map(j=>`${PROJECTS[j]}<br><span style="font-size:9px;color:var(--text-dim)">#${JOBS[j]}</span>`)];
   const rows = [
-    { label:'Profit — Budget ($M)',    vals: idx.map(i=>({v:fM(DATA.profit.b[i]),cls:'cell-neutral'})) },
-    { label:'Profit — Actual ($M)',    vals: idx.map(i=>({v:fM(DATA.profit.a[i]),tip:varTip(DATA.profit.b[i],DATA.profit.a[i],fM),cls:colorCell(DATA.profit.a[i]-DATA.profit.b[i],true)})) },
-    { label:'Margin on Rev % — Bdgt', vals: idx.map(i=>({v:fPct(DATA.marginRev.b[i]),cls:'cell-neutral'})) },
-    { label:'Margin on Rev % — Actl', vals: idx.map(i=>({v:fPct(DATA.marginRev.a[i]),tip:varTip(DATA.marginRev.b[i],DATA.marginRev.a[i],fPct),cls:colorCell(DATA.marginRev.a[i]-DATA.marginRev.b[i],true)})) },
-    { label:'Margin on Cost % — Bdgt',vals: idx.map(i=>({v:fPct(DATA.marginCost.b[i]),cls:'cell-neutral'})) },
-    { label:'Margin on Cost % — Actl',vals: idx.map(i=>({v:fPct(DATA.marginCost.a[i]),tip:varTip(DATA.marginCost.b[i],DATA.marginCost.a[i],fPct),cls:colorCell(DATA.marginCost.a[i]-DATA.marginCost.b[i],true)})) },
-    { label:'Current Cash Position',  vals: idx.map(i=>({v:fM(DATA.cash[i]),tip:'Cash position JTD',cls:colorCell(DATA.cash[i],true)})) },
-    { label:'% Complete WIP JTD',     vals: idx.map(i=>({v:DATA.pctComp[i]+'%',cls:DATA.pctComp[i]>=99?'cell-good':'cell-warn'})) },
-    { label:'Project Status',         vals: idx.map(i=>({v:`<span class="badge ${BADGE_CLASS[projStatus(i)]}">${BADGE_LABEL[projStatus(i)]}</span>`,cls:''})) },
+    {label:'Profit — Budget ($M)',    vals:i.map(j=>({v:fM(DATA.profit.b[j]),cls:'cell-neutral'}))},
+    {label:'Profit — Actual ($M)',    vals:i.map(j=>({v:fM(DATA.profit.a[j]),tip:varTip(DATA.profit.b[j],DATA.profit.a[j],fM),cls:colorCell(DATA.profit.a[j]-DATA.profit.b[j],true)}))},
+    {label:'Margin on Rev % — Bdgt', vals:i.map(j=>({v:fPct(DATA.marginRev.b[j]),cls:'cell-neutral'}))},
+    {label:'Margin on Rev % — Actl', vals:i.map(j=>({v:fPct(DATA.marginRev.a[j]),tip:varTip(DATA.marginRev.b[j],DATA.marginRev.a[j],fPct),cls:colorCell(DATA.marginRev.a[j]-DATA.marginRev.b[j],true)}))},
+    {label:'Margin on Cost % — Bdgt',vals:i.map(j=>({v:fPct(DATA.marginCost.b[j]),cls:'cell-neutral'}))},
+    {label:'Margin on Cost % — Actl',vals:i.map(j=>({v:fPct(DATA.marginCost.a[j]),tip:varTip(DATA.marginCost.b[j],DATA.marginCost.a[j],fPct),cls:colorCell(DATA.marginCost.a[j]-DATA.marginCost.b[j],true)}))},
+    {label:'Current Cash Position',  vals:i.map(j=>({v:fM(DATA.cash[j]),tip:'Cash JTD',cls:colorCell(DATA.cash[j],true)}))},
+    {label:'% Complete WIP JTD',     vals:i.map(j=>({v:DATA.pctComp[j]+'%',cls:DATA.pctComp[j]>=99?'cell-good':'cell-warn'}))},
+    {label:'Project Status',         vals:i.map(j=>({v:`<span class="badge ${BADGE_CLASS[projStatus(j)]}">${BADGE_LABEL[projStatus(j)]}</span>`,cls:''}))},
   ];
-
-  t.innerHTML = `
-    <thead><tr>${cols.map((h,i)=>`<th${i===0?'':' style="min-width:160px"'}>${h}</th>`).join('')}</tr></thead>
-    <tbody>${rows.map(r=>`<tr><td>${r.label}</td>${r.vals.map(c=>`<td class="${c.cls}"${c.tip?` data-tip="${c.tip}"`:''}>${c.v}</td>`).join('')}</tr>`).join('')}</tbody>`;
+  t.innerHTML = `<thead><tr>${cols.map((h,k)=>`<th${k?` style="min-width:150px"`:''}>${h}</th>`).join('')}</tr></thead>
+  <tbody>${rows.map(r=>`<tr><td>${r.label}</td>${r.vals.map(c=>`<td class="${c.cls}"${c.tip?` data-tip="${c.tip}"`:''}>${c.v}</td>`).join('')}</tr>`).join('')}</tbody>`;
 }
 
-// ═══════════════════════════════════════════════════
-// COST BREAKDOWN TABLE
-// ═══════════════════════════════════════════════════
 function renderCostTable() {
+  const i = idx();
   const t = document.getElementById('cost-table');
-  const idx = projIdx();
-  const cols = ['Cost Category ($M Actual)', ...idx.map(i => `${PROJECTS[i]}<br><span style="font-size:9.5px;color:var(--text-dim)">#${JOBS[i]}</span>`)];
-
+  const cols = ['Category ($M Actual)', ...i.map(j=>`${PROJECTS[j]}<br><span style="font-size:9px;color:var(--text-dim)">#${JOBS[j]}</span>`)];
   const cats = [
-    { label:'Materials',    key:'materials' },
-    { label:'Racking',      key:'racking'   },
-    { label:'Labor',        key:'labor'     },
-    { label:'Equipment',    key:'equip'     },
-    { label:'Inverters',    key:'inverters' },
-    { label:'FOG',          key:'fog'       },
-    { label:'Supplies',     key:'supplies'  },
-    { label:'Engineering',  key:'eng'       },
+    {label:'Materials',   key:'materials'},{label:'Racking',    key:'racking'},
+    {label:'Labor',       key:'labor'},    {label:'Equipment',  key:'equip'},
+    {label:'Inverters',   key:'inverters'},{label:'FOG',        key:'fog'},
+    {label:'Supplies',    key:'supplies'}, {label:'Engineering',key:'eng'},
   ];
-
-  const rows = cats.map(c => ({
-    label: c.label,
-    vals: idx.map(i => ({v: DATA[c.key][i] === 0 ? '—' : fM(DATA[c.key][i]), cls:'cell-neutral'}))
-  }));
-
-  // totals row
-  const totals = idx.map(i => cats.reduce((sum,c) => sum + DATA[c.key][i], 0));
-  rows.push({ label:'Total (Calculated)', vals: idx.map((i,j)=>({v:fM(totals[j]),cls:'cell-neutral'})) });
-
-  t.innerHTML = `
-    <thead><tr>${cols.map((h,i)=>`<th${i===0?'':' style="min-width:160px"'}>${h}</th>`).join('')}</tr></thead>
-    <tbody>${rows.map((r,ri)=>`<tr${ri===rows.length-1?' style="font-weight:700;border-top:1px solid var(--border)"':''}>
-      <td>${r.label}</td>${r.vals.map(c=>`<td class="${c.cls}">${c.v}</td>`).join('')}</tr>`).join('')}</tbody>`;
+  const rows = cats.map(c => ({label:c.label, vals:i.map(j=>({v:DATA[c.key][j]===0?'—':fM(DATA[c.key][j]),cls:'cell-neutral'}))}));
+  const totals = i.map(j => cats.reduce((s,c)=>s+DATA[c.key][j],0));
+  rows.push({label:'Total (Calculated)', vals:i.map((_,k)=>({v:fM(totals[k]),cls:'cell-neutral'}))});
+  t.innerHTML = `<thead><tr>${cols.map((h,k)=>`<th${k?` style="min-width:140px"`:''}>${h}</th>`).join('')}</tr></thead>
+  <tbody>${rows.map((r,ri)=>`<tr${ri===rows.length-1?' style="font-weight:700;border-top:1px solid var(--border)"':''}>
+    <td>${r.label}</td>${r.vals.map(c=>`<td class="${c.cls}">${c.v}</td>`).join('')}</tr>`).join('')}</tbody>`;
 }
 
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════
+// UNIT RATES PAGE
+// ══════════════════════════════════════════════
+function renderURPage() {
+  buildCatNav();
+  renderURTable();
+}
+
+function buildCatNav() {
+  const nav = document.getElementById('catNav');
+  if (nav.children.length) return; // already built
+  nav.innerHTML = UR_CATEGORIES.map(c =>
+    `<button class="cat-btn${c.id==='all'?' active':''}" onclick="setURCat('${c.id}')">${c.label}</button>`
+  ).join('');
+}
+
+function setURCat(cat) {
+  activeURCat = cat;
+  document.querySelectorAll('.cat-btn').forEach((b,i) =>
+    b.classList.toggle('active', UR_CATEGORIES[i].id === cat));
+  renderURTable();
+}
+
+function renderURTable() {
+  const search = (document.getElementById('urSearch')?.value || '').toLowerCase();
+  const i = activeProjects;
+
+  const filtered = UNIT_RATES.filter(ur => {
+    const catMatch = activeURCat==='all' || ur.cat===activeURCat;
+    const searchMatch = !search ||
+      (ur.code+' '+ur.label).toLowerCase().includes(search);
+    const hasData = i.some(j => ur.a[j] > 0);
+    return catMatch && searchMatch && hasData;
+  });
+
+  // Chart: top 15 by max value across selected projects
+  const chartRates = [...filtered]
+    .sort((a,b) => Math.max(...i.map(j=>b.a[j])) - Math.max(...i.map(j=>a.a[j])))
+    .slice(0, 15);
+
+  makeChart('chartUR', {type:'bar', data:{
+    labels: chartRates.map(ur => ur.code+'\n'+ur.label.substring(0,22)+(ur.label.length>22?'…':'')),
+    datasets: i.map((j,k) => ({
+      label: PROJECTS[j],
+      data:  chartRates.map(ur => ur.a[j] || null),
+      backgroundColor: PROJ_COLORS[j]+'99',
+      borderColor: PROJ_COLORS[j],
+      borderWidth: 1.5,
+      borderRadius: 3,
+    }))
+  }, options:{...commonOpts(filtered[0]?.unit||'HR/QTY'),
+    plugins:{...commonOpts().plugins, tooltip:{...commonOpts().plugins.tooltip,
+      callbacks:{label:ctx=>' '+ctx.dataset.label+': '+ctx.parsed.y.toFixed(3)}}}}});
+
+  // Table
+  const t = document.getElementById('ur-table');
+  const cols = ['Code', 'Description', 'Unit', ...i.map(j =>
+    `${PROJECTS[j]}<br><span style="font-size:9px;color:var(--text-dim)">#${JOBS[j]}</span>`)];
+
+  if (!filtered.length) {
+    t.innerHTML = `<thead><tr>${cols.map((h,k)=>`<th${k>2?` style="min-width:140px"`:''} >${h}</th>`).join('')}</tr></thead>
+    <tbody><tr><td colspan="${cols.length}" style="text-align:center;color:var(--text-dim);padding:24px">No matching cost codes</td></tr></tbody>`;
+    return;
+  }
+
+  // Group by category for display
+  const grouped = {};
+  filtered.forEach(ur => { (grouped[ur.cat] = grouped[ur.cat]||[]).push(ur); });
+  const catLabels = {gen:'General/Site',mech:'Mechanical',eldc:'Electrical DC',elmv:'Electrical MV',inv:'Inverter Skid',scada:'SCADA/Comm',civil:'Civil'};
+
+  let tbody = '';
+  Object.entries(grouped).forEach(([cat, rates]) => {
+    if (activeURCat === 'all') {
+      tbody += `<tr class="row-group"><td colspan="${cols.length}">${catLabels[cat]||cat}</td></tr>`;
+    }
+    rates.forEach(ur => {
+      const values = i.map(j => {
+        const v = ur.a[j];
+        if (!v || v===0) return `<td class="cell-na">—</td>`;
+        // color: highlight highest and lowest among selected
+        const vals = i.map(jj=>ur.a[jj]).filter(x=>x>0);
+        const mx = Math.max(...vals), mn = Math.min(...vals);
+        const cls = vals.length < 2 ? 'cell-neutral'
+          : v === mx ? 'cell-bad'  // highest = most hours = slower
+          : v === mn ? 'cell-good' // lowest = fewest hours = fastest
+          : 'cell-neutral';
+        return `<td class="${cls}" data-tip="${PROJECTS[j]}: ${v.toFixed(4)} ${ur.unit}">${fUR(v)}</td>`;
+      });
+      tbody += `<tr><td style="color:var(--text-dim);font-size:11px">${ur.code}</td>
+        <td style="min-width:220px;font-weight:500">${ur.label}</td>
+        <td style="color:var(--text-dim);font-size:11px">${ur.unit}</td>
+        ${values.join('')}</tr>`;
+    });
+  });
+
+  t.innerHTML = `<thead><tr>${cols.map((h,k)=>`<th${k===1?' style="min-width:220px;text-align:left"':k>2?' style="min-width:130px"':''} >${h}</th>`).join('')}</tr></thead>
+  <tbody>${tbody}</tbody>`;
+}
+
+// ══════════════════════════════════════════════
 // RENDER ALL
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════
 function renderAll() {
-  renderKPIs();
-  renderOverviewTable();
-  renderChartCost();
-  renderChartProfit();
-  renderChartCPI();
-  renderChartPF();
-  renderChartHPW();
-  renderChartCostBreak();
-  renderChartCPW();
-  renderChartPile();
-  renderProfitTable();
-  renderCostTable();
+  if (activePage === 'perf') {
+    renderKPIs();
+    renderOverviewTable();
+    renderChartCost();
+    renderChartProfit();
+    renderChartCPI();
+    renderChartPF();
+    renderChartHPW();
+    renderChartCostBreak();
+    renderChartCPW();
+    renderChartPile();
+    renderProfitTable();
+    renderCostTable();
+  } else {
+    renderURPage();
+  }
 }
 
-// Load Chart.js annotation plugin for reference lines
-(function loadAnnotation() {
+// Load annotation plugin then boot
+(function() {
   const s = document.createElement('script');
   s.src = 'https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js';
-  s.onload = () => {
-    Chart.register(window['chartjs-plugin-annotation']);
-    renderAll();
-  };
-  s.onerror = () => renderAll(); // fallback without annotation
+  s.onload = () => { Chart.register(window['chartjs-plugin-annotation']); renderAll(); };
+  s.onerror = () => renderAll();
   document.head.appendChild(s);
 })();
 </script>
