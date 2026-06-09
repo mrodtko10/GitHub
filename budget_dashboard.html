@@ -91,24 +91,31 @@
   .pagination button:disabled{opacity:.4;cursor:not-allowed}
   .pagination button:hover:not(:disabled){border-color:var(--accent)}
   @media(max-width:900px){.charts-row{grid-template-columns:1fr}}
-  @page{size:landscape;margin:12mm}
+  @page{size:11in 8.5in;margin:10mm}
   @media print{
-    *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
-    body{background:var(--bg)!important;color:var(--text)!important;font-size:11px}
+    *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;box-sizing:border-box}
+    body{background:var(--bg)!important;color:var(--text)!important;font-size:10px;width:100%}
     .filters,.btn-reset,.pagination,button[onclick="window.print()"]{display:none!important}
-    .header{padding:10px 16px}
-    .main{padding:10px 16px;gap:12px}
-    .kpi-grid{grid-template-columns:repeat(7,1fr);gap:8px}
-    .kpi{padding:10px 12px}
-    .kpi-value{font-size:15px}
-    .kpi-sub{font-size:9px}
-    .charts-row{grid-template-columns:1fr 1fr;gap:10px}
-    .chart-card,.chart-card.wide{padding:12px;break-inside:avoid}
-    .chart-wrap{height:200px}
-    .chart-wrap-tall{height:220px}
-    .table-card{break-inside:avoid;padding:12px}
-    table{font-size:10px}
-    td,th{padding:5px 8px}
+    .header{padding:8px 14px}
+    .main{padding:8px 14px;gap:8px;width:100%}
+    /* KPI row — single line */
+    .kpi-grid{grid-template-columns:repeat(7,1fr);gap:6px}
+    .kpi{padding:8px 10px}
+    .kpi-value{font-size:13px}
+    .kpi-sub{font-size:8px}
+    .kpi-label{font-size:9px;margin-bottom:4px}
+    /* Two-column chart rows */
+    .charts-row{grid-template-columns:1fr 1fr;gap:8px;page-break-inside:avoid}
+    .chart-card{padding:10px;overflow:hidden;page-break-inside:avoid}
+    .chart-card.wide{padding:10px;overflow:hidden;page-break-inside:avoid}
+    /* Fixed chart heights — no overflow */
+    .chart-wrap{height:160px!important;overflow:hidden}
+    .chart-wrap-tall{height:175px!important;overflow:hidden}
+    /* Tables on new page */
+    .table-card{page-break-before:always;padding:10px}
+    table{font-size:9.5px}
+    td,th{padding:4px 7px}
+    .chart-title{font-size:11px;margin-bottom:4px}
   }
 </style>
 </head>
