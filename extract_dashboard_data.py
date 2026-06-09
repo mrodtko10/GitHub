@@ -109,16 +109,19 @@ po_log_entries = []
 ws_po = next((s for s in wb.sheetnames if "po" in s.lower() and "log" in s.lower()), None)
 if ws_po:
     wpo = wb[ws_po]
-    # Row 2 = headers, row 3+ = data
-    for i in range(3, wpo.max_row + 1):
-        date_val = wpo.cell(i, 1).value
-        po_num   = str(wpo.cell(i, 2).value or "").strip()
-        cost_code= str(wpo.cell(i, 3).value or "").strip()
-        category = str(wpo.cell(i, 4).value or "").strip()
-        amount   = N(wpo.cell(i, 5).value)
-        desc     = str(wpo.cell(i, 6).value or "").strip()
+    # Row 2 = headers, row 3+ = data; scan at least 200 rows, skip fully empty rows
+    scan_to = max(wpo.max_row, 202)
+    for i in range(3, scan_to + 1):
+        po_num    = str(wpo.cell(i, 2).value or "").strip()
+        cost_code = str(wpo.cell(i, 3).value or "").strip()
+        amount_v  = wpo.cell(i, 5).value
+        # skip row if both key identifiers are blank
         if not po_num and not cost_code:
             continue
+        date_val = wpo.cell(i, 1).value
+        category = str(wpo.cell(i, 4).value or "").strip()
+        amount   = N(amount_v)
+        desc     = str(wpo.cell(i, 6).value or "").strip()
         date_str = str(date_val)[:10] if date_val else ""
         po_log_entries.append({
             "date": date_str,

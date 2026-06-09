@@ -164,6 +164,59 @@ Skip:
     Next i
     jsonArray = jsonArray & "]"
 
+    ' ── Build PO Log JSON ────────────────────────────────────────────────────
+    Dim wsPO As Worksheet
+    Set wsPO = Nothing
+    For Each ws In ThisWorkbook.Sheets
+        If InStr(LCase(ws.Name), "po") > 0 And InStr(LCase(ws.Name), "log") > 0 Then
+            Set wsPO = ws
+            Exit For
+        End If
+    Next ws
+
+    Dim poArray As String
+    poArray = "["
+    Dim firstPO As Boolean
+    firstPO = True
+
+    If Not wsPO Is Nothing Then
+        Dim poLastRow As Long
+        poLastRow = Application.WorksheetFunction.Max(wsPO.UsedRange.Row + wsPO.UsedRange.Rows.Count - 1, 202)
+        Dim pi As Long
+        For pi = 3 To poLastRow
+            Dim poNum As String, poCc As String, poCat As String, poDesc As String
+            poNum = Trim(CStr(wsPO.Cells(pi, 2).Value))
+            poCc  = Trim(CStr(wsPO.Cells(pi, 3).Value))
+            If poNum = "" And poCc = "" Then GoTo SkipPO
+            Dim poAmt As Double
+            poAmt = N(wsPO.Cells(pi, 5))
+            poCat  = Trim(CStr(wsPO.Cells(pi, 4).Value))
+            poDesc = Trim(CStr(wsPO.Cells(pi, 6).Value))
+            Dim poDate As String
+            If IsDate(wsPO.Cells(pi, 1).Value) Then
+                poDate = Format(CDate(wsPO.Cells(pi, 1).Value), "yyyy-mm-dd")
+            Else
+                poDate = Trim(CStr(wsPO.Cells(pi, 1).Value))
+            End If
+            poNum  = Replace(poNum,  """", "\""")
+            poCc   = Replace(poCc,   """", "\""")
+            poDesc = Replace(poDesc, """", "\""")
+            Dim poRec As String
+            poRec = "{" & _
+                Q("date")        & ":" & Q(poDate) & "," & _
+                Q("po_number")   & ":" & Q(poNum)  & "," & _
+                Q("cost_code")   & ":" & Q(poCc)   & "," & _
+                Q("category")    & ":" & Q(poCat)  & "," & _
+                Q("amount")      & ":" & J(poAmt)  & "," & _
+                Q("description") & ":" & Q(poDesc) & "}"
+            If Not firstPO Then poArray = poArray & ","
+            poArray = poArray & poRec
+            firstPO = False
+SkipPO:
+        Next pi
+    End If
+    poArray = poArray & "]"
+
     ' ── Read HTML ────────────────────────────────────────────────────────────
     Dim fNum As Integer
     Dim oneLine As String
@@ -188,6 +241,16 @@ Skip:
         Exit Sub
     End If
     html = Left(html, startPos - 1) & "const RAW_DATA = " & jsonArray & ";" & Mid(html, endPos + 2)
+
+    ' ── Replace PO_LOG_DATA ───────────────────────────────────────────────────
+    Dim poStart As Long, poEnd As Long
+    poStart = InStr(html, "const PO_LOG_DATA = [")
+    If poStart > 0 Then
+        poEnd = InStr(poStart, html, "];")
+        If poEnd > 0 Then
+            html = Left(html, poStart - 1) & "const PO_LOG_DATA = " & poArray & ";" & Mid(html, poEnd + 2)
+        End If
+    End If
 
     ' ── Update CVR Month ─────────────────────────────────────────────────────
     If cvrMonth <> "" Then
