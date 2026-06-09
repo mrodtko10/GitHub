@@ -91,13 +91,31 @@
   .pagination button:disabled{opacity:.4;cursor:not-allowed}
   .pagination button:hover:not(:disabled){border-color:var(--accent)}
   @media(max-width:900px){.charts-row{grid-template-columns:1fr}}
+  @media print{
+    body{background:#fff;color:#000}
+    .filters,.btn-reset,.pagination{display:none!important}
+    .header{background:#fff;border-bottom:1px solid #ccc}
+    .header h1{color:#000}.header h1 span{color:#1a56db}
+    .badge{background:#1a56db}
+    .kpi,.chart-card,.table-card{background:#fff;border:1px solid #ccc;break-inside:avoid}
+    .kpi-value,.kpi-label,.table-title,.chart-title{color:#000}
+    td,th{color:#000;border-color:#ccc}
+    th{background:#f3f4f6}
+    .charts-row{grid-template-columns:1fr 1fr}
+    button[onclick="window.print()"]{display:none}
+  }
 </style>
 </head>
 <body>
 
 <div class="header">
   <h1>Budget & Commitments <span>Dashboard</span></h1>
-  <span class="badge">CVR Month: May, 2026</span>
+  <div style="display:flex;align-items:center;gap:10px">
+    <span class="badge">CVR Month: May, 2026</span>
+    <button onclick="window.print()" style="background:var(--accent);border:none;color:#fff;border-radius:6px;padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">
+      ⬇ Print / Save PDF
+    </button>
+  </div>
 </div>
 
 <div class="filters">
@@ -185,6 +203,27 @@
     </div>
   </div>
 
+  <!-- PO LOG TABLE -->
+  <div class="table-card" id="poLogCard">
+    <div class="table-header">
+      <div class="table-title">PO Log Entries</div>
+      <div class="table-count" id="poLogCount"></div>
+    </div>
+    <div class="table-wrap">
+      <table id="poLogTable">
+        <thead><tr>
+          <th>Date</th>
+          <th>PO Number</th>
+          <th>Cost Code</th>
+          <th>Category</th>
+          <th class="num">Amount</th>
+          <th>Description</th>
+        </tr></thead>
+        <tbody id="poLogBody"></tbody>
+      </table>
+    </div>
+  </div>
+
   <!-- TABLE -->
   <div class="table-card">
     <div class="table-header">
@@ -214,24 +253,8 @@
     </div>
   </div>
 
-  <!-- PO LOG TABLE -->
-  <div class="table-card" id="poLogCard">
-    <div class="table-header">
-      <div class="table-title">PO Log Entries</div>
-      <div class="table-count" id="poLogCount"></div>
-    </div>
-    <div class="table-wrap">
-      <table id="poLogTable">
-        <thead><tr>
-          <th>Date</th>
-          <th>PO Number</th>
-          <th>Cost Code</th>
-          <th>Category</th>
-          <th class="num">Amount</th>
-          <th>Description</th>
-        </tr></thead>
-        <tbody id="poLogBody"></tbody>
-      </table>
+  <!-- placeholder to keep old closing tag structure -->
+  <div style="display:none">
     </div>
   </div>
 </div>
