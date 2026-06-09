@@ -91,18 +91,24 @@
   .pagination button:disabled{opacity:.4;cursor:not-allowed}
   .pagination button:hover:not(:disabled){border-color:var(--accent)}
   @media(max-width:900px){.charts-row{grid-template-columns:1fr}}
+  @page{size:landscape;margin:12mm}
   @media print{
-    body{background:#fff;color:#000}
-    .filters,.btn-reset,.pagination{display:none!important}
-    .header{background:#fff;border-bottom:1px solid #ccc}
-    .header h1{color:#000}.header h1 span{color:#1a56db}
-    .badge{background:#1a56db}
-    .kpi,.chart-card,.table-card{background:#fff;border:1px solid #ccc;break-inside:avoid}
-    .kpi-value,.kpi-label,.table-title,.chart-title{color:#000}
-    td,th{color:#000;border-color:#ccc}
-    th{background:#f3f4f6}
-    .charts-row{grid-template-columns:1fr 1fr}
-    button[onclick="window.print()"]{display:none}
+    *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+    body{background:var(--bg)!important;color:var(--text)!important;font-size:11px}
+    .filters,.btn-reset,.pagination,button[onclick="window.print()"]{display:none!important}
+    .header{padding:10px 16px}
+    .main{padding:10px 16px;gap:12px}
+    .kpi-grid{grid-template-columns:repeat(7,1fr);gap:8px}
+    .kpi{padding:10px 12px}
+    .kpi-value{font-size:15px}
+    .kpi-sub{font-size:9px}
+    .charts-row{grid-template-columns:1fr 1fr;gap:10px}
+    .chart-card,.chart-card.wide{padding:12px;break-inside:avoid}
+    .chart-wrap{height:200px}
+    .chart-wrap-tall{height:220px}
+    .table-card{break-inside:avoid;padding:12px}
+    table{font-size:10px}
+    td,th{padding:5px 8px}
   }
 </style>
 </head>
