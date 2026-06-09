@@ -108,9 +108,8 @@
     .charts-row{grid-template-columns:1fr 1fr;gap:8px;page-break-inside:avoid}
     .chart-card{padding:10px;overflow:hidden;page-break-inside:avoid}
     .chart-card.wide{padding:10px;overflow:hidden;page-break-inside:avoid}
-    /* Fixed chart heights — no overflow */
-    .chart-wrap{height:160px!important;overflow:hidden}
-    .chart-wrap-tall{height:175px!important;overflow:hidden}
+    /* Heights set by JS beforeprint handler — just ensure no overflow */
+    .chart-wrap,.chart-wrap-tall{overflow:visible}
     /* Tables on new page */
     .table-card{page-break-before:always;padding:10px}
     table{font-size:9.5px}
@@ -708,6 +707,24 @@ function populateDropdown() {
 
 // ── event listeners ───────────────────────────────────────────────────────────
 document.getElementById('ouFilter').addEventListener('change',applyFilters);
+
+// ── Print: resize charts before/after printing ───────────────────────────────
+function resizeChartsForPrint(printing) {
+  const PRINT_H   = 155;
+  const NORMAL_H  = 280;
+  const NORMAL_HT = 320;
+  document.querySelectorAll('.chart-wrap').forEach(el=>{
+    el.style.height = (printing ? PRINT_H : NORMAL_H) + 'px';
+  });
+  document.querySelectorAll('.chart-wrap-tall').forEach(el=>{
+    el.style.height = (printing ? PRINT_H + 20 : NORMAL_HT) + 'px';
+  });
+  // Resize all Chart.js instances so they re-render at the new height
+  Object.values(charts).forEach(c=>{ try{ c.resize(); }catch(e){} });
+}
+
+window.addEventListener('beforeprint', ()=>resizeChartsForPrint(true));
+window.addEventListener('afterprint',  ()=>resizeChartsForPrint(false));
 
 // ── init ──────────────────────────────────────────────────────────────────────
 populateDropdown();
