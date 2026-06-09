@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solar EPC Construction — Bid Performance Review</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1923;
+    --card: #1a2535;
+    --card2: #1e2d42;
+    --border: #2a3f5a;
+    --blue: #3b82f6;
+    --green: #22c55e;
+    --red: #ef4444;
+    --amber: #f59e0b;
+    --purple: #a855f7;
+    --cyan: #06b6d4;
+    --text: #e2e8f0;
+    --text-muted: #94a3b8;
+    --text-dim: #64748b;
+    --header-h: 120px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    background: linear-gradient(135deg, #0d1b2e 0%, #1a2d4a 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 28px 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 4px 24px rgba(0,0,0,.4);
+  }
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .header-title { font-size: 22px; font-weight: 700; letter-spacing: -.3px; color: #fff; }
+  .header-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .header-badge {
+    background: rgba(59,130,246,.15);
+    border: 1px solid rgba(59,130,246,.35);
+    color: var(--blue);
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+  }
+  .tabs {
+    display: flex;
+    gap: 4px;
+    padding-bottom: 0;
+  }
+  .tab {
+    padding: 8px 16px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 6px 6px 0 0;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all .2s;
+    border-bottom: 3px solid transparent;
+    position: relative;
+    top: 1px;
+  }
+  .tab:hover { color: var(--text); background: rgba(255,255,255,.05); }
+  .tab.active { color: var(--blue); border-bottom-color: var(--blue); background: rgba(59,130,246,.08); font-weight: 600; }
+  .tab .tab-mw { font-size: 10px; color: var(--text-dim); display: block; }
+  .tab.active .tab-mw { color: rgba(59,130,246,.7); }
+
+  /* ── MAIN CONTENT ── */
+  .main { padding: 24px 28px; max-width: 1600px; margin: 0 auto; }
+
+  /* ── KPI CARDS ── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .kpi-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    transition: transform .2s, box-shadow .2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 10px 10px 0 0;
+  }
+  .kpi-card.blue::before { background: var(--blue); }
+  .kpi-card.green::before { background: var(--green); }
+  .kpi-card.red::before { background: var(--red); }
+  .kpi-card.amber::before { background: var(--amber); }
+  .kpi-card.purple::before { background: var(--purple); }
+  .kpi-card.cyan::before { background: var(--cyan); }
+  .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.3); }
+  .kpi-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+  .kpi-value { font-size: 26px; font-weight: 700; color: #fff; line-height: 1; }
+  .kpi-sub { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
+  .kpi-delta { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 4px; margin-top: 6px; }
+  .kpi-delta.pos { background: rgba(34,197,94,.15); color: var(--green); }
+  .kpi-delta.neg { background: rgba(239,68,68,.15); color: var(--red); }
+  .kpi-delta.neu { background: rgba(148,163,184,.12); color: var(--text-muted); }
+
+  /* ── SECTION ── */
+  .section { margin-bottom: 28px; }
+  .section-title {
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── TABLE ── */
+  .table-wrap {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .table-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  thead th {
+    background: #162030;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 10.5px;
+    letter-spacing: .5px;
+    padding: 11px 14px;
+    text-align: right;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  thead th:first-child { text-align: left; position: sticky; left: 0; background: #162030; z-index: 2; min-width: 170px; }
+  tbody td {
+    padding: 10px 14px;
+    text-align: right;
+    border-bottom: 1px solid rgba(42,63,90,.5);
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+  tbody td:first-child { text-align: left; position: sticky; left: 0; background: var(--card); z-index: 1; font-weight: 500; }
+  tbody tr:hover td { background: rgba(59,130,246,.06); }
+  tbody tr:hover td:first-child { background: rgba(59,130,246,.1); }
+  tbody tr:last-child td { border-bottom: none; }
+  .row-group { background: #162030 !important; color: var(--text-muted) !important; font-size: 10px !important; text-transform: uppercase; letter-spacing: .5px; font-weight: 700 !important; }
+  .row-group td:first-child { background: #162030 !important; }
+
+  .cell-good { color: var(--green); font-weight: 600; }
+  .cell-bad  { color: var(--red);   font-weight: 600; }
+  .cell-warn { color: var(--amber); font-weight: 600; }
+  .cell-neutral { color: var(--text); }
+
+  /* tooltip on cells */
+  [data-tip] { cursor: help; position: relative; border-bottom: 1px dashed rgba(148,163,184,.3); }
+  [data-tip]:hover::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #0a1220;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 11px;
+    padding: 5px 9px;
+    border-radius: 5px;
+    white-space: nowrap;
+    z-index: 1000;
+    pointer-events: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,.5);
+  }
+
+  /* status badges */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 12px;
+  }
+  .badge-ok   { background: rgba(34,197,94,.15);  color: var(--green); border: 1px solid rgba(34,197,94,.3); }
+  .badge-warn { background: rgba(245,158,11,.15); color: var(--amber); border: 1px solid rgba(245,158,11,.3); }
+  .badge-risk { background: rgba(239,68,68,.15);  color: var(--red);   border: 1px solid rgba(239,68,68,.3); }
+
+  /* ── CHARTS ── */
+  .charts-row {
+    display: grid;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .charts-row.cols-2 { grid-template-columns: 1fr 1fr; }
+  .charts-row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .chart-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    transition: box-shadow .2s;
+  }
+  .chart-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,.25); }
+  .chart-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .chart-subtitle { font-size: 11px; color: var(--text-dim); margin-bottom: 16px; }
+  .chart-wrap { position: relative; }
+
+  /* ── PROFIT TABLE ── */
+  .profit-highlight { background: rgba(59,130,246,.07); }
+
+  /* ── PER PROJECT HIGHLIGHT ── */
+  .proj-highlight td { background: rgba(59,130,246,.07) !important; }
+  .proj-highlight td:first-child { background: rgba(59,130,246,.12) !important; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 1200px) {
+    .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+    .charts-row.cols-3 { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 768px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .charts-row.cols-2, .charts-row.cols-3 { grid-template-columns: 1fr; }
+    .header { padding: 14px 14px 0; }
+    .main { padding: 14px; }
+    .tab { padding: 7px 10px; font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════ HEADER -->
+<div class="header">
+  <div class="header-top">
+    <div>
+      <div class="header-title">☀ Solar EPC Construction — Bid Performance Review</div>
+      <div class="header-subtitle" id="hdr-date"></div>
+    </div>
+    <div class="header-badge">5 Active Projects · 677.4 MW</div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="setProject(-1)">
+      All Projects<span class="tab-mw">677.4 MW</span>
+    </button>
+    <button class="tab" onclick="setProject(0)">
+      East Atmore-PGR<span class="tab-mw">115 MW · #23-4003</span>
+    </button>
+    <button class="tab" onclick="setProject(1)">
+      Foley-PGR<span class="tab-mw">108 MW · #24-4001</span>
+    </button>
+    <button class="tab" onclick="setProject(2)">
+      OH-PGR<span class="tab-mw">112 MW · #24-4002</span>
+    </button>
+    <button class="tab" onclick="setProject(3)">
+      Sunray<span class="tab-mw">272.4 MW · #22-4001</span>
+    </button>
+    <button class="tab" onclick="setProject(4)">
+      DWR Chevron<span class="tab-mw">70 MW · #24-4004</span>
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ MAIN -->
+<div class="main">
+
+  <!-- KPI CARDS -->
+  <div class="kpi-grid" id="kpi-grid"></div>
+
+  <!-- SECTION 1: PROJECT OVERVIEW TABLE -->
+  <div class="section">
+    <div class="section-title">Project Overview</div>
+    <div class="table-wrap">
+      <div class="table-scroll">
+        <table id="overview-table"></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHARTS ROW 1 -->
+  <div class="charts-row cols-2">
+    <div class="chart-card">
+      <div class="chart-title">Budget vs Actual — Total Cost</div>
+      <div class="chart-subtitle">$ Millions per project</div>
+      <div class="chart-wrap"><canvas id="chartCost" height="220"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Budget vs Actual — Profit</div>
+      <div class="chart-subtitle">$ Millions per project</div>
+      <div class="chart-wrap"><canvas id="chartProfit" height="220"></canvas></div>
+    </div>
+  </div>
+
+  <!-- CHARTS ROW 2 -->
+  <div class="charts-row cols-2">
+    <div class="chart-card">
+      <div class="chart-title">Cost Performance Index (CPI)</div>
+      <div class="chart-subtitle">PV · Civil · Total — reference line at 1.00 (higher = under budget)</div>
+      <div class="chart-wrap"><canvas id="chartCPI" height="240"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Production Factor (PF)</div>
+      <div class="chart-subtitle">PV · Civil · Total — reference line at 1.00 (higher = faster pace)</div>
+      <div class="chart-wrap"><canvas id="chartPF" height="240"></canvas></div>
+    </div>
+  </div>
+
+  <!-- CHARTS ROW 3 -->
+  <div class="charts-row cols-2">
+    <div class="chart-card">
+      <div class="chart-title">Hours per Watt — Budget vs Actual</div>
+      <div class="chart-subtitle">PV, Civil, and Total man-hours per watt installed</div>
+      <div class="chart-wrap"><canvas id="chartHPW" height="240"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Actual Cost Breakdown by Category</div>
+      <div class="chart-subtitle">Stacked $ Millions — actual spend per project</div>
+      <div class="chart-wrap"><canvas id="chartCostBreak" height="240"></canvas></div>
+    </div>
+  </div>
+
+  <!-- CHARTS ROW 4 -->
+  <div class="charts-row cols-2">
+    <div class="chart-card">
+      <div class="chart-title">Cost per Watt & Revenue per Watt</div>
+      <div class="chart-subtitle">Budget vs Actual $ per watt — all projects</div>
+      <div class="chart-wrap"><canvas id="chartCPW" height="220"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Cost/Pile Analysis</div>
+      <div class="chart-subtitle">EAC vs Total Cost per pile — Budget vs Actual ($)</div>
+      <div class="chart-wrap"><canvas id="chartPile" height="220"></canvas></div>
+    </div>
+  </div>
+
+  <!-- SECTION: PROFIT & MARGIN TABLE -->
+  <div class="section">
+    <div class="section-title">Profit & Margin Detail</div>
+    <div class="table-wrap">
+      <div class="table-scroll">
+        <table id="profit-table"></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION: COST BREAKDOWN TABLE -->
+  <div class="section">
+    <div class="section-title">Other Costs — Actual ($M)</div>
+    <div class="table-wrap">
+      <div class="table-scroll">
+        <table id="cost-table"></table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+// ═══════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════
+const TODAY = new Date();
+document.getElementById('hdr-date').textContent =
+  TODAY.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'}) +
+  ' · JTD Performance Dashboard';
+
+const PROJECTS = ['East Atmore-PGR','Foley-PGR','OH-PGR','Sunray','DWR Chevron'];
+const JOBS     = ['23-4003','24-4001','24-4002','22-4001','24-4004'];
+const MW       = [115, 108, 112, 272.4, 70];
+
+const DATA = {
+  pvHpW:     { b:[2280,2547,2453,1589,1822], a:[2253,2221,2673,1595,2387] },
+  civHpW:    { b:[303,254,210,77,359],       a:[215,261,445,152,205]  },
+  totHpW:    { b:[2584,2802,2782,1666,2181], a:[2468,2482,3197,1747,2592] },
+
+  costPV:    { b:[61.43,65.78,56.39,113.10,25.37], a:[59.76,60.22,61.45,112.68,25.84] },
+  costCiv:   { b:[7.74,6.51,13.32,2.85,4.84],      a:[6.34,6.24,19.22,3.73,5.77]  },
+  costTot:   { b:[69.16,72.30,71.02,115.95,30.20], a:[66.10,66.46,81.63,116.41,31.61] },
+
+  rev:       { b:[76.78,80.26,75.35,127.77,33.52], a:[79.99,82.84,78.84,128.27,35.74] },
+
+  pvHrs:     { b:[262.2,275.1,274.7,432.9,127.5],  a:[259.1,239.9,299.4,434.5,167.1] },
+  civHrs:    { b:[34.9,27.5,23.6,21.1,25.2],       a:[24.7,28.1,49.9,41.3,14.3]  },
+  totHrs:    { b:[297.1,302.6,311.5,453.9,152.7],  a:[283.8,268.0,358.1,475.8,181.4] },
+
+  cpiPV:     { b:[1,1,1,1,1], a:[1.028,1.092,0.918,1.004,0.982] },
+  cpiCiv:    { b:[1,1,1,1,1], a:[1.220,1.044,0.693,0.762,0.837] },
+  cpiTot:    { b:[1,1,1,1,1], a:[1.046,1.088,0.870,0.996,0.955] },
+
+  pfPV:      { b:[1,1,1,1,1], a:[1.012,1.147,0.918,0.996,0.763] },
+  pfCiv:     { b:[1,1,1,1,1], a:[1.411,null,1.506,null,null] },
+  pfTot:     { b:[1,1,1,1,1], a:[1.047,1.129,0.870,0.954,0.842] },
+
+  cpw:       { b:[0.601,0.669,0.634,0.426,0.431], a:[0.575,0.615,0.729,0.427,0.452] },
+  rpw:       { b:[0.668,0.743,0.673,0.469,0.479], a:[0.696,0.767,0.704,0.471,0.511] },
+
+  profit:    { b:[7.61,7.96,4.34,11.82,3.31],     a:[13.89,16.38,-2.79,11.86,4.13]  },
+  marginRev: { b:[9.9,9.9,5.8,9.3,9.9],            a:[17.4,19.8,-3.5,9.2,11.5]  },
+  marginCost:{ b:[11.0,11.0,6.1,10.2,11.0],        a:[21.0,24.6,-3.4,10.2,13.1]  },
+  pctComp:   [99.4,94.2,93.2,99.8,93.1],
+  cash:      [14.51,13.45,-3.65,11.36,2.34],
+
+  materials: [31.65,33.96,0,70.87,8.85],
+  racking:   [15.97,13.02,13.13,36.90,4.52],
+  inverters: [4.68,4.39,4.43,9.44,0],
+  fog:       [0.459,0.569,0.895,0.976,0.370],
+  supplies:  [0.914,0.843,1.265,1.605,0.630],
+  eng:       [1.869,1.739,2.015,1.541,1.489],
+  labor:     [14.39,13.69,18.57,23.29,9.19],
+  equip:     [4.00,3.99,7.33,7.05,3.80],
+
+  pileEAC:   { b:[60.62,64.13,46.00,47.93,48.46], a:[56.72,30.95,47.60,46.67,73.62] },
+  pileTot:   { b:[60.62,64.13,46.00,47.93,48.46], a:[71.11,30.95,56.90,46.67,108.00] },
+};
+
+// project status
+function projStatus(i) {
+  const m = DATA.marginCost.a[i];
+  if (m < 0) return 'risk';
+  if (DATA.cpiTot.a[i] < 0.95) return 'warn';
+  return 'ok';
+}
+const BADGE_LABEL = { ok:'✓ On Budget', warn:'⚠ Over Budget', risk:'✗ At Risk' };
+const BADGE_CLASS = { ok:'badge-ok', warn:'badge-warn', risk:'badge-risk' };
+
+// ═══════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════
+const fM  = v => v == null ? '—' : (v < 0 ? '-$' + Math.abs(v).toFixed(2) + 'M' : '$' + v.toFixed(2) + 'M');
+const fPct= v => v == null ? '—' : v.toFixed(1) + '%';
+const fN  = (v,d=3) => v == null ? '—' : v.toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d});
+const fDol= v => v == null ? '—' : '$' + v.toFixed(2);
+const fCPI= v => v == null ? '—' : v.toFixed(3);
+
+function varTip(b, a, fmt) {
+  if (a == null || b == null) return '';
+  const v = b - a;
+  const sign = v >= 0 ? '+' : '';
+  return 'Var: ' + sign + fmt(v) + ' (B=' + fmt(b) + ', A=' + fmt(a) + ')';
+}
+
+function colorCell(val, goodHigh, warn=null) {
+  if (val == null) return '';
+  if (warn !== null && Math.abs(val) <= warn) return 'cell-neutral';
+  return val > 0 === goodHigh ? 'cell-good' : 'cell-bad';
+}
+
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
+let activeProject = -1;
+
+function setProject(idx) {
+  activeProject = idx;
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', i === idx + 1));
+  renderAll();
+}
+
+// ═══════════════════════════════════════════════════
+// KPI CARDS
+// ═══════════════════════════════════════════════════
+function renderKPIs() {
+  const g = document.getElementById('kpi-grid');
+  const p = activeProject;
+
+  let cards = [];
+
+  if (p === -1) {
+    // Aggregate
+    const totMW      = MW.reduce((a,b)=>a+b,0);
+    const totRevB    = DATA.rev.b.reduce((a,b)=>a+b,0);
+    const totRevA    = DATA.rev.a.reduce((a,b)=>a+b,0);
+    const totCostB   = DATA.costTot.b.reduce((a,b)=>a+b,0);
+    const totCostA   = DATA.costTot.a.reduce((a,b)=>a+b,0);
+    const totProfA   = DATA.profit.a.reduce((a,b)=>a+b,0);
+    const blendMarg  = (totProfA / totRevA * 100);
+    const bestI      = DATA.marginCost.a.indexOf(Math.max(...DATA.marginCost.a));
+    const worstI     = DATA.marginCost.a.indexOf(Math.min(...DATA.marginCost.a));
+
+    cards = [
+      { color:'blue',  label:'Total Portfolio MW', value: totMW.toLocaleString() + ' MW',
+        sub: '5 Projects', delta:'', dt:'' },
+      { color:'cyan',  label:'Total Revenue', value: '$'+totRevA.toFixed(1)+'M',
+        sub: 'Budget: $'+totRevB.toFixed(1)+'M',
+        delta:(totRevA-totRevB>=0?'+':'')+fM(totRevA-totRevB), dt: totRevA>=totRevB?'pos':'neg' },
+      { color:'amber', label:'Total Cost', value: '$'+totCostA.toFixed(1)+'M',
+        sub: 'Budget: $'+totCostB.toFixed(1)+'M',
+        delta:(totCostA<=totCostB?'Under':'Over')+' '+fM(Math.abs(totCostA-totCostB)), dt: totCostA<=totCostB?'pos':'neg' },
+      { color:'green', label:'Blended Margin (Actual)', value: fPct(blendMarg),
+        sub: 'on Revenue — 5 projects',
+        delta: totProfA>=0?'$'+totProfA.toFixed(2)+'M profit':'LOSS', dt: totProfA>=0?'pos':'neg' },
+      { color:'green', label:'Best: '+PROJECTS[bestI], value: fPct(DATA.marginCost.a[bestI]),
+        sub: 'Margin on Cost · '+PROJECTS[bestI],
+        delta: '<span class="badge badge-ok">✓ On Budget</span>', dt:'raw' },
+      { color:'red',   label:'At Risk: '+PROJECTS[worstI], value: fPct(DATA.marginCost.a[worstI]),
+        sub: 'Margin on Cost · '+PROJECTS[worstI],
+        delta: '<span class="badge badge-risk">✗ At Risk</span>', dt:'raw' },
+    ];
+  } else {
+    const i = p;
+    const status = projStatus(i);
+    cards = [
+      { color:'blue',  label:'Project MW', value: MW[i]+' MW', sub: 'Job #'+JOBS[i], delta:'', dt:'' },
+      { color:'cyan',  label:'Revenue', value: fM(DATA.rev.a[i]),
+        sub: 'Budget: '+fM(DATA.rev.b[i]),
+        delta: (DATA.rev.a[i]-DATA.rev.b[i]>=0?'+':'')+fM(DATA.rev.a[i]-DATA.rev.b[i]), dt:DATA.rev.a[i]>=DATA.rev.b[i]?'pos':'neg' },
+      { color:'amber', label:'Total Cost', value: fM(DATA.costTot.a[i]),
+        sub: 'Budget: '+fM(DATA.costTot.b[i]),
+        delta: (DATA.costTot.a[i]<=DATA.costTot.b[i]?'Under ':'Over ')+fM(Math.abs(DATA.costTot.a[i]-DATA.costTot.b[i])), dt:DATA.costTot.a[i]<=DATA.costTot.b[i]?'pos':'neg' },
+      { color: DATA.profit.a[i]>=0?'green':'red', label:'Profit', value: fM(DATA.profit.a[i]),
+        sub: 'Budget: '+fM(DATA.profit.b[i]),
+        delta: fPct(DATA.marginCost.a[i])+' margin on cost', dt: DATA.profit.a[i]>=0?'pos':'neg' },
+      { color:'purple', label:'CPI Total', value: fCPI(DATA.cpiTot.a[i]),
+        sub: 'Cost Perf Index (>1.0 = under budget)',
+        delta: DATA.cpiTot.a[i]>=1?'Under budget':'Over budget', dt:DATA.cpiTot.a[i]>=1?'pos':'neg' },
+      { color: status==='ok'?'green':status==='warn'?'amber':'red',
+        label:'% Complete WIP', value: DATA.pctComp[i]+'%',
+        sub: 'Cash: '+fM(DATA.cash[i]),
+        delta: '<span class="badge '+BADGE_CLASS[status]+'">'+BADGE_LABEL[status]+'</span>', dt:'raw' },
+    ];
+  }
+
+  g.innerHTML = cards.map(c => `
+    <div class="kpi-card ${c.color}">
+      <div class="kpi-label">${c.label}</div>
+      <div class="kpi-value">${c.value}</div>
+      <div class="kpi-sub">${c.sub}</div>
+      ${c.dt==='raw' ? '<div style="margin-top:6px">'+c.delta+'</div>' :
+        c.delta ? '<div class="kpi-delta '+c.dt+'">'+c.delta+'</div>' : ''}
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════════════
+// OVERVIEW TABLE
+// ═══════════════════════════════════════════════════
+function renderOverviewTable() {
+  const t = document.getElementById('overview-table');
+  const proj = activeProject === -1 ? [0,1,2,3,4] : [activeProject];
+
+  const headers = ['Metric', ...proj.map(i =>
+    `${PROJECTS[i]}<br><span style="font-size:9.5px;color:var(--text-dim);">#${JOBS[i]} · ${MW[i]} MW</span>`)];
+
+  const rows = [
+    { label:'— FINANCIALS —', group:true },
+    { label:'Revenue Budget ($M)',    vals: proj.map(i => ({v:fM(DATA.rev.b[i]),cls:'cell-neutral'})) },
+    { label:'Revenue Actual ($M)',    vals: proj.map(i => ({v:fM(DATA.rev.a[i]),tip:varTip(DATA.rev.b[i],DATA.rev.a[i],fM),cls:colorCell(DATA.rev.a[i]-DATA.rev.b[i],true)})) },
+    { label:'Total Cost Budget ($M)', vals: proj.map(i => ({v:fM(DATA.costTot.b[i]),cls:'cell-neutral'})) },
+    { label:'Total Cost Actual ($M)', vals: proj.map(i => ({v:fM(DATA.costTot.a[i]),tip:varTip(DATA.costTot.b[i],DATA.costTot.a[i],fM),cls:colorCell(DATA.costTot.a[i]-DATA.costTot.b[i],false)})) },
+    { label:'Profit Budget ($M)',     vals: proj.map(i => ({v:fM(DATA.profit.b[i]),cls:'cell-neutral'})) },
+    { label:'Profit Actual ($M)',     vals: proj.map(i => ({v:fM(DATA.profit.a[i]),tip:varTip(DATA.profit.b[i],DATA.profit.a[i],fM),cls:colorCell(DATA.profit.a[i]-DATA.profit.b[i],true)})) },
+    { label:'Margin on Rev % (Bdgt)', vals: proj.map(i => ({v:fPct(DATA.marginRev.b[i]),cls:'cell-neutral'})) },
+    { label:'Margin on Rev % (Actl)', vals: proj.map(i => ({v:fPct(DATA.marginRev.a[i]),tip:varTip(DATA.marginRev.b[i],DATA.marginRev.a[i],fPct),cls:colorCell(DATA.marginRev.a[i]-DATA.marginRev.b[i],true)})) },
+    { label:'Margin on Cost % (Bdgt)',vals: proj.map(i => ({v:fPct(DATA.marginCost.b[i]),cls:'cell-neutral'})) },
+    { label:'Margin on Cost % (Actl)',vals: proj.map(i => ({v:fPct(DATA.marginCost.a[i]),tip:varTip(DATA.marginCost.b[i],DATA.marginCost.a[i],fPct),cls:colorCell(DATA.marginCost.a[i]-DATA.marginCost.b[i],true)})) },
+
+    { label:'— PERFORMANCE INDICES —', group:true },
+    { label:'CPI – PV',               vals: proj.map(i => ({v:fCPI(DATA.cpiPV.a[i]),tip:'Budget=1.000',cls:colorCell(DATA.cpiPV.a[i]-1,true,0)})) },
+    { label:'CPI – Civil',            vals: proj.map(i => ({v:fCPI(DATA.cpiCiv.a[i]),tip:'Budget=1.000',cls:colorCell(DATA.cpiCiv.a[i]-1,true,0)})) },
+    { label:'CPI – Total',            vals: proj.map(i => ({v:fCPI(DATA.cpiTot.a[i]),tip:'Budget=1.000',cls:colorCell(DATA.cpiTot.a[i]-1,true,0)})) },
+    { label:'PF – PV',                vals: proj.map(i => ({v:fCPI(DATA.pfPV.a[i]),tip:'Budget=1.000',cls:colorCell(DATA.pfPV.a[i]-1,true,0)})) },
+    { label:'PF – Civil',             vals: proj.map(i => ({v:DATA.pfCiv.a[i]==null?'N/A':fCPI(DATA.pfCiv.a[i]),tip:'Budget=1.000',cls:DATA.pfCiv.a[i]==null?'cell-neutral':colorCell(DATA.pfCiv.a[i]-1,true,0)})) },
+    { label:'PF – Total',             vals: proj.map(i => ({v:fCPI(DATA.pfTot.a[i]),tip:'Budget=1.000',cls:colorCell(DATA.pfTot.a[i]-1,true,0)})) },
+
+    { label:'— HOURS —', group:true },
+    { label:'Total Hrs/Watt (Budget)', vals: proj.map(i => ({v:fN(DATA.totHpW.b[i],0),cls:'cell-neutral'})) },
+    { label:'Total Hrs/Watt (Actual)', vals: proj.map(i => ({v:fN(DATA.totHpW.a[i],0),tip:varTip(DATA.totHpW.b[i],DATA.totHpW.a[i],v=>v.toFixed(0)),cls:colorCell(DATA.totHpW.a[i]-DATA.totHpW.b[i],false)})) },
+    { label:'Total Hours k (Budget)',  vals: proj.map(i => ({v:fN(DATA.totHrs.b[i],1)+'k',cls:'cell-neutral'})) },
+    { label:'Total Hours k (Actual)',  vals: proj.map(i => ({v:fN(DATA.totHrs.a[i],1)+'k',tip:varTip(DATA.totHrs.b[i],DATA.totHrs.a[i],v=>v.toFixed(1)+'k'),cls:colorCell(DATA.totHrs.a[i]-DATA.totHrs.b[i],false)})) },
+
+    { label:'— COST/WATT & STATUS —', group:true },
+    { label:'Cost/Watt Budget ($)',    vals: proj.map(i => ({v:fDol(DATA.cpw.b[i]),cls:'cell-neutral'})) },
+    { label:'Cost/Watt Actual ($)',    vals: proj.map(i => ({v:fDol(DATA.cpw.a[i]),tip:varTip(DATA.cpw.b[i],DATA.cpw.a[i],v=>'$'+Math.abs(v).toFixed(3)),cls:colorCell(DATA.cpw.a[i]-DATA.cpw.b[i],false)})) },
+    { label:'Revenue/Watt Budget ($)', vals: proj.map(i => ({v:fDol(DATA.rpw.b[i]),cls:'cell-neutral'})) },
+    { label:'Revenue/Watt Actual ($)', vals: proj.map(i => ({v:fDol(DATA.rpw.a[i]),tip:varTip(DATA.rpw.b[i],DATA.rpw.a[i],v=>'$'+Math.abs(v).toFixed(3)),cls:colorCell(DATA.rpw.a[i]-DATA.rpw.b[i],true)})) },
+    { label:'% Complete WIP',          vals: proj.map(i => ({v:DATA.pctComp[i]+'%',cls:DATA.pctComp[i]>=99?'cell-good':'cell-warn'})) },
+    { label:'Cash Position',           vals: proj.map(i => ({v:fM(DATA.cash[i]),cls:colorCell(DATA.cash[i],true)})) },
+    { label:'Status',                  vals: proj.map(i => ({v:`<span class="badge ${BADGE_CLASS[projStatus(i)]}">${BADGE_LABEL[projStatus(i)]}</span>`,cls:''})) },
+  ];
+
+  t.innerHTML = `
+    <thead><tr>${headers.map((h,i)=>`<th${i===0?'':' style="min-width:160px"'}>${h}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map(r => r.group
+      ? `<tr class="row-group"><td colspan="${headers.length}">${r.label}</td></tr>`
+      : `<tr><td>${r.label}</td>${r.vals.map(c=>`<td class="${c.cls}"${c.tip?` data-tip="${c.tip}"`:''}>${c.v}</td>`).join('')}</tr>`
+    ).join('')}</tbody>`;
+}
+
+// ═══════════════════════════════════════════════════
+// CHART HELPERS
+// ═══════════════════════════════════════════════════
+const PROJ_COLORS = ['#3b82f6','#22c55e','#f59e0b','#a855f7','#06b6d4'];
+const PROJ_COLORS_ALPHA = c => c+'88';
+
+const chartInstances = {};
+function makeChart(id, config) {
+  if (chartInstances[id]) chartInstances[id].destroy();
+  const ctx = document.getElementById(id).getContext('2d');
+  chartInstances[id] = new Chart(ctx, config);
+}
+
+const commonOpts = (yLabel='', pct=false) => ({
+  responsive: true,
+  maintainAspectRatio: true,
+  plugins: {
+    legend: { labels: { color:'#94a3b8', font:{size:11}, boxWidth:12, padding:14 } },
+    tooltip: {
+      backgroundColor:'#0a1220', borderColor:'#2a3f5a', borderWidth:1,
+      titleColor:'#e2e8f0', bodyColor:'#94a3b8',
+      callbacks: pct ? { label: ctx => ' ' + ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(3) } : undefined
+    }
+  },
+  scales: {
+    x: { grid:{ color:'rgba(42,63,90,.5)', drawBorder:false }, ticks:{ color:'#94a3b8', font:{size:11} } },
+    y: {
+      grid:{ color:'rgba(42,63,90,.5)', drawBorder:false },
+      ticks:{ color:'#94a3b8', font:{size:11} },
+      title:{ display:!!yLabel, text:yLabel, color:'#64748b', font:{size:10} }
+    }
+  }
+});
+
+function projLabels() {
+  const p = activeProject;
+  if (p === -1) return PROJECTS.map((n,i) => n.replace('-PGR','\n-PGR'));
+  return [PROJECTS[p]];
+}
+
+function projIdx() {
+  return activeProject === -1 ? [0,1,2,3,4] : [activeProject];
+}
+
+// ═══════════════════════════════════════════════════
+// CHARTS
+// ═══════════════════════════════════════════════════
+function renderChartCost() {
+  const idx = projIdx();
+  makeChart('chartCost', {
+    type: 'bar',
+    data: {
+      labels: idx.map(i => PROJECTS[i]),
+      datasets: [
+        { label:'Budget ($M)',  data: idx.map(i=>DATA.costTot.b[i]), backgroundColor:'rgba(59,130,246,.5)', borderColor:'#3b82f6', borderWidth:1.5, borderRadius:4 },
+        { label:'Actual ($M)', data: idx.map(i=>DATA.costTot.a[i]), backgroundColor: idx.map(i=>DATA.costTot.a[i]<=DATA.costTot.b[i]?'rgba(34,197,94,.6)':'rgba(239,68,68,.6)'), borderColor: idx.map(i=>DATA.costTot.a[i]<=DATA.costTot.b[i]?'#22c55e':'#ef4444'), borderWidth:1.5, borderRadius:4 },
+      ]
+    },
+    options: { ...commonOpts('$ Millions'), plugins: { ...commonOpts().plugins, tooltip:{
+      ...commonOpts().plugins.tooltip,
+      callbacks:{ label: ctx => ' ' + ctx.dataset.label + ': $' + ctx.parsed.y.toFixed(2) + 'M' }
+    }}}
+  });
+}
+
+function renderChartProfit() {
+  const idx = projIdx();
+  makeChart('chartProfit', {
+    type: 'bar',
+    data: {
+      labels: idx.map(i => PROJECTS[i]),
+      datasets: [
+        { label:'Budget ($M)', data: idx.map(i=>DATA.profit.b[i]), backgroundColor:'rgba(59,130,246,.5)', borderColor:'#3b82f6', borderWidth:1.5, borderRadius:4 },
+        { label:'Actual ($M)', data: idx.map(i=>DATA.profit.a[i]), backgroundColor: idx.map(i=>DATA.profit.a[i]>=DATA.profit.b[i]?'rgba(34,197,94,.6)':'rgba(239,68,68,.6)'), borderColor: idx.map(i=>DATA.profit.a[i]>=DATA.profit.b[i]?'#22c55e':'#ef4444'), borderWidth:1.5, borderRadius:4 },
+      ]
+    },
+    options: { ...commonOpts('$ Millions'), plugins: { ...commonOpts().plugins, tooltip:{
+      ...commonOpts().plugins.tooltip,
+      callbacks:{ label: ctx => ' ' + ctx.dataset.label + ': $' + ctx.parsed.y.toFixed(2) + 'M' }
+    }}}
+  });
+}
+
+function renderChartCPI() {
+  const idx = projIdx();
+  const opts = commonOpts('CPI', true);
+  opts.plugins.annotation = {};
+  makeChart('chartCPI', {
+    type: 'bar',
+    data: {
+      labels: idx.map(i => PROJECTS[i]),
+      datasets: [
+        { label:'CPI PV',    data: idx.map(i=>DATA.cpiPV.a[i]),  backgroundColor:'rgba(59,130,246,.6)',  borderColor:'#3b82f6', borderWidth:1.5, borderRadius:3 },
+        { label:'CPI Civil', data: idx.map(i=>DATA.cpiCiv.a[i]), backgroundColor:'rgba(168,85,247,.6)', borderColor:'#a855f7', borderWidth:1.5, borderRadius:3 },
+        { label:'CPI Total', data: idx.map(i=>DATA.cpiTot.a[i]), backgroundColor:'rgba(34,197,94,.6)',  borderColor:'#22c55e', borderWidth:1.5, borderRadius:3 },
+      ]
+    },
+    options: {
+      ...opts,
+      plugins: { ...opts.plugins },
+      scales: {
+        ...opts.scales,
+        y: { ...opts.scales.y, min: 0.5, max: 1.6,
+          afterDataLimits: sc => { sc.max = Math.max(sc.max, 1.65); sc.min = Math.min(sc.min, 0.55); }
+        }
+      },
+      plugins: {
+        ...opts.plugins,
+        annotation: {
+          annotations: {
+            refLine: { type:'line', yMin:1, yMax:1, borderColor:'#f59e0b', borderWidth:2, borderDash:[6,3],
+              label:{ content:'Budget = 1.00', display:true, position:'end', color:'#f59e0b', font:{size:10}, backgroundColor:'rgba(0,0,0,.5)', padding:3 } }
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderChartPF() {
+  const idx = projIdx();
+  const opts = commonOpts('PF', true);
+  makeChart('chartPF', {
+    type: 'bar',
+    data: {
+      labels: idx.map(i => PROJECTS[i]),
+      datasets: [
+        { label:'PF PV',    data: idx.map(i=>DATA.pfPV.a[i]),  backgroundColor:'rgba(59,130,246,.6)',  borderColor:'#3b82f6', borderWidth:1.5, borderRadius:3 },
+        { label:'PF Civil', data: idx.map(i=>DATA.pfCiv.a[i]), backgroundColor:'rgba(168,85,247,.6)', borderColor:'#a855f7', borderWidth:1.5, borderRadius:3 },
+        { label:'PF Total', data: idx.map(i=>DATA.pfTot.a[i]), backgroundColor:'rgba(34,197,94,.6)',  borderColor:'#22c55e', borderWidth:1.5, borderRadius:3 },
+      ]
+    },
+    options: {
+      ...opts,
+      scales: {
+        ...opts.scales,
+        y: { ...opts.scales.y, min: 0.5, max: 1.7 }
+      },
+      plugins: {
+        ...opts.plugins,
+        annotation: {
+          annotations: {
+            refLine: { type:'line', yMin:1, yMax:1, borderColor:'#f59e0b', borderWidth:2, borderDash:[6,3],
+              label:{ content:'Budget = 1.00', display:true, position:'end', color:'#f59e0b', font:{size:10}, backgroundColor:'rgba(0,0,0,.5)', padding:3 } }
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderChartHPW() {
+  const idx = projIdx();
+  makeChart('chartHPW', {
+    type: 'bar',
+    data: {
+      labels: idx.map(i => PROJECTS[i]),
+      datasets: [
+        { label:'PV H/W Budget', data: idx.map(i=>DATA.pvHpW.b[i]),  backgroundColor:'rgba(59,130,246,.4)',  borderColor:'#3b82f6', borderWidth:1, borderRadius:3 },
+        { label:'PV H/W Actual', data: idx.map(i=>DATA.pvHpW.a[i]),  backgroundColor:'rgba(59,130,246,.75)', borderColor:'#3b82f6', borderWidth:1, borderRadius:3 },
+        { label:'Civil H/W Budget', data: idx.map(i=>DATA.civHpW.b[i]), backgroundColor:'rgba(168,85,247,.4)', borderColor:'#a855f7', borderWidth:1, borderRadius:3 },
+        { label:'Civil H/W Actual', data: idx.map(i=>DATA.civHpW.a[i]), backgroundColor:'rgba(168,85,247,.75)',borderColor:'#a855f7', borderWidth:1, borderRadius:3 },
+      ]
+    },
+    options: commonOpts('Hours per Watt')
+  });
+}
+
+function renderChartCostBreak() {
+  const idx = projIdx();
+  const cats = [
+    { key:'materials', label:'Materials',  color:'#3b82f6' },
+    { key:'racking',   label:'Racking',    color:'#06b6d4' },
+    { key:'labor',     label:'Labor',      color:'#22c55e' },
+    { key:'equip',     label:'Equipment',  color:'#f59e0b' },
+    { key:'fog',       label:'FOG',        color:'#ef4444' },
+    { key:'supplies',  label:'Supplies',   color:'#a855f7' },
+    { key:'eng',       label:'Engineering',color:'#fb923c' },
+    { key:'inverters', label:'Inverters',  color:'#e2e8f0' },
+  ];
+  makeChart('chartCostBreak', {
+    type: 'bar',
+    data: {
+      labels: idx.map(i => PROJECTS[i]),
+      datasets: cats.map(c => ({
+        label: c.label,
+        data: idx.map(i => DATA[c.key][i]),
+        backgroundColor: c.color + 'bb',
+        borderColor: c.color,
+        borderWidth: 1,
+        borderRadius: 2,
+      }))
+    },
+    options: {
+      ...commonOpts('$ Millions'),
+      scales: { ...commonOpts().scales, x: { ...commonOpts().scales.x, stacked:true }, y: { ...commonOpts().scales.y, stacked:true } }
+    }
+  });
+}
+
+function renderChartCPW() {
+  const idx = projIdx();
+  const labels = idx.map(i => PROJECTS[i]);
+  makeChart('chartCPW', {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label:'Cost/W Budget ($)', data: idx.map(i=>DATA.cpw.b[i]), backgroundColor:'rgba(239,68,68,.4)',  borderColor:'#ef4444', borderWidth:1.5, borderRadius:3 },
+        { label:'Cost/W Actual ($)', data: idx.map(i=>DATA.cpw.a[i]), backgroundColor:'rgba(239,68,68,.75)', borderColor:'#ef4444', borderWidth:1.5, borderRadius:3 },
+        { label:'Rev/W Budget ($)',  data: idx.map(i=>DATA.rpw.b[i]), backgroundColor:'rgba(34,197,94,.4)',  borderColor:'#22c55e', borderWidth:1.5, borderRadius:3 },
+        { label:'Rev/W Actual ($)',  data: idx.map(i=>DATA.rpw.a[i]), backgroundColor:'rgba(34,197,94,.75)', borderColor:'#22c55e', borderWidth:1.5, borderRadius:3 },
+      ]
+    },
+    options: {
+      ...commonOpts('$ per Watt'),
+      plugins: { ...commonOpts().plugins, tooltip:{
+        ...commonOpts().plugins.tooltip,
+        callbacks:{ label: ctx => ' ' + ctx.dataset.label + ': $' + ctx.parsed.y.toFixed(3) }
+      }}
+    }
+  });
+}
+
+function renderChartPile() {
+  const idx = projIdx();
+  makeChart('chartPile', {
+    type: 'bar',
+    data: {
+      labels: idx.map(i => PROJECTS[i]),
+      datasets: [
+        { label:'EAC Budget ($)',  data: idx.map(i=>DATA.pileEAC.b[i]), backgroundColor:'rgba(59,130,246,.4)',  borderColor:'#3b82f6', borderWidth:1.5, borderRadius:3 },
+        { label:'EAC Actual ($)',  data: idx.map(i=>DATA.pileEAC.a[i]), backgroundColor: idx.map(i=>DATA.pileEAC.a[i]<=DATA.pileEAC.b[i]?'rgba(34,197,94,.75)':'rgba(239,68,68,.75)'), borderColor: idx.map(i=>DATA.pileEAC.a[i]<=DATA.pileEAC.b[i]?'#22c55e':'#ef4444'), borderWidth:1.5, borderRadius:3 },
+        { label:'Total Budget ($)',data: idx.map(i=>DATA.pileTot.b[i]), backgroundColor:'rgba(168,85,247,.4)', borderColor:'#a855f7', borderWidth:1.5, borderRadius:3 },
+        { label:'Total Actual ($)',data: idx.map(i=>DATA.pileTot.a[i]), backgroundColor: idx.map(i=>DATA.pileTot.a[i]<=DATA.pileTot.b[i]?'rgba(6,182,212,.75)':'rgba(245,158,11,.75)'), borderColor: idx.map(i=>DATA.pileTot.a[i]<=DATA.pileTot.b[i]?'#06b6d4':'#f59e0b'), borderWidth:1.5, borderRadius:3 },
+      ]
+    },
+    options: {
+      ...commonOpts('$ per Pile'),
+      plugins: { ...commonOpts().plugins, tooltip:{
+        ...commonOpts().plugins.tooltip,
+        callbacks:{ label: ctx => ' ' + ctx.dataset.label + ': $' + ctx.parsed.y.toFixed(2) }
+      }}
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// PROFIT TABLE
+// ═══════════════════════════════════════════════════
+function renderProfitTable() {
+  const t = document.getElementById('profit-table');
+  const idx = projIdx();
+  const cols = ['Metric', ...idx.map(i => `${PROJECTS[i]}<br><span style="font-size:9.5px;color:var(--text-dim)">#${JOBS[i]}</span>`)];
+
+  const rows = [
+    { label:'Profit — Budget ($M)',    vals: idx.map(i=>({v:fM(DATA.profit.b[i]),cls:'cell-neutral'})) },
+    { label:'Profit — Actual ($M)',    vals: idx.map(i=>({v:fM(DATA.profit.a[i]),tip:varTip(DATA.profit.b[i],DATA.profit.a[i],fM),cls:colorCell(DATA.profit.a[i]-DATA.profit.b[i],true)})) },
+    { label:'Margin on Rev % — Bdgt', vals: idx.map(i=>({v:fPct(DATA.marginRev.b[i]),cls:'cell-neutral'})) },
+    { label:'Margin on Rev % — Actl', vals: idx.map(i=>({v:fPct(DATA.marginRev.a[i]),tip:varTip(DATA.marginRev.b[i],DATA.marginRev.a[i],fPct),cls:colorCell(DATA.marginRev.a[i]-DATA.marginRev.b[i],true)})) },
+    { label:'Margin on Cost % — Bdgt',vals: idx.map(i=>({v:fPct(DATA.marginCost.b[i]),cls:'cell-neutral'})) },
+    { label:'Margin on Cost % — Actl',vals: idx.map(i=>({v:fPct(DATA.marginCost.a[i]),tip:varTip(DATA.marginCost.b[i],DATA.marginCost.a[i],fPct),cls:colorCell(DATA.marginCost.a[i]-DATA.marginCost.b[i],true)})) },
+    { label:'Current Cash Position',  vals: idx.map(i=>({v:fM(DATA.cash[i]),tip:'Cash position JTD',cls:colorCell(DATA.cash[i],true)})) },
+    { label:'% Complete WIP JTD',     vals: idx.map(i=>({v:DATA.pctComp[i]+'%',cls:DATA.pctComp[i]>=99?'cell-good':'cell-warn'})) },
+    { label:'Project Status',         vals: idx.map(i=>({v:`<span class="badge ${BADGE_CLASS[projStatus(i)]}">${BADGE_LABEL[projStatus(i)]}</span>`,cls:''})) },
+  ];
+
+  t.innerHTML = `
+    <thead><tr>${cols.map((h,i)=>`<th${i===0?'':' style="min-width:160px"'}>${h}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map(r=>`<tr><td>${r.label}</td>${r.vals.map(c=>`<td class="${c.cls}"${c.tip?` data-tip="${c.tip}"`:''}>${c.v}</td>`).join('')}</tr>`).join('')}</tbody>`;
+}
+
+// ═══════════════════════════════════════════════════
+// COST BREAKDOWN TABLE
+// ═══════════════════════════════════════════════════
+function renderCostTable() {
+  const t = document.getElementById('cost-table');
+  const idx = projIdx();
+  const cols = ['Cost Category ($M Actual)', ...idx.map(i => `${PROJECTS[i]}<br><span style="font-size:9.5px;color:var(--text-dim)">#${JOBS[i]}</span>`)];
+
+  const cats = [
+    { label:'Materials',    key:'materials' },
+    { label:'Racking',      key:'racking'   },
+    { label:'Labor',        key:'labor'     },
+    { label:'Equipment',    key:'equip'     },
+    { label:'Inverters',    key:'inverters' },
+    { label:'FOG',          key:'fog'       },
+    { label:'Supplies',     key:'supplies'  },
+    { label:'Engineering',  key:'eng'       },
+  ];
+
+  const rows = cats.map(c => ({
+    label: c.label,
+    vals: idx.map(i => ({v: DATA[c.key][i] === 0 ? '—' : fM(DATA[c.key][i]), cls:'cell-neutral'}))
+  }));
+
+  // totals row
+  const totals = idx.map(i => cats.reduce((sum,c) => sum + DATA[c.key][i], 0));
+  rows.push({ label:'Total (Calculated)', vals: idx.map((i,j)=>({v:fM(totals[j]),cls:'cell-neutral'})) });
+
+  t.innerHTML = `
+    <thead><tr>${cols.map((h,i)=>`<th${i===0?'':' style="min-width:160px"'}>${h}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map((r,ri)=>`<tr${ri===rows.length-1?' style="font-weight:700;border-top:1px solid var(--border)"':''}>
+      <td>${r.label}</td>${r.vals.map(c=>`<td class="${c.cls}">${c.v}</td>`).join('')}</tr>`).join('')}</tbody>`;
+}
+
+// ═══════════════════════════════════════════════════
+// RENDER ALL
+// ═══════════════════════════════════════════════════
+function renderAll() {
+  renderKPIs();
+  renderOverviewTable();
+  renderChartCost();
+  renderChartProfit();
+  renderChartCPI();
+  renderChartPF();
+  renderChartHPW();
+  renderChartCostBreak();
+  renderChartCPW();
+  renderChartPile();
+  renderProfitTable();
+  renderCostTable();
+}
+
+// Load Chart.js annotation plugin for reference lines
+(function loadAnnotation() {
+  const s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js';
+  s.onload = () => {
+    Chart.register(window['chartjs-plugin-annotation']);
+    renderAll();
+  };
+  s.onerror = () => renderAll(); // fallback without annotation
+  document.head.appendChild(s);
+})();
+</script>
+</body>
+</html>
