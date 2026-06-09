@@ -104,13 +104,13 @@
     .kpi-value{font-size:14px}
     .kpi-sub{font-size:9px}
     .kpi-label{font-size:9px;margin-bottom:3px}
-    /* Charts — compact heights to fit one page, colors preserved */
-    .charts-row{grid-template-columns:1fr 1fr;gap:8px;page-break-inside:avoid;break-inside:avoid}
-    .chart-card,.chart-card.wide{padding:10px 12px;break-inside:avoid}
-    .chart-wrap{height:175px!important;overflow:hidden!important}
-    .chart-wrap-tall{height:190px!important;overflow:hidden!important}
-    .chart-title{font-size:11px;margin-bottom:3px}
-    /* Tables on new page */
+    /* Charts — full height, no forced page breaks between charts */
+    .charts-row{grid-template-columns:1fr 1fr;gap:10px}
+    .chart-card,.chart-card.wide{padding:12px}
+    .chart-wrap{height:280px!important}
+    .chart-wrap-tall{height:320px!important}
+    .chart-title{font-size:12px;margin-bottom:4px}
+    /* Only tables forced to new page */
     .table-card{page-break-before:always;break-before:page;padding:10px}
     table{font-size:10px}
     td,th{padding:5px 8px}
@@ -709,7 +709,6 @@ document.getElementById('ouFilter').addEventListener('change',applyFilters);
 
 // ── Print: resize charts before/after printing ───────────────────────────────
 function resizeChartsForPrint(printing) {
-  // Charts keep their normal height — just trigger a resize so Chart.js redraws cleanly
   Object.values(charts).forEach(c=>{ try{ c.resize(); }catch(e){} });
 }
 
