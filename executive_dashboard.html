@@ -139,7 +139,6 @@ input.fs{width:90px;}
   <div class="filter-group">
     <span class="filter-label">Month</span>
     <select class="fs" id="fMonth" onchange="applyFilters()">
-      <option value="">All</option>
     </select>
   </div>
 
@@ -568,7 +567,7 @@ function populateJobDropdown(){
 }
 
 function resetFilters(){
-  document.getElementById('fMonth').value='';
+  document.getElementById('fMonth').value=ALL_MONTHS[ALL_MONTHS.length-1];
   ['Status','Client','Job'].forEach(n=>{
     clearMs(n);
   });
@@ -646,9 +645,32 @@ function getMonthRange(fromId,toId){
 
 // Aggregate all-time rows by month (for trend charts), applying global filters except month
 function monthlyAgg(months, field){
+  // Month filter is intentionally ignored here — trend charts manage their own date range
   return months.map(m=>{
-    const rows = applyGlobalFilters(ALL_DATA.filter(p=>p.month===m));
+    const rows = applyGlobalFiltersNoMonth(ALL_DATA.filter(p=>p.month===m));
     return rows.reduce((s,p)=>s+(p[field]||0),0);
+  });
+}
+
+function applyGlobalFiltersNoMonth(rows){
+  const f = getF();
+  return rows.filter(p=>{
+    if(f.statuses.length){
+      const st = LATEST_STATUS[p.id]||p.status;
+      if(!f.statuses.some(s=>s.toLowerCase()===st.toLowerCase())) return false;
+    }
+    if(f.clients.length && !f.clients.includes(p.client)) return false;
+    if(f.jobs.length && !f.jobs.includes(p.id)) return false;
+    if(f.metricType && f.metricVal1!==null){
+      const v=p[f.metricType];
+      const isPct=['margin_rev','margin_cost','pct_complete'].includes(f.metricType);
+      const uv=isPct?f.metricVal1/100:f.metricVal1;
+      const uv2=isPct&&f.metricVal2!==null?f.metricVal2/100:f.metricVal2;
+      if(f.metricOp==='gte'&&v<uv)return false;
+      if(f.metricOp==='lte'&&v>uv)return false;
+      if(f.metricOp==='between'&&uv2!==null&&(v<uv||v>uv2))return false;
+    }
+    return true;
   });
 }
 
@@ -1253,7 +1275,15 @@ window.addEventListener('DOMContentLoaded',()=>{
 
   // Populate month dropdown
   const mSel=document.getElementById('fMonth');
-  ALL_MONTHS.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;mSel.appendChild(o);});
+  const MONTH_NAMES=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  ALL_MONTHS.forEach(m=>{
+    const [yr,mo]=m.split('-');
+    const o=document.createElement('option');
+    o.value=m;
+    o.textContent=MONTH_NAMES[parseInt(mo,10)-1]+', '+yr;
+    mSel.appendChild(o);
+  });
+  mSel.value=ALL_MONTHS[ALL_MONTHS.length-1]; // default to most recent
 
   populateJobDropdown();
   updateFilterCount();
