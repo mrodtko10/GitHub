@@ -1415,9 +1415,8 @@ function renderWIPEarnedRevChart(){
     projHistory[r.id][r.month]=r.earned_rev;
   });
 
-  // For each month: sum earned_rev across all filtered projects,
-  // carrying forward the last known value when a project has no row that month
-  const cumData=months.map(m=>{
+  // Helper: get total cumulative earned_rev for a given month across filtered projects
+  function getCumForMonth(m){
     let total=0;
     filteredIds.forEach(id=>{
       const pd=projHistory[id];
@@ -1425,17 +1424,26 @@ function renderWIPEarnedRevChart(){
       if(pd[m]!==undefined){
         total+=pd[m];
       } else {
-        // carry forward most recent earned_rev at or before this month
         const known=Object.keys(pd).filter(km=>km<=m).sort();
         if(known.length)total+=pd[known[known.length-1]];
       }
     });
     return+(total/1e6).toFixed(2);
-  });
+  }
 
-  // incremental = delta between consecutive months
+  // For each month in the visible range, compute cumulative
+  const cumData=months.map(m=>getCumForMonth(m));
+
+  // Compute the baseline = cumulative total for the month just before the range start
+  // so the first bar's incremental is correct regardless of range selection
+  const allMonthsSorted=[...new Set(ALL_DATA.map(r=>r.month))].sort();
+  const firstInRange=months[0];
+  const prevMonthIdx=allMonthsSorted.indexOf(firstInRange)-1;
+  const baseline=prevMonthIdx>=0?getCumForMonth(allMonthsSorted[prevMonthIdx]):0;
+
+  // incremental = delta between consecutive months; first month uses out-of-range baseline
   const incData=cumData.map((v,i)=>{
-    const prev=i>0?cumData[i-1]:0;
+    const prev=i>0?cumData[i-1]:baseline;
     return+(v-prev).toFixed(2);
   });
 
