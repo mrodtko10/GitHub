@@ -191,6 +191,21 @@ input.fs{width:90px;}
 
   <div class="filter-sep"></div>
 
+  <!-- Job Start Year multi-select -->
+  <div class="filter-group">
+    <span class="filter-label">Start Year</span>
+    <div class="ms-wrap">
+      <div class="ms-btn" id="msBtnYear" onclick="toggleMs('Year')">All</div>
+      <div class="ms-dropdown" id="msDdYear">
+        <div class="ms-all"><span onclick="selectAllMs('Year')">All</span><span onclick="clearMs('Year')">Clear</span></div>
+        <div class="ms-divider"></div>
+        <!-- populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <div class="filter-sep"></div>
+
   <!-- Job # multi-select -->
   <div class="filter-group">
     <span class="filter-label">Job #</span>
@@ -513,6 +528,7 @@ function getF(){
     month: document.getElementById('fMonth').value,
     statuses: getMsValues('Status'),
     clients: getMsValues('Client'),
+    years: getMsValues('Year'),
     jobs: getMsValues('Job'),
     metricType: document.getElementById('fMetricType').value,
     metricOp: document.getElementById('fMetricOp').value,
@@ -552,6 +568,8 @@ function applyGlobalFilters(rows, latestStatusMode=false){
     }
     // Client multi-select
     if(f.clients.length && !f.clients.includes(p.client)) return false;
+    // Job Start Year multi-select
+    if(f.years.length){const yp='20'+(p.id.split('-')[0]||'');if(!f.years.includes(yp))return false;}
     // Job multi-select
     if(f.jobs.length && !f.jobs.includes(p.id)) return false;
     // Metric filter
@@ -589,6 +607,18 @@ function updateMetricInputs(){
   applyFilters();
 }
 
+function populateYearDropdown(){
+  const dd=document.getElementById('msDdYear');
+  dd.querySelectorAll('.ms-option').forEach(el=>el.remove());
+  const years=[...new Set(ALL_DATA.map(p=>'20'+(p.id.split('-')[0]||'')))].sort();
+  years.forEach(yr=>{
+    const lbl=document.createElement('label');
+    lbl.className='ms-option';
+    lbl.innerHTML=`<input type="checkbox" value="${yr}" onchange="msChanged('Year')"> ${yr}`;
+    dd.appendChild(lbl);
+  });
+}
+
 function populateJobDropdown(){
   const dd = document.getElementById('msDdJob');
   // Keep header rows, rebuild options
@@ -608,7 +638,7 @@ function populateJobDropdown(){
 
 function resetFilters(){
   document.getElementById('fMonth').value=ALL_MONTHS[ALL_MONTHS.length-1];
-  ['Status','Client','Job'].forEach(n=>{
+  ['Status','Client','Year','Job'].forEach(n=>{
     clearMs(n);
   });
   document.getElementById('fMetricType').value='';
@@ -701,6 +731,7 @@ function applyGlobalFiltersNoMonth(rows){
       if(!f.statuses.some(s=>s.toLowerCase()===st.toLowerCase())) return false;
     }
     if(f.clients.length && !f.clients.includes(p.client)) return false;
+    if(f.years.length){const yp='20'+(p.id.split('-')[0]||'');if(!f.years.includes(yp))return false;}
     if(f.jobs.length && !f.jobs.includes(p.id)) return false;
     if(f.metricType && f.metricVal1!==null){
       const v=p[f.metricType];
@@ -994,7 +1025,7 @@ function renderJobs(){
   document.getElementById('jobTable').innerHTML=`<thead><tr>
     <th>Job #</th><th>Client / Project</th><th>PM</th><th>Status</th>
     <th>Revenue</th><th>Profit</th><th>Margin</th><th>% Complete</th><th>Cash Pos</th>
-  </tr></thead><tbody>`+[...fp].sort((a,b)=>b.rev-a.rev).map(p=>{
+  </tr></thead><tbody>`+[...fp].sort((a,b)=>b.id.localeCompare(a.id)).map(p=>{
     const mc=mColor(p.margin_rev);
     const sb=p.status==='Open'?'bb':p.status==='Closed'?'bgr':'by';
     return`<tr>
@@ -1176,7 +1207,7 @@ function renderProjects(){
     <th>Job #</th><th>Client / Project</th><th>PM</th><th>Status</th>
     <th>Revenue</th><th>Profit</th><th>Margin</th><th>% Complete</th>
     <th>JTD Cost</th><th>ETC</th><th>EAC</th><th>Contingency</th><th>Δ Contingency</th><th>A/R</th><th>Cash Pos</th>
-  </tr></thead><tbody>`+fp.map(p=>{
+  </tr></thead><tbody>`+[...fp].sort((a,b)=>b.id.localeCompare(a.id)).map(p=>{
     const mc=mColor(p.margin_rev);
     const sb=p.status==='Open'?'bb':p.status==='Closed'?'bgr':'by';
     const ar=p.billed-p.paid;
@@ -1335,7 +1366,7 @@ function renderWIP(){
     <th title="AQ — Change in Monthly Costs">Δ Monthly Costs</th>
     <th title="AR — Change in Contingency">Δ Contingency</th>
     <th title="AU — Change in Earned Revenue">Δ Earned Rev</th>
-  </tr></thead><tbody>`+fp.map(p=>{
+  </tr></thead><tbody>`+[...fp].sort((a,b)=>b.id.localeCompare(a.id)).map(p=>{
     const sb=p.status==='Open'?'bb':p.status==='Closed'?'bgr':'by';
     const mc=p.pct_margin>=0.15?'var(--green)':p.pct_margin>=0.08?'var(--yellow)':'var(--red)';
     const prev=prevMap[p.id];
@@ -1488,6 +1519,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   });
   mSel.value=ALL_MONTHS[ALL_MONTHS.length-1]; // default to most recent
 
+  populateYearDropdown();
   populateJobDropdown();
   updateFilterCount();
   renderOverview();
