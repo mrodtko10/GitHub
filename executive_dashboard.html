@@ -1329,11 +1329,9 @@ function renderWIP(){
   // KPI tiles — JTD values from latest snapshot
   const totalER=fp.reduce((s,p)=>s+p.earned_rev,0);
   const totalEM=fp.reduce((s,p)=>s+p.earned_margin,0);
-  const avgPctMargin=fp.length?fp.reduce((s,p)=>s+p.pct_margin,0)/fp.length:0;
   document.getElementById('wip-earned-rev').textContent=fmt(totalER);
   document.getElementById('wip-earned-rev-sub').textContent='vs proj rev '+fmt(fp.reduce((s,p)=>s+p.rev,0));
   document.getElementById('wip-earned-margin').textContent=fmt(totalEM);
-  document.getElementById('wip-pct-margin').textContent=fmtPct(avgPctMargin);
 
   // Monthly tiles — delta vs prior month for each project in fp
   let monthlyER=0, monthlyEM=0, monthlyDCont=0;
@@ -1344,6 +1342,11 @@ function renderWIP(){
     monthlyEM+=prev!=null?p.earned_margin-prev.earned_margin:0;
     monthlyDCont+=p.change_contingency||0;
   });
+  // Monthly margin = Σ(Δ earned margin) / Σ(Δ earned rev)
+  const monthlyMargin=monthlyER!==0?monthlyEM/monthlyER:0;
+  const mMgEl=document.getElementById('wip-pct-margin');
+  mMgEl.textContent=fmtPct(monthlyMargin);
+  mMgEl.style.color=mColor(monthlyMargin);
   const mERel=document.getElementById('wip-monthly-earned-rev');
   const mEMel=document.getElementById('wip-monthly-earned-margin');
   const mDCel=document.getElementById('wip-monthly-delta-cont');
@@ -1406,7 +1409,7 @@ function renderWIP(){
       <td>${fmt(p.rev)}</td>
       <td>${fmt(p.earned_rev)}</td>
       <td style="color:${p.earned_margin<0?'var(--red)':'var(--green)'}">${fmt(p.earned_margin)}</td>
-      <td><span class="badge ${mBadge(p.pct_margin)}">${fmtPct(p.pct_margin)}</span></td>
+      <td>${(()=>{const dER=prev!=null?p.earned_rev-prev.earned_rev:null;const dEM=prev!=null?p.earned_margin-prev.earned_margin:null;const mm=dER&&dER!==0?dEM/dER:null;return mm!=null?`<span class="badge ${mBadge(mm)}">${fmtPct(mm)}</span>`:'<span style="color:#8b949e">—</span>';})()}</td>
       <td style="color:${p.remaining_margin<0?'var(--red)':'#8b949e'}">${fmt(p.remaining_margin)}</td>
       <td>${fmt(p.contingency)}</td>
       <td style="color:${deltaColor(dCost,true)}">${fmtDelta(dCost)}</td>
