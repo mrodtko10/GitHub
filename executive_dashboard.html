@@ -1374,15 +1374,37 @@ function renderWIP(){
 
 function renderWIPEarnedRevChart(){
   const months=getMonthRange('wipRevFrom','wipRevTo');
-  // cumulative = earned_rev is already cumulative in the data (Excel calc)
-  const cumData=months.map(m=>{
-    const rows=applyGlobalFiltersNoMonth(ALL_DATA.filter(r=>r.month===m));
-    return rows.length?+(rows.reduce((s,p)=>s+p.earned_rev,0)/1e6).toFixed(2):null;
+
+  // Build per-project earned_rev history so we can carry forward last known value
+  // when a job goes silent (complete) rather than treating it as $0
+  const filteredIds=new Set(applyGlobalFiltersNoMonth(ALL_DATA).map(r=>r.id));
+  const projHistory={};
+  ALL_DATA.filter(r=>filteredIds.has(r.id)).forEach(r=>{
+    if(!projHistory[r.id])projHistory[r.id]={};
+    projHistory[r.id][r.month]=r.earned_rev;
   });
-  // incremental = delta between consecutive months (Feb - Jan, etc.)
+
+  // For each month: sum earned_rev across all filtered projects,
+  // carrying forward the last known value when a project has no row that month
+  const cumData=months.map(m=>{
+    let total=0;
+    filteredIds.forEach(id=>{
+      const pd=projHistory[id];
+      if(!pd)return;
+      if(pd[m]!==undefined){
+        total+=pd[m];
+      } else {
+        // carry forward most recent earned_rev at or before this month
+        const known=Object.keys(pd).filter(km=>km<=m).sort();
+        if(known.length)total+=pd[known[known.length-1]];
+      }
+    });
+    return+(total/1e6).toFixed(2);
+  });
+
+  // incremental = delta between consecutive months
   const incData=cumData.map((v,i)=>{
-    if(v===null)return 0;
-    const prev=i>0&&cumData[i-1]!==null?cumData[i-1]:0;
+    const prev=i>0?cumData[i-1]:0;
     return+(v-prev).toFixed(2);
   });
 
