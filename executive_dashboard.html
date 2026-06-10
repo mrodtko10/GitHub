@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Power Division — Executive Dashboard 2026</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <style>
 :root{--bg:#0d1117;--surface:#161b22;--surface2:#21262d;--border:#30363d;--accent:#1f6feb;--accent2:#58a6ff;--green:#3fb950;--red:#f85149;--yellow:#d29922;--text:#e6edf3;--muted:#8b949e;}
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -19,17 +20,28 @@ nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24
 
 /* FILTER BAR */
 .filter-bar{background:var(--surface2);border-bottom:1px solid var(--border);padding:8px 24px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;position:sticky;top:54px;z-index:190;}
-.filter-group{display:flex;align-items:center;gap:6px;}
+.filter-group{display:flex;align-items:center;gap:6px;position:relative;}
 .filter-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;}
 .filter-sep{width:1px;height:20px;background:var(--border);}
 select.fs,input.fs{background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:12px;padding:4px 8px;border-radius:6px;cursor:pointer;outline:none;}
-select.fs{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%238b949e'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:22px;min-width:110px;}
+select.fs{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%238b949e'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:22px;min-width:90px;}
 select.fs:focus,input.fs:focus{border-color:var(--accent2);}
 input.fs{width:90px;}
-input.fs.wide{width:110px;}
 .btn-sm{background:none;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer;transition:all .15s;}
 .btn-sm:hover{border-color:var(--accent2);color:var(--accent2);}
 .filter-count{font-size:11px;color:var(--muted);margin-left:auto;}
+/* Multi-select dropdown */
+.ms-wrap{position:relative;}
+.ms-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:12px;padding:4px 22px 4px 8px;border-radius:6px;cursor:pointer;white-space:nowrap;min-width:110px;text-align:left;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%238b949e'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 7px center;user-select:none;}
+.ms-btn.active-filter{border-color:var(--accent2);color:var(--accent2);}
+.ms-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;min-width:170px;z-index:500;box-shadow:0 8px 24px rgba(0,0,0,.4);padding:4px 0;max-height:260px;overflow-y:auto;}
+.ms-dropdown.open{display:block;}
+.ms-option{display:flex;align-items:center;gap:8px;padding:6px 12px;cursor:pointer;font-size:12px;}
+.ms-option:hover{background:var(--surface2);}
+.ms-option input[type=checkbox]{accent-color:var(--accent2);width:13px;height:13px;cursor:pointer;flex-shrink:0;}
+.ms-divider{height:1px;background:var(--border);margin:3px 0;}
+.ms-all{padding:5px 12px;font-size:11px;color:var(--accent2);cursor:pointer;display:flex;gap:10px;}
+.ms-all span:hover{text-decoration:underline;}
 
 /* LAYOUT */
 .tab-content{display:none;padding:28px;max-width:1440px;margin:0 auto;}
@@ -123,50 +135,73 @@ input.fs.wide{width:110px;}
 <div class="filter-bar">
   <span class="filter-label">Filter</span>
 
-  <!-- Open/Closed -->
+  <!-- Month (single select) -->
+  <div class="filter-group">
+    <span class="filter-label">Month</span>
+    <select class="fs" id="fMonth" onchange="applyFilters()">
+      <option value="">All</option>
+    </select>
+  </div>
+
+  <div class="filter-sep"></div>
+
+  <!-- Status multi-select -->
   <div class="filter-group">
     <span class="filter-label">Status</span>
-    <select class="fs" id="fStatus" onchange="applyFilters()">
-      <option value="">All</option>
-      <option value="Open">Open</option>
-      <option value="Closed">Closed</option>
-      <option value="Finalized">Finalized</option>
-    </select>
+    <div class="ms-wrap">
+      <div class="ms-btn" id="msBtnStatus" onclick="toggleMs('Status')">All</div>
+      <div class="ms-dropdown" id="msDdStatus">
+        <div class="ms-all"><span onclick="selectAllMs('Status')">All</span><span onclick="clearMs('Status')">Clear</span></div>
+        <div class="ms-divider"></div>
+        <label class="ms-option"><input type="checkbox" value="Open" onchange="msChanged('Status')"> Open</label>
+        <label class="ms-option"><input type="checkbox" value="Closed" onchange="msChanged('Status')"> Closed</label>
+        <label class="ms-option"><input type="checkbox" value="Finalized" onchange="msChanged('Status')"> Finalized</label>
+      </div>
+    </div>
   </div>
 
   <div class="filter-sep"></div>
 
-  <!-- Client -->
+  <!-- Client multi-select -->
   <div class="filter-group">
     <span class="filter-label">Client</span>
-    <select class="fs" id="fClient" onchange="applyFilters()">
-      <option value="">All</option>
-      <option>AP Sunray</option>
-      <option>Arava Power</option>
-      <option>CHEVRON</option>
-      <option>Enfinity</option>
-      <option>Entergy</option>
-      <option>Hyundia</option>
-      <option>Leyline</option>
-      <option>NextEra</option>
-      <option>PGR</option>
-      <option>Peregrine</option>
-      <option>Silicon Ranch</option>
-      <option>Stellar</option>
-      <option>Treaty Oaks</option>
-      <option>Urban Grid</option>
-      <option>Vanguard</option>
-    </select>
+    <div class="ms-wrap">
+      <div class="ms-btn" id="msBtnClient" onclick="toggleMs('Client')">All</div>
+      <div class="ms-dropdown" id="msDdClient">
+        <div class="ms-all"><span onclick="selectAllMs('Client')">All</span><span onclick="clearMs('Client')">Clear</span></div>
+        <div class="ms-divider"></div>
+        <label class="ms-option"><input type="checkbox" value="AP Sunray" onchange="msChanged('Client')"> AP Sunray</label>
+        <label class="ms-option"><input type="checkbox" value="Arava Power" onchange="msChanged('Client')"> Arava Power</label>
+        <label class="ms-option"><input type="checkbox" value="CHEVRON" onchange="msChanged('Client')"> CHEVRON</label>
+        <label class="ms-option"><input type="checkbox" value="Enfinity" onchange="msChanged('Client')"> Enfinity</label>
+        <label class="ms-option"><input type="checkbox" value="Entergy" onchange="msChanged('Client')"> Entergy</label>
+        <label class="ms-option"><input type="checkbox" value="Hyundia" onchange="msChanged('Client')"> Hyundia</label>
+        <label class="ms-option"><input type="checkbox" value="Leyline" onchange="msChanged('Client')"> Leyline</label>
+        <label class="ms-option"><input type="checkbox" value="NextEra" onchange="msChanged('Client')"> NextEra</label>
+        <label class="ms-option"><input type="checkbox" value="PGR" onchange="msChanged('Client')"> PGR</label>
+        <label class="ms-option"><input type="checkbox" value="Peregrine" onchange="msChanged('Client')"> Peregrine</label>
+        <label class="ms-option"><input type="checkbox" value="Silicon Ranch" onchange="msChanged('Client')"> Silicon Ranch</label>
+        <label class="ms-option"><input type="checkbox" value="Stellar" onchange="msChanged('Client')"> Stellar</label>
+        <label class="ms-option"><input type="checkbox" value="Treaty Oaks" onchange="msChanged('Client')"> Treaty Oaks</label>
+        <label class="ms-option"><input type="checkbox" value="Urban Grid" onchange="msChanged('Client')"> Urban Grid</label>
+        <label class="ms-option"><input type="checkbox" value="Vanguard" onchange="msChanged('Client')"> Vanguard</label>
+      </div>
+    </div>
   </div>
 
   <div class="filter-sep"></div>
 
-  <!-- Job # -->
+  <!-- Job # multi-select -->
   <div class="filter-group">
     <span class="filter-label">Job #</span>
-    <select class="fs" id="fJob" onchange="applyFilters()">
-      <option value="">All</option>
-    </select>
+    <div class="ms-wrap">
+      <div class="ms-btn" id="msBtnJob" onclick="toggleMs('Job')">All</div>
+      <div class="ms-dropdown" id="msDdJob">
+        <div class="ms-all"><span onclick="selectAllMs('Job')">All</span><span onclick="clearMs('Job')">Clear</span></div>
+        <div class="ms-divider"></div>
+        <!-- populated by JS -->
+      </div>
+    </div>
   </div>
 
   <div class="filter-sep"></div>
@@ -186,7 +221,7 @@ input.fs.wide{width:110px;}
       <option value="eac">EAC ($)</option>
       <option value="etc">ETC ($)</option>
     </select>
-    <select class="fs" id="fMetricOp" style="min-width:80px;" onchange="updateMetricInputs()">
+    <select class="fs" id="fMetricOp" style="min-width:75px;" onchange="updateMetricInputs()">
       <option value="gte">&gt;=</option>
       <option value="lte">&lt;=</option>
       <option value="between">Between</option>
@@ -436,9 +471,10 @@ ALL_DATA.forEach(p=>{
 // ============================================================
 function getF(){
   return {
-    status: document.getElementById('fStatus').value,
-    client: document.getElementById('fClient').value,
-    job: document.getElementById('fJob').value,
+    month: document.getElementById('fMonth').value,
+    statuses: getMsValues('Status'),
+    clients: getMsValues('Client'),
+    jobs: getMsValues('Job'),
     metricType: document.getElementById('fMetricType').value,
     metricOp: document.getElementById('fMetricOp').value,
     metricVal1: parseFloat(document.getElementById('fMetricVal1').value)||null,
@@ -447,34 +483,41 @@ function getF(){
 }
 
 function latestSnapshotRows(extraFilter){
-  // Get the most recent month's data for each project, then apply filters
-  const byProj = {};
-  ALL_DATA.forEach(p=>{
-    if(!byProj[p.id]||p.month>byProj[p.id].month) byProj[p.id]=p;
-  });
-  let rows = Object.values(byProj);
+  const f = getF();
+  let rows;
+  if(f.month){
+    // If month is selected, use that month's rows directly
+    rows = ALL_DATA.filter(p=>p.month===f.month);
+  } else {
+    // Otherwise use each project's most recent row
+    const byProj = {};
+    ALL_DATA.forEach(p=>{
+      if(!byProj[p.id]||p.month>byProj[p.id].month) byProj[p.id]=p;
+    });
+    rows = Object.values(byProj);
+  }
   if(extraFilter) rows = rows.filter(extraFilter);
+  // Apply all filters EXCEPT month (already handled above)
   return applyGlobalFilters(rows, true);
 }
 
 function applyGlobalFilters(rows, latestStatusMode=false){
   const f = getF();
   return rows.filter(p=>{
-    // Status filter uses latest known status for project
-    if(f.status){
+    // Month filter
+    if(f.month && p.month !== f.month) return false;
+    // Status multi-select — uses latest known status for project
+    if(f.statuses.length){
       const st = latestStatusMode ? p.status : (LATEST_STATUS[p.id]||p.status);
-      const stNorm = st.toLowerCase();
-      const fNorm = f.status.toLowerCase();
-      if(fNorm==='closed'&&stNorm!=='closed'&&stNorm!=='finalized') return false;
-      if(fNorm==='open'&&stNorm!=='open') return false;
-      if(fNorm==='finalized'&&stNorm!=='finalized') return false;
+      if(!f.statuses.some(s=>s.toLowerCase()===st.toLowerCase())) return false;
     }
-    if(f.client && p.client !== f.client) return false;
-    if(f.job && p.id !== f.job) return false;
+    // Client multi-select
+    if(f.clients.length && !f.clients.includes(p.client)) return false;
+    // Job multi-select
+    if(f.jobs.length && !f.jobs.includes(p.id)) return false;
     // Metric filter
     if(f.metricType && f.metricVal1!==null){
       let v = p[f.metricType];
-      // Convert % fields to decimal for comparison if user enters e.g. 10 for 10%
       const isPct = ['margin_rev','margin_cost','pct_complete'].includes(f.metricType);
       const uv = isPct ? f.metricVal1/100 : f.metricVal1;
       const uv2 = isPct && f.metricVal2!==null ? f.metricVal2/100 : f.metricVal2;
@@ -508,26 +551,34 @@ function updateMetricInputs(){
 }
 
 function populateJobDropdown(){
-  const sel = document.getElementById('fJob');
-  const cur = sel.value;
-  sel.innerHTML='<option value="">All</option>';
+  const dd = document.getElementById('msDdJob');
+  // Keep header rows, rebuild options
+  const header = dd.querySelector('.ms-all');
+  const divider = dd.querySelector('.ms-divider');
+  // Remove old checkboxes
+  dd.querySelectorAll('.ms-option').forEach(el=>el.remove());
   const ids = [...new Set(ALL_DATA.map(p=>p.id))].sort();
   ids.forEach(id=>{
     const name = ALL_DATA.find(p=>p.id===id)?.name||id;
-    const o = document.createElement('option');
-    o.value=id; o.textContent=id+' — '+name.split('/').pop().trim();
-    sel.appendChild(o);
+    const lbl = document.createElement('label');
+    lbl.className='ms-option';
+    lbl.innerHTML=`<input type="checkbox" value="${id}" onchange="msChanged('Job')"> ${id} — ${name.split('/').pop().trim()}`;
+    dd.appendChild(lbl);
   });
-  sel.value=cur;
 }
 
 function resetFilters(){
-  ['fStatus','fClient','fJob','fMetricType'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fMonth').value='';
+  ['Status','Client','Job'].forEach(n=>{
+    clearMs(n);
+  });
+  document.getElementById('fMetricType').value='';
   document.getElementById('fMetricOp').value='gte';
   document.getElementById('fMetricVal1').value='';
   document.getElementById('fMetricVal2').value='';
   updateMetricInputs();
 }
+
 
 function applyFilters(){
   updateFilterCount();
@@ -857,10 +908,10 @@ function renderJobs(){
     }
   });
 
-  // Single job detail
-  if(f.job){
+  // Single job detail — show when exactly one job is selected
+  if(f.jobs.length===1){
     document.getElementById('singleJobDetail').style.display='block';
-    renderSingleJob(f.job);
+    renderSingleJob(f.jobs[0]);
   } else {
     document.getElementById('singleJobDetail').style.display='none';
   }
@@ -1161,36 +1212,48 @@ function renderCashFlowChart(){
 }
 
 // ============================================================
+// MULTI-SELECT HELPERS
+// ============================================================
+function toggleMs(name){
+  const dd=document.getElementById('msDd'+name);
+  // close all others first
+  document.querySelectorAll('.ms-dropdown.open').forEach(el=>{if(el.id!=='msDd'+name)el.classList.remove('open');});
+  dd.classList.toggle('open');
+}
+function msChanged(name){
+  const checked=getMsValues(name);
+  const btn=document.getElementById('msBtn'+name);
+  if(checked.length===0){btn.textContent='All';btn.classList.remove('active-filter');}
+  else{btn.textContent=checked.length===1?checked[0]:checked.length+' selected';btn.classList.add('active-filter');}
+  applyFilters();
+}
+function getMsValues(name){
+  return [...document.querySelectorAll('#msDd'+name+' input[type=checkbox]:checked')].map(c=>c.value);
+}
+function selectAllMs(name){
+  document.querySelectorAll('#msDd'+name+' input[type=checkbox]').forEach(c=>c.checked=true);
+  msChanged(name);
+}
+function clearMs(name){
+  document.querySelectorAll('#msDd'+name+' input[type=checkbox]').forEach(c=>c.checked=false);
+  msChanged(name);
+}
+// Close dropdowns when clicking outside
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.ms-wrap'))
+    document.querySelectorAll('.ms-dropdown.open').forEach(el=>el.classList.remove('open'));
+});
+
+// ============================================================
 // INIT
 // ============================================================
 window.addEventListener('DOMContentLoaded',()=>{
-  // Register Chart.js datalabels plugin inline (no CDN needed — lightweight inline version)
-  Chart.register({
-    id:'datalabels',
-    afterDatasetsDraw(chart){
-      const ctx=chart.ctx;
-      chart.data.datasets.forEach((ds,di)=>{
-        const opts=ds.datalabels||chart.options?.plugins?.datalabels;
-        if(!opts||opts.display===false)return;
-        const meta=chart.getDatasetMeta(di);
-        if(meta.hidden)return;
-        meta.data.forEach((el,idx)=>{
-          const val=ds.data[idx];
-          if(val===null||val===undefined||val===0)return;
-          const raw=chart.data.datasets[di].data[idx];
-          const label=opts.formatter?opts.formatter(raw,{dataIndex:idx,dataset:ds,datasetIndex:di,chart}):raw;
-          if(!label&&label!==0)return;
-          ctx.save();
-          ctx.font=(opts.font?.size||11)+'px '+(opts.font?.family||"-apple-system,sans-serif");
-          ctx.fillStyle=opts.color||'#e6edf3';
-          ctx.textAlign='center';
-          const pos=el.tooltipPosition();
-          ctx.fillText(label,pos.x,pos.y-(opts.offset||4));
-          ctx.restore();
-        });
-      });
-    }
-  });
+  // Register the real datalabels plugin
+  Chart.register(ChartDataLabels);
+
+  // Populate month dropdown
+  const mSel=document.getElementById('fMonth');
+  ALL_MONTHS.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;mSel.appendChild(o);});
 
   populateJobDropdown();
   updateFilterCount();
