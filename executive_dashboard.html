@@ -1218,8 +1218,6 @@ function renderCashFlowChart(){
     if(!rows.length)return 0;
     return +(rows.reduce((s,p)=>s+p.pct_complete,0)/rows.length*100).toFixed(1);
   });
-    return +(rows.reduce((s,p)=>s+p.pct_complete,0)/rows.length*100).toFixed(1);
-  });
   mkChart('cashFlowChart',{
     type:'bar',
     data:{
