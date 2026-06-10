@@ -453,12 +453,12 @@ input.fs{width:90px;}
   <div class="section-header"><h2>Preliminary WIP</h2><p id="wipSub">Work-in-progress snapshot — earned value &amp; margin</p></div>
 
   <div class="kpi-grid">
-    <div class="kpi blue"><div class="kpi-label">Total Earned Revenue</div><div class="kpi-value" id="wip-earned-rev">—</div><div class="kpi-sub" id="wip-earned-rev-sub"></div></div>
-    <div class="kpi green"><div class="kpi-label">Earned Margin</div><div class="kpi-value" id="wip-earned-margin">—</div></div>
+    <div class="kpi blue"><div class="kpi-label">JTD Earned Revenue</div><div class="kpi-value" id="wip-earned-rev">—</div><div class="kpi-sub" id="wip-earned-rev-sub"></div></div>
+    <div class="kpi green"><div class="kpi-label">JTD Earned Margin</div><div class="kpi-value" id="wip-earned-margin">—</div></div>
     <div class="kpi green"><div class="kpi-label">Monthly Margin</div><div class="kpi-value" id="wip-pct-margin">—</div></div>
-    <div class="kpi yellow"><div class="kpi-label">Remaining Margin</div><div class="kpi-value" id="wip-remaining-margin">—</div></div>
-    <div class="kpi red"><div class="kpi-label">Total Contingency</div><div class="kpi-value" id="wip-contingency">—</div></div>
-    <div class="kpi purple"><div class="kpi-label">Avg % Complete</div><div class="kpi-value" id="wip-pct-complete">—</div></div>
+    <div class="kpi yellow"><div class="kpi-label">Monthly Earned Rev</div><div class="kpi-value" id="wip-monthly-earned-rev">—</div></div>
+    <div class="kpi blue"><div class="kpi-label">Monthly Earned Margin</div><div class="kpi-value" id="wip-monthly-earned-margin">—</div></div>
+    <div class="kpi red"><div class="kpi-label">Monthly Δ Contingency</div><div class="kpi-value" id="wip-monthly-delta-cont">—</div></div>
   </div>
 
   <div class="card mb">
@@ -1326,20 +1326,33 @@ function renderWIP(){
   document.getElementById('wipSub').textContent='Latest snapshot — '+fp.length+' projects';
   document.getElementById('wipScorecardSub').textContent=fp.length+' projects';
 
-  // KPI tiles
+  // KPI tiles — JTD values from latest snapshot
   const totalER=fp.reduce((s,p)=>s+p.earned_rev,0);
   const totalEM=fp.reduce((s,p)=>s+p.earned_margin,0);
-  const totalRM=fp.reduce((s,p)=>s+p.remaining_margin,0);
-  const totalCont=fp.reduce((s,p)=>s+p.contingency,0);
   const avgPctMargin=fp.length?fp.reduce((s,p)=>s+p.pct_margin,0)/fp.length:0;
-  const avgPctComplete=fp.length?fp.reduce((s,p)=>s+p.pct_complete,0)/fp.length:0;
   document.getElementById('wip-earned-rev').textContent=fmt(totalER);
   document.getElementById('wip-earned-rev-sub').textContent='vs proj rev '+fmt(fp.reduce((s,p)=>s+p.rev,0));
   document.getElementById('wip-earned-margin').textContent=fmt(totalEM);
   document.getElementById('wip-pct-margin').textContent=fmtPct(avgPctMargin);
-  document.getElementById('wip-remaining-margin').textContent=fmt(totalRM);
-  document.getElementById('wip-contingency').textContent=fmt(totalCont);
-  document.getElementById('wip-pct-complete').textContent=fmtPct(avgPctComplete);
+
+  // Monthly tiles — delta vs prior month for each project in fp
+  let monthlyER=0, monthlyEM=0, monthlyDCont=0;
+  fp.forEach(p=>{
+    const pMonths=ALL_MONTHS.filter(m=>m<p.month);
+    const prev=pMonths.length?ALL_DATA.find(r=>r.id===p.id&&r.month===pMonths[pMonths.length-1]):null;
+    monthlyER+=prev!=null?p.earned_rev-prev.earned_rev:0;
+    monthlyEM+=prev!=null?p.earned_margin-prev.earned_margin:0;
+    monthlyDCont+=p.change_contingency||0;
+  });
+  const mERel=document.getElementById('wip-monthly-earned-rev');
+  const mEMel=document.getElementById('wip-monthly-earned-margin');
+  const mDCel=document.getElementById('wip-monthly-delta-cont');
+  mERel.textContent=fmt(monthlyER);
+  mERel.style.color=monthlyER>=0?'var(--green)':'var(--red)';
+  mEMel.textContent=fmt(monthlyEM);
+  mEMel.style.color=monthlyEM>=0?'var(--green)':'var(--red)';
+  mDCel.textContent=(monthlyDCont>0?'+':'')+fmt(monthlyDCont);
+  mDCel.style.color=monthlyDCont<0?'var(--green)':monthlyDCont>0?'var(--red)':'var(--muted)';
 
   // Build per-chart slicers
   buildMonthSelects('wipRevFrom','wipRevTo');
@@ -1360,9 +1373,9 @@ function renderWIP(){
   // Scorecard
   document.getElementById('wipTable').innerHTML=`<thead><tr>
     <th>Job #</th><th>Client / Project</th><th>BU</th><th>Status</th>
-    <th>% Complete</th><th>Projected Rev</th><th>Earned Rev</th>
-    <th>Earned Margin</th><th>% Margin (Earned)</th>
-    <th>Remaining Margin</th><th>Contingency</th>
+    <th>% Complete</th><th>Projected Rev</th><th>JTD Earned Rev</th>
+    <th>JTD Earned Margin</th><th>Monthly Margin Earned</th>
+    <th>JTD Remaining Margin</th><th>JTD Contingency</th>
     <th title="AQ — Change in Monthly Costs">Δ Monthly Costs</th>
     <th title="AR — Change in Contingency">Δ Contingency</th>
     <th title="AU — Change in Earned Revenue">Δ Earned Rev</th>
