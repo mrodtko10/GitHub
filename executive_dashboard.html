@@ -262,7 +262,13 @@ input.fs{width:90px;}
       <div class="chart-wrap h260"><canvas id="trendChart"></canvas></div>
     </div>
     <div class="card">
-      <div class="card-title">Portfolio Revenue Mix</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:3px;">
+        <div class="card-title">Portfolio Revenue Mix</div>
+        <select class="fs" id="revMixMode" onchange="renderRevMix()" style="font-size:11px;">
+          <option value="rev">Total Revenue</option>
+          <option value="earned_rev">Earned Revenue</option>
+        </select>
+      </div>
       <div class="card-sub">By project — latest filtered snapshot</div>
       <div class="chart-wrap h260"><canvas id="revMixChart"></canvas></div>
     </div>
@@ -434,31 +440,20 @@ input.fs{width:90px;}
   <div class="kpi-grid">
     <div class="kpi blue"><div class="kpi-label">Total Earned Revenue</div><div class="kpi-value" id="wip-earned-rev">—</div><div class="kpi-sub" id="wip-earned-rev-sub"></div></div>
     <div class="kpi green"><div class="kpi-label">Earned Margin</div><div class="kpi-value" id="wip-earned-margin">—</div></div>
-    <div class="kpi green"><div class="kpi-label">Avg % Margin (Earned)</div><div class="kpi-value" id="wip-pct-margin">—</div></div>
+    <div class="kpi green"><div class="kpi-label">Monthly Margin</div><div class="kpi-value" id="wip-pct-margin">—</div></div>
     <div class="kpi yellow"><div class="kpi-label">Remaining Margin</div><div class="kpi-value" id="wip-remaining-margin">—</div></div>
     <div class="kpi red"><div class="kpi-label">Total Contingency</div><div class="kpi-value" id="wip-contingency">—</div></div>
     <div class="kpi purple"><div class="kpi-label">Avg % Complete</div><div class="kpi-value" id="wip-pct-complete">—</div></div>
   </div>
 
-  <div class="grid-2">
-    <div class="card">
-      <div class="card-title">Earned Revenue — Cumulative &amp; Incremental</div>
-      <div class="card-sub">Line = cumulative, Bars = monthly incremental | not affected by month filter</div>
-      <div class="chart-slicer">
-        <label>From</label><select id="wipRevFrom" onchange="renderWIPEarnedRevChart()"></select>
-        <label>To</label><select id="wipRevTo" onchange="renderWIPEarnedRevChart()"></select>
-      </div>
-      <div class="chart-wrap h300"><canvas id="wipEarnedRevChart"></canvas></div>
+  <div class="card mb">
+    <div class="card-title">Earned Revenue — Cumulative &amp; Incremental</div>
+    <div class="card-sub">Bars = month-over-month delta, Line = cumulative earned rev | not affected by month filter</div>
+    <div class="chart-slicer">
+      <label>From</label><select id="wipRevFrom" onchange="renderWIPEarnedRevChart()"></select>
+      <label>To</label><select id="wipRevTo" onchange="renderWIPEarnedRevChart()"></select>
     </div>
-    <div class="card">
-      <div class="card-title">% Margin &amp; Earned Margin Over Time</div>
-      <div class="card-sub">Bars = blended % margin, Line = earned margin ($) | not affected by month filter</div>
-      <div class="chart-slicer">
-        <label>From</label><select id="wipMarginFrom" onchange="renderWIPMarginChart()"></select>
-        <label>To</label><select id="wipMarginTo" onchange="renderWIPMarginChart()"></select>
-      </div>
-      <div class="chart-wrap h300"><canvas id="wipMarginChart"></canvas></div>
-    </div>
+    <div class="chart-wrap h300"><canvas id="wipEarnedRevChart"></canvas></div>
   </div>
 
   <div class="card mb">
@@ -720,6 +715,29 @@ function applyGlobalFiltersNoMonth(rows){
   });
 }
 
+function renderRevMix(){
+  const fp=getLatestFiltered();
+  const field=(document.getElementById('revMixMode')?.value)||'rev';
+  const sorted=[...fp].sort((a,b)=>b[field]-a[field]);
+  const top8=sorted.slice(0,8);
+  const otherVal=sorted.slice(8).reduce((s,p)=>s+p[field],0);
+  const donutLabels=top8.map(p=>p.name.split('/').pop()?.trim()||p.name);
+  const donutData=top8.map(p=>+(p[field]/1e6).toFixed(2));
+  if(otherVal>0){donutLabels.push('Other');donutData.push(+(otherVal/1e6).toFixed(2));}
+  mkChart('revMixChart',{
+    type:'doughnut',
+    data:{labels:donutLabels,datasets:[{data:donutData,backgroundColor:COLORS,borderWidth:2,borderColor:'#161b22'}]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{position:'right',labels:{boxWidth:10,font:{size:10}}},
+        tooltip:{callbacks:{label:ctx=>' '+ctx.label+': $'+ctx.parsed.toFixed(1)+'M'}},
+        datalabels:{display:false}
+      }
+    }
+  });
+}
+
 // ============================================================
 // OVERVIEW
 // ============================================================
@@ -769,24 +787,7 @@ function renderOverview(){
   renderTrendChart();
 
   // Revenue mix donut
-  const sorted=[...fp].sort((a,b)=>b.rev-a.rev);
-  const top8=sorted.slice(0,8);
-  const otherRev=sorted.slice(8).reduce((s,p)=>s+p.rev,0);
-  const donutLabels=[...top8.map(p=>p.name.split('/').pop()?.trim()||p.name)];
-  const donutData=[...top8.map(p=>p.rev/1e6)];
-  if(otherRev>0){donutLabels.push('Other');donutData.push(otherRev/1e6);}
-  mkChart('revMixChart',{
-    type:'doughnut',
-    data:{labels:donutLabels,datasets:[{data:donutData,backgroundColor:COLORS,borderWidth:2,borderColor:'#161b22'}]},
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{
-        legend:{position:'right',labels:{boxWidth:10,font:{size:10}}},
-        tooltip:{callbacks:{label:ctx=>' '+ctx.label+': $'+ctx.parsed.toFixed(1)+'M'}},
-        datalabels:{display:false}
-      }
-    }
-  });
+  renderRevMix();
 
   // Profit / Contingency / % Complete trend
   buildMonthSelects('pcFromSel','pcToSel',null,null);
@@ -1311,10 +1312,19 @@ function renderWIP(){
 
   // Build per-chart slicers
   buildMonthSelects('wipRevFrom','wipRevTo');
-  buildMonthSelects('wipMarginFrom','wipMarginTo');
 
   renderWIPEarnedRevChart();
-  renderWIPMarginChart();
+
+  // Build prev-month lookup for delta columns (AQ, AU)
+  const prevMap={};
+  fp.forEach(p=>{
+    const pMonths=ALL_MONTHS.filter(m=>m<p.month);
+    if(pMonths.length){
+      const prevM=pMonths[pMonths.length-1];
+      const prevRow=ALL_DATA.find(r=>r.id===p.id&&r.month===prevM);
+      if(prevRow)prevMap[p.id]=prevRow;
+    }
+  });
 
   // Scorecard
   document.getElementById('wipTable').innerHTML=`<thead><tr>
@@ -1322,9 +1332,22 @@ function renderWIP(){
     <th>% Complete</th><th>Projected Rev</th><th>Earned Rev</th>
     <th>Earned Margin</th><th>% Margin (Earned)</th>
     <th>Remaining Margin</th><th>Contingency</th>
+    <th title="AQ — Change in Monthly Costs">Δ Monthly Costs</th>
+    <th title="AR — Change in Contingency">Δ Contingency</th>
+    <th title="AU — Change in Earned Revenue">Δ Earned Rev</th>
   </tr></thead><tbody>`+fp.map(p=>{
     const sb=p.status==='Open'?'bb':p.status==='Closed'?'bgr':'by';
     const mc=p.pct_margin>=0.15?'var(--green)':p.pct_margin>=0.08?'var(--yellow)':'var(--red)';
+    const prev=prevMap[p.id];
+    const dCost=prev!=null?p.jtd_cost-prev.jtd_cost:null;
+    const dCont=p.change_contingency;
+    const dEarnedRev=prev!=null?p.earned_rev-prev.earned_rev:null;
+    const fmtDelta=(v)=>v==null?'—':v===0?'$0':(v>0?'+':'')+fmt(v);
+    const deltaColor=(v,invertGood)=>{
+      if(v==null||v===0)return'#8b949e';
+      const good=invertGood?(v<0):(v>0);
+      return good?'var(--green)':'var(--red)';
+    };
     return`<tr>
       <td style="font-family:monospace;color:#8b949e">${p.id}</td>
       <td style="font-weight:500">${p.name}</td>
@@ -1342,20 +1365,26 @@ function renderWIP(){
       <td><span class="badge ${mBadge(p.pct_margin)}">${fmtPct(p.pct_margin)}</span></td>
       <td style="color:${p.remaining_margin<0?'var(--red)':'#8b949e'}">${fmt(p.remaining_margin)}</td>
       <td>${fmt(p.contingency)}</td>
+      <td style="color:${deltaColor(dCost,true)}">${fmtDelta(dCost)}</td>
+      <td style="color:${deltaColor(dCont,true)}">${fmtDelta(dCont)}</td>
+      <td style="color:${deltaColor(dEarnedRev,false)}">${fmtDelta(dEarnedRev)}</td>
     </tr>`;
   }).join('')+'</tbody>';
 }
 
 function renderWIPEarnedRevChart(){
   const months=getMonthRange('wipRevFrom','wipRevTo');
-  // incremental = sum of earned_rev each month across filtered projects (no month filter)
-  const incData=months.map(m=>{
+  // cumulative = earned_rev is already cumulative in the data (Excel calc)
+  const cumData=months.map(m=>{
     const rows=applyGlobalFiltersNoMonth(ALL_DATA.filter(r=>r.month===m));
-    return rows.length?+(rows.reduce((s,p)=>s+p.earned_rev,0)/1e6).toFixed(2):0;
+    return rows.length?+(rows.reduce((s,p)=>s+p.earned_rev,0)/1e6).toFixed(2):null;
   });
-  // cumulative = running sum
-  let running=0;
-  const cumData=incData.map(v=>{running+=v;return+running.toFixed(2);});
+  // incremental = delta between consecutive months (Feb - Jan, etc.)
+  const incData=cumData.map((v,i)=>{
+    if(v===null)return 0;
+    const prev=i>0&&cumData[i-1]!==null?cumData[i-1]:0;
+    return+(v-prev).toFixed(2);
+  });
 
   mkChart('wipEarnedRevChart',{
     type:'bar',
@@ -1380,46 +1409,6 @@ function renderWIPEarnedRevChart(){
         x:{grid:{display:false}},
         y:{position:'left',ticks:{callback:v=>'$'+v+'M'},grid:{color:'#30363d'},title:{display:true,text:'Incremental ($M)',color:'#8b949e',font:{size:10}}},
         y2:{position:'right',ticks:{callback:v=>'$'+v+'M'},grid:{display:false},title:{display:true,text:'Cumulative ($M)',color:'#ffd700',font:{size:10}}}
-      }
-    }
-  });
-}
-
-function renderWIPMarginChart(){
-  const months=getMonthRange('wipMarginFrom','wipMarginTo');
-  const pctData=months.map(m=>{
-    const rows=applyGlobalFiltersNoMonth(ALL_DATA.filter(r=>r.month===m));
-    if(!rows.length)return 0;
-    return+(rows.reduce((s,p)=>s+p.pct_margin,0)/rows.length*100).toFixed(1);
-  });
-  const earnedData=months.map(m=>{
-    const rows=applyGlobalFiltersNoMonth(ALL_DATA.filter(r=>r.month===m));
-    return rows.length?+(rows.reduce((s,p)=>s+p.earned_margin,0)/1e6).toFixed(2):0;
-  });
-
-  mkChart('wipMarginChart',{
-    type:'bar',
-    data:{
-      labels:months,
-      datasets:[
-        {label:'Blended % Margin',data:pctData,backgroundColor:pctData.map(v=>v>=15?'rgba(63,185,80,.55)':v>=8?'rgba(210,153,34,.55)':'rgba(248,81,73,.55)'),borderRadius:4,yAxisID:'y',order:2},
-        {label:'Earned Margin ($M)',data:earnedData,type:'line',borderColor:'#58a6ff',borderWidth:2,pointRadius:3,tension:.3,fill:false,yAxisID:'y2',order:1},
-      ]
-    },
-    options:{
-      responsive:true,maintainAspectRatio:false,clip:false,
-      plugins:{
-        legend:{position:'bottom',labels:{boxWidth:10}},
-        datalabels:{
-          display:(ctx)=>ctx.dataset.type==='line'||ctx.datasetIndex===0,
-          color:'#e6edf3',anchor:'end',align:'top',font:{size:8},clip:false,
-          formatter:(v,ctx)=>ctx.dataset.type==='line'?'$'+v+'M':v+'%'
-        }
-      },
-      scales:{
-        x:{grid:{display:false}},
-        y:{position:'left',ticks:{callback:v=>v+'%'},grid:{color:'#30363d'},title:{display:true,text:'% Margin',color:'#8b949e',font:{size:10}}},
-        y2:{position:'right',ticks:{callback:v=>'$'+v+'M'},grid:{display:false},title:{display:true,text:'Earned Margin ($M)',color:'#58a6ff',font:{size:10}}}
       }
     }
   });
