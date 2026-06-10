@@ -447,8 +447,8 @@ Chart.defaults.color='#8b949e';
 Chart.defaults.borderColor='#30363d';
 Chart.defaults.font.family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif";
 Chart.defaults.font.size=11;
-Chart.defaults.layout={padding:{top:26,right:10,bottom:0,left:0}};
-// Prevent datalabels from being clipped by the chart canvas boundary
+// Extra canvas padding so data labels above/beside bars are never clipped
+Chart.defaults.layout={padding:{top:28,right:60,bottom:0,left:0}};
 Chart.defaults.plugins.datalabels={clip:false,clamp:false};
 
 // ============================================================
@@ -861,7 +861,7 @@ function renderCVP(){
     options:{
       responsive:true,maintainAspectRatio:false,interaction:{mode:'index'},
       clip:false,
-      layout:{padding:{top:28,right:10,bottom:0,left:0}},
+      layout:{padding:{top:28,right:60,bottom:0,left:0}},
       plugins:{
         legend:{position:'bottom',labels:{boxWidth:10}},
         datalabels:{
@@ -907,11 +907,12 @@ function renderJobs(){
     },
     options:{
       indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      clip:false,
       plugins:{
         legend:{display:false},
-        datalabels:{color:'#e6edf3',anchor:'end',align:'right',font:{size:9},formatter:v=>v+'%'}
+        datalabels:{color:'#e6edf3',anchor:'end',align:'right',font:{size:9},clip:false,formatter:v=>v+'%'}
       },
-      scales:{x:{ticks:{callback:v=>v+'%'},max:100,grid:{color:'#30363d'}},y:{grid:{display:false}}}
+      scales:{x:{ticks:{callback:v=>v+'%'},max:115,grid:{color:'#30363d'}},y:{grid:{display:false}}}
     }
   });
 
@@ -984,9 +985,10 @@ function renderJobComp(){
     },
     options:{
       indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      clip:false,
       plugins:{
         legend:{display:false},
-        datalabels:{color:'#e6edf3',anchor:'end',align:'right',font:{size:9},formatter:v=>isPct?v+'%':fmt(v)}
+        datalabels:{color:'#e6edf3',anchor:'end',align:'right',font:{size:9},clip:false,formatter:v=>isPct?v+'%':fmt(v)}
       },
       scales:{
         x:{ticks:{callback:v=>isPct?v+'%':fmt(v)},grid:{color:'#30363d'}},
@@ -1089,10 +1091,11 @@ function renderProjects(){
     },
     options:{
       indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      clip:false,
       plugins:{
         legend:{position:'bottom',labels:{boxWidth:10}},
         datalabels:{
-          color:'#e6edf3',font:{size:8},
+          color:'#e6edf3',font:{size:8},clip:false,
           formatter:(v,ctx)=>v>0?'$'+(v).toFixed(1)+'M':''
         }
       },
@@ -1211,8 +1214,10 @@ function renderCashFlowChart(){
   const months=getMonthRange('cfFrom','cfTo');
   const cashData=monthlyAgg(months,'cash_pos');
   const pctData=months.map(m=>{
-    const rows=applyGlobalFilters(ALL_DATA.filter(p=>p.month===m));
+    const rows=applyGlobalFiltersNoMonth(ALL_DATA.filter(p=>p.month===m));
     if(!rows.length)return 0;
+    return +(rows.reduce((s,p)=>s+p.pct_complete,0)/rows.length*100).toFixed(1);
+  });
     return +(rows.reduce((s,p)=>s+p.pct_complete,0)/rows.length*100).toFixed(1);
   });
   mkChart('cashFlowChart',{
