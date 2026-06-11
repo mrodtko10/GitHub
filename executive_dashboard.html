@@ -1588,13 +1588,17 @@ function printDashboard(){
   });
   void document.body.offsetHeight; // force reflow
 
-  // 2. Render every tab's charts while canvases are visible & correctly sized
+  // 2. Disable Chart.js animations so charts draw instantly (no waiting for transitions)
+  Chart.defaults.animation = false;
+  Chart.defaults.animations = false;
+
+  // 3. Render every tab's charts while canvases are visible & correctly sized
   ['overview','jobs','projects','cashflow','wip'].forEach(id => renderTab(id));
 
-  // 3. Wait two frames so Chart.js finishes painting all charts
-  requestAnimationFrame(() => requestAnimationFrame(() => {
+  // 4. Give charts time to finish drawing (animations off but still async)
+  setTimeout(() => {
 
-    // 4. Freeze each canvas as a pixel-perfect image of exactly what's on screen
+    // 5. Freeze each canvas as a pixel-perfect image of exactly what's on screen
     document.querySelectorAll('.tab-content canvas').forEach(canvas => {
       try {
         const w = canvas.offsetWidth;
@@ -1635,7 +1639,7 @@ function printDashboard(){
     });
     const active = document.querySelector('.tab-content.active');
     if(active) renderTab(active.id.replace('tab-',''));
-  }));
+  }, 300);
 }
 
 // ============================================================
