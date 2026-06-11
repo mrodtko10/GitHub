@@ -187,37 +187,38 @@ Sub RefreshPowerDashboard()
         vPm       = Replace(vPm,       """", "\""")
         vBu       = Replace(vBu,       """", "\""")
 
-        ' ── Build record ─────────────────────────────────────────────────────
+        ' ── Build record (split to stay under VBA's 24-continuation limit) ────
         Dim rec As String
-        rec = "{" & _
-            Q("month")             & ":" & Q(monthStr)       & "," & _
-            Q("id")                & ":" & Q(projId)         & "," & _
-            Q("name")              & ":" & Q(fullName)       & "," & _
-            Q("client")            & ":" & Q(clientStr)      & "," & _
-            Q("pm")                & ":" & Q(vPm)            & "," & _
-            Q("bu")                & ":" & Q(vBu)            & "," & _
-            Q("status")            & ":" & Q(vStatus)        & "," & _
-            Q("rev")               & ":" & J(vRev)           & "," & _
-            Q("profit")            & ":" & J(vProfit)        & "," & _
-            Q("prior_profit")      & ":" & J(vPriorPro)      & "," & _
-            Q("bid_profit")        & ":" & J(vBidPro)        & "," & _
-            Q("margin_rev")        & ":" & J(vMarginRev)     & "," & _
-            Q("margin_cost")       & ":" & J(vMarginCst)     & "," & _
-            Q("pct_complete")      & ":" & J(vPctCmp)        & "," & _
-            Q("billed")            & ":" & J(vBilled)        & "," & _
-            Q("paid")              & ":" & J(vPaid)          & "," & _
-            Q("jtd_cost")          & ":" & J(vJtdCost)       & "," & _
-            Q("eac")               & ":" & J(vEac)           & "," & _
-            Q("etc")               & ":" & J(vEtc)           & "," & _
-            Q("contingency")       & ":" & J(vCont)          & "," & _
-            Q("warranty")          & ":" & J(vWarranty)      & "," & _
-            Q("movement")          & ":" & J(vMovement)      & "," & _
-            Q("cash_pos")          & ":" & J(vCashPos)       & "," & _
-            Q("earned_margin")     & ":" & J(vEarnedMgn)     & "," & _
-            Q("remaining_margin")  & ":" & J(vRemMgn)        & "," & _
-            Q("earned_rev")        & ":" & J(vEarnedRev)     & "," & _
-            Q("pct_margin")        & ":" & J(vPctMargin)     & "," & _
-            Q("change_contingency")& ":" & J(vChgCont)       & "}"
+        rec = "{"
+        rec = rec & Q("month")             & ":" & Q(monthStr)   & ","
+        rec = rec & Q("id")                & ":" & Q(projId)     & ","
+        rec = rec & Q("name")              & ":" & Q(fullName)   & ","
+        rec = rec & Q("client")            & ":" & Q(clientStr)  & ","
+        rec = rec & Q("pm")                & ":" & Q(vPm)        & ","
+        rec = rec & Q("bu")                & ":" & Q(vBu)        & ","
+        rec = rec & Q("status")            & ":" & Q(vStatus)    & ","
+        rec = rec & Q("rev")               & ":" & J(vRev)       & ","
+        rec = rec & Q("profit")            & ":" & J(vProfit)    & ","
+        rec = rec & Q("prior_profit")      & ":" & J(vPriorPro)  & ","
+        rec = rec & Q("bid_profit")        & ":" & J(vBidPro)    & ","
+        rec = rec & Q("margin_rev")        & ":" & J(vMarginRev) & ","
+        rec = rec & Q("margin_cost")       & ":" & J(vMarginCst) & ","
+        rec = rec & Q("pct_complete")      & ":" & J(vPctCmp)    & ","
+        rec = rec & Q("billed")            & ":" & J(vBilled)    & ","
+        rec = rec & Q("paid")              & ":" & J(vPaid)      & ","
+        rec = rec & Q("jtd_cost")          & ":" & J(vJtdCost)   & ","
+        rec = rec & Q("eac")               & ":" & J(vEac)       & ","
+        rec = rec & Q("etc")               & ":" & J(vEtc)       & ","
+        rec = rec & Q("contingency")       & ":" & J(vCont)      & ","
+        rec = rec & Q("warranty")          & ":" & J(vWarranty)  & ","
+        rec = rec & Q("movement")          & ":" & J(vMovement)  & ","
+        rec = rec & Q("cash_pos")          & ":" & J(vCashPos)   & ","
+        rec = rec & Q("earned_margin")     & ":" & J(vEarnedMgn) & ","
+        rec = rec & Q("remaining_margin")  & ":" & J(vRemMgn)    & ","
+        rec = rec & Q("earned_rev")        & ":" & J(vEarnedRev) & ","
+        rec = rec & Q("pct_margin")        & ":" & J(vPctMargin) & ","
+        rec = rec & Q("change_contingency")& ":" & J(vChgCont)
+        rec = rec & "}"
 
         If Not firstRec Then jsonArr = jsonArr & ","
         jsonArr  = jsonArr & rec
