@@ -158,6 +158,39 @@
 
   .section-divider { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
 
+
+  /* S-Curve Controls */
+  .sc-controls { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 14px; align-items: flex-start; }
+  .sc-control-group { display: flex; flex-direction: column; gap: 6px; }
+
+  /* Dual range sliders */
+  .slider-group { margin-bottom: 10px; }
+  .slider-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .slider-val { color: var(--text); font-weight: 600; }
+  .dual-slider { position: relative; height: 20px; }
+  .dual-slider input[type=range] {
+    position: absolute; width: 100%; height: 4px;
+    -webkit-appearance: none; appearance: none;
+    background: transparent; pointer-events: none;
+    outline: none; top: 8px;
+  }
+  .dual-slider input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--accent); cursor: pointer;
+    pointer-events: all; border: 2px solid var(--bg);
+    box-shadow: 0 0 0 2px var(--accent);
+    transition: transform .1s;
+  }
+  .dual-slider input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+  .dual-slider input[type=range]::-moz-range-thumb {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--accent); cursor: pointer; pointer-events: all;
+    border: 2px solid var(--bg);
+  }
+  /* Track styling via gradient set in JS */
+  .tab.inactive { opacity: 0.4; }
+
   @media (max-width: 900px) {
     .charts-grid { grid-template-columns: 1fr; }
   }
@@ -231,12 +264,68 @@
   <!-- S-Curve + Section Breakdown -->
   <div class="charts-grid">
     <div class="chart-card">
-      <div class="chart-title">S-Curve – % Complete Over Time <span>(WHC-PD Overall)</span></div>
+      <div class="chart-title">S-Curve – % Complete Over Time
+        <span id="scurveSubtitle">(Overall)</span>
+      </div>
+
+      <!-- Controls Row -->
+      <div class="sc-controls">
+
+        <!-- Section / Job Type Filters -->
+        <div class="sc-control-group">
+          <div class="filter-label">Job Type</div>
+          <div class="tabs" style="margin-bottom:0">
+            <button class="tab active" onclick="setSCSection('Overall',this)">Overall</button>
+            <button class="tab" onclick="setSCSection('Civil',this)">Civil</button>
+            <button class="tab" onclick="setSCSection('PV',this)">PV</button>
+            <button class="tab" onclick="setSCSection('SS',this)">SS</button>
+          </div>
+        </div>
+
+        <!-- Productivity Overlay -->
+        <div class="sc-control-group">
+          <div class="filter-label">Overlay</div>
+          <div class="tabs" style="margin-bottom:0">
+            <button class="tab active" id="pfToggle" onclick="togglePF(this)">PF Line</button>
+            <button class="tab active" id="spentToggle" onclick="toggleDataset('spent',this)">Spent</button>
+            <button class="tab active" id="earnedToggle" onclick="toggleDataset('earned',this)">Earned</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Date Range Slider -->
+      <div class="slider-group">
+        <div class="slider-label">
+          <span>Date Range</span>
+          <span id="dateRangeLabel" class="slider-val"></span>
+        </div>
+        <div class="dual-slider">
+          <input type="range" id="dateMin" min="0" max="97" value="0" oninput="updateSCurve()">
+          <input type="range" id="dateMax" min="0" max="97" value="97" oninput="updateSCurve()">
+        </div>
+      </div>
+
+      <!-- % Range Slider -->
+      <div class="slider-group">
+        <div class="slider-label">
+          <span>% Range</span>
+          <span id="pctRangeLabel" class="slider-val"></span>
+        </div>
+        <div class="dual-slider">
+          <input type="range" id="pctMin" min="0" max="100" value="0" oninput="updateSCurve()">
+          <input type="range" id="pctMax" min="0" max="100" value="100" oninput="updateSCurve()">
+        </div>
+      </div>
+
+      <!-- Legend -->
       <div class="legend">
         <div class="legend-item"><div class="legend-dot" style="background:var(--bl-color)"></div>BL Planned</div>
         <div class="legend-item"><div class="legend-dot" style="background:var(--earned-color)"></div>Earned</div>
-        <div class="legend-item"><div class="legend-dot" style="background:var(--spent-color);"></div>Spent</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--spent-color)"></div>Spent</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#a78bfa;height:2px;border-top:2px dashed #a78bfa"></div>PF</div>
       </div>
+
       <div class="chart-wrap" style="height:300px"><canvas id="scurveChart"></canvas></div>
     </div>
 
@@ -344,9 +433,28 @@ const WEEK_ENDING = '2026-06-07';
 
 const SCURVE = {
   dates: ["2026-03-15", "2026-03-22", "2026-03-29", "2026-04-05", "2026-04-12", "2026-04-19", "2026-04-26", "2026-05-03", "2026-05-10", "2026-05-17", "2026-05-24", "2026-05-31", "2026-06-07", "2026-06-14", "2026-06-21", "2026-06-28", "2026-07-05", "2026-07-12", "2026-07-19", "2026-07-26", "2026-08-02", "2026-08-09", "2026-08-16", "2026-08-23", "2026-08-30", "2026-09-06", "2026-09-13", "2026-09-20", "2026-09-27", "2026-10-04", "2026-10-11", "2026-10-18", "2026-10-25", "2026-11-01", "2026-11-08", "2026-11-15", "2026-11-22", "2026-11-29", "2026-12-06", "2026-12-13", "2026-12-20", "2026-12-27", "2027-01-03", "2027-01-10", "2027-01-17", "2027-01-24", "2027-01-31", "2027-02-07", "2027-02-14", "2027-02-21", "2027-02-28", "2027-03-07", "2027-03-14", "2027-03-21", "2027-03-28", "2027-04-04", "2027-04-11", "2027-04-18", "2027-04-25", "2027-05-02", "2027-05-09", "2027-05-16", "2027-05-23", "2027-05-30", "2027-06-06", "2027-06-13", "2027-06-20", "2027-06-27", "2027-07-04", "2027-07-11", "2027-07-18", "2027-07-25", "2027-08-01", "2027-08-08", "2027-08-15", "2027-08-22", "2027-08-29", "2027-09-05", "2027-09-12", "2027-09-19", "2027-09-26", "2027-10-03", "2027-10-10", "2027-10-17", "2027-10-24", "2027-10-31", "2027-11-07", "2027-11-14", "2027-11-21", "2027-11-28", "2027-12-05", "2027-12-12", "2027-12-19", "2027-12-26", "2028-01-02", "2028-01-09", "2028-01-16", "2028-01-23"],
-  bl: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0651, 0.2984, 0.6848, 1.6679, 2.7594, 4.1283, 5.5895, 7.3277, 9.3442, 10.6986, 11.4797, 12.223, 13.0276, 13.8952, 14.4433, 14.9639, 15.1402, 15.3164, 15.4926, 15.8659, 16.4616, 17.2905, 18.5969, 20.3859, 22.5116, 24.9879, 27.6295, 30.4011, 33.5512, 36.9187, 40.4658, 43.9658, 46.0604, 49.3285, 52.5707, 54.814, 54.814, 57.2308, 60.9052, 64.4117, 67.6891, 70.4071, 72.71, 75.1646, 77.6995, 80.3244, 82.8528, 84.6367, 86.2602, 87.0293, 88.1876, 89.3199, 90.4001, 91.4282, 92.3782, 93.1633, 93.5239, 93.8845, 94.2451, 94.6056, 95.1372, 95.6161, 96.0565, 96.4271, 96.7976, 97.1681, 97.2705, 97.3574, 97.4442, 97.5311, 97.8055, 98.0799, 98.3543, 98.6287, 98.9031, 99.1071, 99.2971, 99.487, 99.677, 99.867, 99.971, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0],
-  spent: [0.0, 0.0, 0.0, 0.0217, 0.0217, 0.0217, 0.0412, 0.0629, 0.2226, 0.4001, 0.5946, 0.8011, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312, 1.0312],
-  earned: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0429, 0.0788, 0.4398, 0.8909, 1.3644, 2.3465, 2.8441, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077, 2.9077]
+  overall: {
+    bl:     [0, 0, 0, 0, 0, 0.07, 0.3, 0.68, 1.67, 2.76, 4.13, 5.59, 7.33, 9.34, 10.7, 11.48, 12.22, 13.03, 13.9, 14.44, 14.96, 15.14, 15.32, 15.49, 15.87, 16.46, 17.29, 18.6, 20.39, 22.51, 24.99, 27.63, 30.4, 33.55, 36.92, 40.47, 43.97, 46.06, 49.33, 52.57, 54.81, 54.81, 57.23, 60.91, 64.41, 67.69, 70.41, 72.71, 75.16, 77.7, 80.32, 82.85, 84.64, 86.26, 87.03, 88.19, 89.32, 90.4, 91.43, 92.38, 93.16, 93.52, 93.88, 94.25, 94.61, 95.14, 95.62, 96.06, 96.43, 96.8, 97.17, 97.27, 97.36, 97.44, 97.53, 97.81, 98.08, 98.35, 98.63, 98.9, 99.11, 99.3, 99.49, 99.68, 99.87, 99.97, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0],
+    spent:  [0, 0, 0, 0.02, 0.02, 0.02, 0.04, 0.06, 0.22, 0.4, 0.59, 0.8, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03, 1.03],
+    earned: [0, 0, 0, 0, 0, 0, 0.04, 0.08, 0.44, 0.89, 1.36, 2.35, 2.84, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91, 2.91]
+  },
+  sections: {
+    Civil: {
+      bl:     [0.0, 0.0, 0.0, 0.0, 0.0, 0.4, 1.84, 4.22, 10.28, 17.01, 25.45, 34.46, 45.17, 57.6, 65.41, 69.58, 73.73, 78.15, 83.25, 86.2, 88.79, 88.79, 88.79, 88.79, 88.79, 88.79, 88.79, 88.79, 88.79, 88.79, 88.79, 88.79, 88.79, 88.79, 88.79, 88.79, 88.79, 88.79, 88.79, 88.79, 88.79, 88.79, 88.79, 88.79, 88.79, 88.79, 88.79, 88.79, 88.79, 88.79, 88.9, 89.03, 89.16, 89.28, 89.41, 89.54, 89.67, 89.8, 89.93, 90.06, 90.19, 90.31, 90.44, 90.57, 90.7, 90.83, 90.85, 90.85, 90.85, 90.85, 90.85, 90.85, 90.85, 90.85, 90.85, 92.01, 93.16, 94.32, 95.47, 96.63, 97.35, 97.99, 98.62, 99.26, 99.89, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0],
+      earned: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.5, 2.75, 15.38, 31.16, 47.73, 82.08, 98.14, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0],
+      spent:  [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.02, 3.82, 19.9, 38.27, 57.95, 77.99, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0]
+    },
+    PV: {
+      bl:     [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.05, 0.13, 0.25, 0.46, 0.68, 0.89, 1.34, 2.05, 3.05, 4.61, 6.76, 9.31, 12.29, 15.46, 18.79, 22.54, 26.52, 30.71, 34.91, 37.43, 41.35, 45.24, 47.94, 47.94, 50.84, 55.25, 59.46, 63.39, 66.66, 69.42, 72.37, 75.41, 78.54, 81.55, 83.67, 85.59, 86.49, 87.86, 89.19, 90.46, 91.67, 92.79, 93.7, 94.11, 94.52, 94.93, 95.34, 95.95, 96.52, 97.05, 97.49, 97.94, 98.38, 98.51, 98.61, 98.71, 98.82, 98.92, 99.03, 99.13, 99.24, 99.34, 99.44, 99.55, 99.65, 99.76, 99.86, 99.97, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0],
+      earned: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+      spent:  [0.0, 0.0, 0.0, 45.45, 45.45, 45.45, 45.45, 54.55, 63.64, 63.64, 72.73, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0]
+    },
+    SS: {
+      bl:     [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+      earned: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+      spent:  [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    }
+  }
 };
 
 const FTE = {
@@ -390,75 +498,147 @@ const currentWeekPlugin = {
 };
 
 // S-Curve
-const scCtx = document.getElementById('scurveChart').getContext('2d');
-
-// Only show Spent/Earned up to and including the current week — null after that
+let scSection = 'Overall';
+let showPF = true;
 const scCurrentIdx = SCURVE.dates.indexOf(WEEK_ENDING);
-function trimActual(arr) {
-  return arr.map((v, i) => i <= scCurrentIdx ? +v.toFixed(2) : null);
+
+function getSCData() {
+  const src = scSection === 'Overall' ? SCURVE.overall : SCURVE.sections[scSection];
+  return src;
 }
 
-new Chart(scCtx, {
+function trimActual(arr) {
+  return arr.map((v, i) => i <= scCurrentIdx ? v : null);
+}
+
+function getSliderVals() {
+  let dMin = +document.getElementById('dateMin').value;
+  let dMax = +document.getElementById('dateMax').value;
+  if (dMin > dMax) { const t = dMin; dMin = dMax; dMax = t; }
+  let pMin = +document.getElementById('pctMin').value;
+  let pMax = +document.getElementById('pctMax').value;
+  if (pMin > pMax) { const t = pMin; pMin = pMax; pMax = t; }
+  return { dMin, dMax, pMin, pMax };
+}
+
+function updateSliderLabels() {
+  const { dMin, dMax, pMin, pMax } = getSliderVals();
+  document.getElementById('dateRangeLabel').textContent =
+    SCURVE.dates[dMin].slice(0,7) + ' → ' + SCURVE.dates[dMax].slice(0,7);
+  document.getElementById('pctRangeLabel').textContent = pMin + '% → ' + pMax + '%';
+}
+
+// PF productivity data mapped onto SCURVE.dates
+const PF_DATE_MAP = {};
+const FTE_DATES = ["2026-03-15", "2026-03-22", "2026-03-29", "2026-04-05", "2026-04-12", "2026-04-19", "2026-04-26", "2026-05-03", "2026-05-10", "2026-05-17", "2026-05-24", "2026-05-31", "2026-06-07", "2026-06-14", "2026-06-21", "2026-06-28", "2026-07-05", "2026-07-12", "2026-07-19", "2026-07-26", "2026-08-02", "2026-08-09", "2026-08-16", "2026-08-23", "2026-08-30", "2026-09-06", "2026-09-13", "2026-09-20", "2026-09-27", "2026-10-04", "2026-10-11", "2026-10-18", "2026-10-25", "2026-11-01", "2026-11-08", "2026-11-15", "2026-11-22", "2026-11-29", "2026-12-06", "2026-12-13", "2026-12-20", "2026-12-27", "2027-01-03", "2027-01-10", "2027-01-17", "2027-01-24", "2027-01-31", "2027-02-07", "2027-02-14", "2027-02-21", "2027-02-28", "2027-03-07", "2027-03-14", "2027-03-21", "2027-03-28", "2027-04-04", "2027-04-11", "2027-04-18", "2027-04-25", "2027-05-02", "2027-05-09", "2027-05-16", "2027-05-23", "2027-05-30", "2027-06-06", "2027-06-13", "2027-06-20", "2027-06-27", "2027-07-04", "2027-07-11", "2027-07-18", "2027-07-25", "2027-08-01", "2027-08-08", "2027-08-15", "2027-08-22", "2027-08-29", "2027-09-05", "2027-09-12", "2027-09-19", "2027-09-26", "2027-10-03", "2027-10-10", "2027-10-17", "2027-10-24", "2027-10-31", "2027-11-07", "2027-11-14", "2027-11-21", "2027-11-28", "2027-12-05", "2027-12-12", "2027-12-19", "2027-12-26", "2028-01-02", "2028-01-09", "2028-01-16", "2028-01-23"];
+const JDT_PF = [null, null, null, null, -4.018, -14.731, 9.724, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null];
+const WKLY_PF = [null, null, null, null, null, null, 1.017, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null];
+FTE_DATES.forEach((d, i) => { if (WKLY_PF[i] !== null) PF_DATE_MAP[d] = WKLY_PF[i]; });
+
+const scCtx = document.getElementById('scurveChart').getContext('2d');
+const scChart = new Chart(scCtx, {
   type: 'line',
-  data: {
-    labels: SCURVE.dates,
-    datasets: [
-      {
-        label: 'BL Planned %',
-        data: SCURVE.bl.map(v => +v.toFixed(2)),
-        borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.08)',
-        borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0, pointHoverRadius: 4
-      },
-      {
-        label: 'Earned %',
-        data: trimActual(SCURVE.earned),
-        borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.06)',
-        borderWidth: 2.5, fill: false, tension: 0.3, pointRadius: 0, pointHoverRadius: 4,
-        spanGaps: false
-      },
-      {
-        label: 'Spent %',
-        data: trimActual(SCURVE.spent),
-        borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.06)',
-        borderWidth: 2, borderDash: [5,3], fill: false, tension: 0.3, pointRadius: 0, pointHoverRadius: 4,
-        spanGaps: false
-      }
-    ]
-  },
+  data: { labels: [], datasets: [
+    {
+      label: 'BL Planned %', data: [],
+      borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)',
+      borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0, pointHoverRadius: 4, yAxisID: 'y'
+    },
+    {
+      label: 'Earned %', data: [],
+      borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.06)',
+      borderWidth: 2.5, fill: false, tension: 0.3, pointRadius: 0, pointHoverRadius: 4, spanGaps: false, yAxisID: 'y'
+    },
+    {
+      label: 'Spent %', data: [],
+      borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.06)',
+      borderWidth: 2, borderDash: [5,3], fill: false, tension: 0.3, pointRadius: 0, pointHoverRadius: 4, spanGaps: false, yAxisID: 'y'
+    },
+    {
+      label: 'Weekly PF', data: [],
+      borderColor: '#a78bfa', backgroundColor: 'transparent',
+      borderWidth: 1.5, borderDash: [3,3], fill: false, tension: 0,
+      pointRadius: 3, pointHoverRadius: 5, spanGaps: false, yAxisID: 'yPF'
+    }
+  ]},
   options: {
     responsive: true, maintainAspectRatio: false,
     interaction: { mode: 'index', intersect: false },
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: '#1e2235',
-        borderColor: '#2a2d45', borderWidth: 1,
+        backgroundColor: '#1e2235', borderColor: '#2a2d45', borderWidth: 1,
         callbacks: {
-          label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}%`
+          label: ctx => {
+            if (ctx.datasetIndex === 3) return ` PF: ${ctx.parsed.y !== null ? ctx.parsed.y.toFixed(2) : '—'}`;
+            return ` ${ctx.dataset.label}: ${ctx.parsed.y !== null ? ctx.parsed.y.toFixed(2) + '%' : '—'}`;
+          }
         }
       }
     },
     scales: {
-      x: {
-        grid: { color: gridColor },
-        ticks: {
-          maxTicksLimit: 12,
-          maxRotation: 30,
-          callback: function(val, i) {
-            const d = this.getLabelForValue(val);
-            return d ? d.slice(0,7) : '';
-          }
-        }
-      },
-      y: {
-        grid: { color: gridColor },
-        ticks: { callback: v => v + '%' },
-        min: 0, max: 100
-      }
+      x: { grid: { color: gridColor },
+           ticks: { maxTicksLimit: 12, maxRotation: 30,
+                    callback: function(val) { return this.getLabelForValue(val).slice(0,7); } } },
+      y: { grid: { color: gridColor }, ticks: { callback: v => v + '%' }, min: 0, max: 100, position: 'left' },
+      yPF: { display: showPF, position: 'right', grid: { drawOnChartArea: false },
+              min: 0, max: 3,
+              ticks: { color: '#a78bfa', callback: v => v.toFixed(1) },
+              title: { display: true, text: 'PF', color: '#a78bfa', font: { size: 10 } } }
     }
   },
   plugins: [currentWeekPlugin]
 });
+
+function updateSCurve() {
+  const { dMin, dMax, pMin, pMax } = getSliderVals();
+  updateSliderLabels();
+
+  const src = getSCData();
+  const labels = SCURVE.dates.slice(dMin, dMax + 1);
+  const blData = src.bl.slice(dMin, dMax + 1);
+  const earnedData = trimActual(src.earned).slice(dMin, dMax + 1);
+  const spentData = trimActual(src.spent).slice(dMin, dMax + 1);
+  const pfData = labels.map(d => PF_DATE_MAP[d] !== undefined ? PF_DATE_MAP[d] : null);
+
+  scChart.data.labels = labels;
+  scChart.data.datasets[0].data = blData;
+  scChart.data.datasets[1].data = earnedData;
+  scChart.data.datasets[2].data = spentData;
+  scChart.data.datasets[3].data = pfData;
+  scChart.data.datasets[3].hidden = !showPF;
+  scChart.options.scales.y.min = pMin;
+  scChart.options.scales.y.max = pMax;
+  scChart.options.scales.yPF.display = showPF;
+  scChart.update('none');
+}
+
+function setSCSection(sec, btn) {
+  scSection = sec;
+  document.querySelectorAll('.tabs .tab').forEach(b => {
+    if (b.onclick && b.onclick.toString().includes('setSCSection')) b.classList.remove('active');
+  });
+  btn.classList.add('active');
+  document.getElementById('scurveSubtitle').textContent = '(' + sec + ')';
+  updateSCurve();
+}
+
+function togglePF(btn) {
+  showPF = !showPF;
+  btn.classList.toggle('inactive', !showPF);
+  updateSCurve();
+}
+
+function toggleDataset(name, btn) {
+  const dsMap = { spent: 2, earned: 1 };
+  const ds = scChart.data.datasets[dsMap[name]];
+  ds.hidden = !ds.hidden;
+  btn.classList.toggle('inactive', ds.hidden);
+  scChart.update('none');
+}
+
+// Init
+updateSCurve();
 
 // Section Donut
 const sdCtx = document.getElementById('sectionDonut').getContext('2d');
