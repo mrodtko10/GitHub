@@ -154,8 +154,8 @@ input.fs{width:90px;}
   .grid-2-1 { display: grid !important; grid-template-columns: 2fr 1fr !important; gap: 12px !important; }
   .kpi-grid { display: grid !important; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)) !important; gap: 10px !important; }
 
-  /* Canvas charts print directly — no image swap needed */
-  canvas { display: block !important; }
+  /* Canvases replaced with img snapshots before print */
+  .chart-wrap img, canvas + img { display: block !important; max-width: 100%; }
 
   /* Tables */
   .data-table     { font-size: 9px !important; }
@@ -1578,40 +1578,60 @@ document.addEventListener('click',e=>{
 // PRINT
 // ============================================================
 function printDashboard(){
-  const btn = document.querySelector('.print-btn');
+  const btn   = document.querySelector('.print-btn');
+  const swaps = [];
   if(btn){ btn.textContent = 'Preparing…'; btn.disabled = true; }
 
-  // Show all tabs so every canvas has real pixel dimensions before rendering
+  // 1. Make all tab panels visible so canvases have real pixel dimensions
   document.querySelectorAll('.tab-content').forEach(el => {
     if(!el.classList.contains('active')) el.classList.add('_print-show');
   });
-  void document.body.offsetHeight; // force reflow so offsetWidth/Height are accurate
+  void document.body.offsetHeight; // force layout
 
-  // Disable animations and render all tabs while canvases are visible & sized
-  Chart.defaults.animation = false;
+  // 2. Disable animations and (re)render every tab's charts
+  Chart.defaults.animation  = false;
   Chart.defaults.animations = false;
   ['overview','jobs','projects','cashflow','wip'].forEach(id => renderTab(id));
-
-  // Resize all live charts to fit current (visible) dimensions
   Object.values(charts).forEach(c => { try { c.resize(); } catch(e){} });
 
-  // Wait for newly-created charts to finish drawing before opening print dialog
+  // 3. Wait for Chart.js to finish drawing, then snapshot each canvas to an <img>
+  //    (browser print layout can clear/resize canvases, so freeze them first)
   setTimeout(() => {
+    document.querySelectorAll('.tab-content canvas').forEach(canvas => {
+      try {
+        const pw = canvas.width;
+        const ph = canvas.height;
+        if(!pw || !ph) return;
+        const tmp = document.createElement('canvas');
+        tmp.width  = pw;
+        tmp.height = ph;
+        const ctx  = tmp.getContext('2d');
+        ctx.fillStyle = '#0d1117';
+        ctx.fillRect(0, 0, pw, ph);
+        ctx.drawImage(canvas, 0, 0);
+        const img        = document.createElement('img');
+        img.src          = tmp.toDataURL('image/png');
+        img.style.width  = canvas.offsetWidth  + 'px';
+        img.style.height = canvas.offsetHeight + 'px';
+        img.style.display = 'block';
+        canvas.parentNode.insertBefore(img, canvas);
+        canvas.style.display = 'none';
+        swaps.push({ canvas, img });
+      } catch(e){}
+    });
+
     if(btn){ btn.textContent = '🖨 Print / Export PDF'; btn.disabled = false; }
     window.print();
-    // afterprint listener handles cleanup
-  }, 400);
-}
 
-window.addEventListener('afterprint', () => {
-  document.querySelectorAll('.tab-content._print-show').forEach(el => {
-    el.classList.remove('_print-show');
-  });
-  Chart.defaults.animation = {};
-  Chart.defaults.animations = {};
-  const active = document.querySelector('.tab-content.active');
-  if(active) renderTab(active.id.replace('tab-',''));
-});
+    // Restore immediately after dialog closes
+    swaps.forEach(({ canvas, img }) => { img.remove(); canvas.style.display = ''; });
+    document.querySelectorAll('.tab-content._print-show').forEach(el => el.classList.remove('_print-show'));
+    Chart.defaults.animation  = {};
+    Chart.defaults.animations = {};
+    const active = document.querySelector('.tab-content.active');
+    if(active) renderTab(active.id.replace('tab-',''));
+  }, 500);
+}
 
 // ============================================================
 // INIT
