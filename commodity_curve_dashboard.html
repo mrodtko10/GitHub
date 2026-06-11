@@ -401,7 +401,7 @@
         <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>BL FTE</div>
         <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Actual FTE</div>
         <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div>Earned FTE</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#fb923c;border-top:2px dashed #fb923c;height:0"></div>Forecast FTE</div>
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(251,146,60,0.55)"></div>Forecast FTE</div>
       </div>
       <div class="chart-wrap" style="height:250px"><canvas id="fteChart"></canvas></div>
     </div>
@@ -410,6 +410,36 @@
   <!-- Weekly Manpower Table -->
   <div class="chart-card">
     <div class="chart-title">Weekly Manpower Summary</div>
+    <!-- Summary mini tiles -->
+    <div id="mpSummaryTiles" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px"></div>
+    <!-- Filters -->
+    <div class="filters" style="margin-bottom:10px">
+      <span class="filter-label">Section:</span>
+      <select id="mpSectionFilter" onchange="renderManpower()">
+        <option value="">All</option>
+        <option value="Civil">Civil</option>
+        <option value="PV">PV</option>
+        <option value="SS">SS</option>
+      </select>
+      <span class="filter-label">Category:</span>
+      <select id="mpCatFilter" onchange="renderManpower()">
+        <option value="">All</option>
+        <option value="NP-WHC">NP-WHC</option>
+        <option value="PD-WHC">PD-WHC</option>
+        <option value="PD-SUB">PD-SUB</option>
+      </select>
+      <span class="filter-label">WHC/Sub:</span>
+      <select id="mpWhcFilter" onchange="renderManpower()">
+        <option value="">All</option>
+        <option value="WHC">WHC</option>
+        <option value="Sub">Sub</option>
+      </select>
+      <span class="filter-label">CW Actual FTE ≥</span>
+      <input type="number" id="mpCwActMin" placeholder="0" min="0" step="0.1" style="width:65px" oninput="renderManpower()">
+      <span class="filter-label">Search:</span>
+      <input type="text" id="mpSearch" placeholder="Activity…" oninput="renderManpower()">
+      <span id="mpCount" style="font-size:11px;color:var(--muted);margin-left:auto"></span>
+    </div>
     <div class="table-wrap">
       <table id="mpTable">
         <thead>
@@ -446,8 +476,21 @@
         <option value="PD-WHC">PD-WHC</option>
         <option value="PD-SUB">PD-SUB</option>
       </select>
+      <span class="filter-label">WHC/Sub:</span>
+      <select id="actWhcFilter" onchange="filterActivities()">
+        <option value="">All</option>
+        <option value="WHC">WHC</option>
+        <option value="Sub">Sub</option>
+      </select>
       <span class="filter-label">Search:</span>
       <input type="text" id="actSearch" placeholder="Activity name…" oninput="filterActivities()">
+      <br style="flex-basis:100%">
+      <span class="filter-label">Weekly Earned ≥</span>
+      <input type="number" id="actEaWeekMin" placeholder="0" min="0" step="1" style="width:65px" oninput="filterActivities()">
+      <span class="filter-label">BL % ≥</span>
+      <input type="number" id="actBlPctMin" placeholder="0" min="0" max="100" step="1" style="width:55px" oninput="filterActivities()">
+      <span class="filter-label">Earned % ≥</span>
+      <input type="number" id="actEaPctMin" placeholder="0" min="0" max="100" step="1" style="width:55px" oninput="filterActivities()">
       <span id="actCount" style="font-size:11px;color:var(--muted);margin-left:auto"></span>
     </div>
     <div class="table-wrap">
@@ -646,7 +689,7 @@ function updateStatsTile() {
   document.getElementById('kpi-fte-earn').textContent  = fmtFTE(fteEarn);
   const actEl = document.getElementById('kpi-fte-act');
   actEl.textContent = fmtFTE(fteAct);
-  actEl.style.color = fteAct > 0 ? '#f59e0b' : '#94a3b8';
+  actEl.style.color = '#ef4444';
   document.getElementById('kpi-fte-act-sub').textContent =
     fteBL > 0 && fteAct > 0 ? Math.round(fteAct / fteBL * 100) + '% of BL' : '% of BL';
 }
@@ -901,7 +944,7 @@ const fteChart = new Chart(fteCtx, {
        backgroundColor:'rgba(239,68,68,0.7)', borderRadius:3, order:2 },
     { label:'Earned FTE', data:[],
        backgroundColor:'rgba(34,197,94,0.7)', borderRadius:3, order:2 },
-    { label:'Forecast FTE', type:'line', data:[], borderColor:'#fb923c', fill:false, tension:0.3, borderWidth:2, borderDash:[6,3], pointRadius:0, pointHoverRadius:4, spanGaps:false, order:1 }
+    { label:'Forecast FTE', data:[], backgroundColor:'rgba(251,146,60,0.55)', borderRadius:3, order:2 }
   ]},
   options: {
     responsive:true, maintainAspectRatio:false,
@@ -947,21 +990,54 @@ updateFTE();
 // ============================================================
 let mpSortCol = null, mpSortDir = 0;
 function renderManpower() {
-  // Compute summary totals
+  const sum = (arr, k) => arr.reduce((s,r) => s + (r[k]||0), 0);
+  const fmtN = v => v ? v.toFixed(1) : '—';
+
+  // Summary tiles — always from full unfiltered MANPOWER
   const np_rows  = MANPOWER.filter(r => r.category && r.category.startsWith('NP'));
   const pd_rows  = MANPOWER.filter(r => r.category && r.category.startsWith('PD-W'));
   const sub_rows = MANPOWER.filter(r => r.whc_sub === 'Sub');
-  const sum = (arr, k) => arr.reduce((s,r) => s + (r[k]||0), 0);
-  const fmtN = v => v ? v.toFixed(1) : '—';
-  const summaryRows = [
-    {label:'WHC NP Total',    cls:'cat-NP',  pw_bl:sum(np_rows,'pw_bl_fte'),  pw_act:sum(np_rows,'pw_act_fte'),  cw_bl:sum(np_rows,'cw_bl_fte'),  cw_act:sum(np_rows,'cw_act_fte')},
-    {label:'WHC PD Total',    cls:'cat-PD',  pw_bl:sum(pd_rows,'pw_bl_fte'),  pw_act:sum(pd_rows,'pw_act_fte'),  cw_bl:sum(pd_rows,'cw_bl_fte'),  cw_act:sum(pd_rows,'cw_act_fte')},
-    {label:'Sub Total',       cls:'cat-PS',  pw_bl:sum(sub_rows,'pw_bl_fte'), pw_act:sum(sub_rows,'pw_act_fte'), cw_bl:sum(sub_rows,'cw_bl_fte'), cw_act:sum(sub_rows,'cw_act_fte')},
-    {label:'WHC Total (NP+PD)',cls:'',       pw_bl:sum([...np_rows,...pd_rows],'pw_bl_fte'), pw_act:sum([...np_rows,...pd_rows],'pw_act_fte'), cw_bl:sum([...np_rows,...pd_rows],'cw_bl_fte'), cw_act:sum([...np_rows,...pd_rows],'cw_act_fte')},
+  const whc_rows = [...np_rows, ...pd_rows];
+  const tileData = [
+    {label:'WHC NP',      color:'#3b82f6', pw_act:sum(np_rows,'pw_act_fte'),  cw_bl:sum(np_rows,'cw_bl_fte'),  cw_act:sum(np_rows,'cw_act_fte')},
+    {label:'WHC PD',      color:'#a78bfa', pw_act:sum(pd_rows,'pw_act_fte'),  cw_bl:sum(pd_rows,'cw_bl_fte'),  cw_act:sum(pd_rows,'cw_act_fte')},
+    {label:'Sub',         color:'#34d399', pw_act:sum(sub_rows,'pw_act_fte'), cw_bl:sum(sub_rows,'cw_bl_fte'), cw_act:sum(sub_rows,'cw_act_fte')},
+    {label:'WHC Total',   color:'#f59e0b', pw_act:sum(whc_rows,'pw_act_fte'), cw_bl:sum(whc_rows,'cw_bl_fte'), cw_act:sum(whc_rows,'cw_act_fte')},
   ];
+  document.getElementById('mpSummaryTiles').innerHTML = tileData.map(t => `
+    <div style="flex:1;min-width:140px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:10px 14px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:4px">${t.label}</div>
+      <div style="display:flex;gap:16px;align-items:flex-end">
+        <div>
+          <div style="font-size:9px;color:var(--muted);margin-bottom:1px">PW ACTUAL</div>
+          <div style="font-size:20px;font-weight:700;color:#ef4444;line-height:1">${fmtN(t.pw_act)}</div>
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--muted);margin-bottom:1px">CW BL</div>
+          <div style="font-size:16px;font-weight:600;color:${t.color};line-height:1">${fmtN(t.cw_bl)}</div>
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--muted);margin-bottom:1px">CW ACTUAL</div>
+          <div style="font-size:16px;font-weight:600;color:#ef4444;line-height:1">${fmtN(t.cw_act)}</div>
+        </div>
+      </div>
+    </div>`).join('');
 
-  // Sort data rows
-  let sorted = [...MANPOWER];
+  // Apply filters
+  const sec    = document.getElementById('mpSectionFilter').value;
+  const cat    = document.getElementById('mpCatFilter').value;
+  const whc    = document.getElementById('mpWhcFilter').value;
+  const cwMin  = parseFloat(document.getElementById('mpCwActMin').value) || 0;
+  const q      = document.getElementById('mpSearch').value.toLowerCase();
+  let sorted = MANPOWER.filter(r =>
+    (!sec  || r.section === sec) &&
+    (!cat  || r.category === cat) &&
+    (!whc  || r.whc_sub === whc) &&
+    (!cwMin || (r.cw_act_fte || 0) >= cwMin) &&
+    (!q    || (r.activity||'').toLowerCase().includes(q))
+  );
+  document.getElementById('mpCount').textContent = `${sorted.length} of ${MANPOWER.length}`;
+
   if (mpSortCol && mpSortDir !== 0) {
     sorted.sort((a,b) => {
       const av = a[mpSortCol] ?? ''; const bv = b[mpSortCol] ?? '';
@@ -970,13 +1046,7 @@ function renderManpower() {
     });
   }
 
-  let html = summaryRows.map(s => `<tr style="font-weight:700;background:rgba(59,130,246,.07);border-bottom:1px solid rgba(255,255,255,.08)">
-    <td colspan="4">${s.label ? `<span class="cat-badge ${s.cls}">${s.label}</span>` : s.label}</td>
-    <td style="text-align:right">${fmtN(s.pw_bl)}</td><td style="text-align:right">${fmtN(s.pw_act)}</td>
-    <td style="text-align:right">${fmtN(s.cw_bl)}</td><td style="text-align:right">${fmtN(s.cw_act)}</td>
-  </tr>`).join('');
-
-  html += sorted.map(r => {
+  const html = sorted.map(r => {
     const catClass = r.category.startsWith('NP') ? 'cat-NP' : r.category.startsWith('PD-S') ? 'cat-PS' : 'cat-PD';
     return `<tr>
       <td>${r.activity}</td>
@@ -989,7 +1059,8 @@ function renderManpower() {
       <td style="text-align:right">${fmtN(r.cw_act_fte)}</td>
     </tr>`;
   }).join('');
-  document.getElementById('mpTableBody').innerHTML = html;
+  document.getElementById('mpTableBody').innerHTML = html ||
+    '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px">No results</td></tr>';
 }
 
 // Attach sort handlers after DOM ready (called from init)
@@ -1014,13 +1085,21 @@ function initMpSort() {
 // ============================================================
 let actSortCol = null, actSortDir = 0;
 function filterActivities() {
-  const sec = document.getElementById('sectionFilter').value;
-  const cat = document.getElementById('catFilter').value;
-  const q   = document.getElementById('actSearch').value.toLowerCase();
+  const sec       = document.getElementById('sectionFilter').value;
+  const cat       = document.getElementById('catFilter').value;
+  const whc       = document.getElementById('actWhcFilter').value;
+  const q         = document.getElementById('actSearch').value.toLowerCase();
+  const eaWkMin   = parseFloat(document.getElementById('actEaWeekMin').value) || 0;
+  const blPctMin  = parseFloat(document.getElementById('actBlPctMin').value)  || 0;
+  const eaPctMin  = parseFloat(document.getElementById('actEaPctMin').value)  || 0;
   let filtered = ACTIVITIES.filter(a =>
-    (!sec || a.section === sec) &&
-    (!cat || a.category === cat) &&
-    (!q   || (a.activity||'').toLowerCase().includes(q))
+    (!sec      || a.section === sec) &&
+    (!cat      || a.category === cat) &&
+    (!whc      || a.whc_sub === whc) &&
+    (!q        || (a.activity||'').toLowerCase().includes(q)) &&
+    (a.ea_week  || 0) >= eaWkMin &&
+    (a.bl_pct   || 0) >= blPctMin &&
+    (a.ea_pct   || 0) >= eaPctMin
   );
   if (actSortCol && actSortDir !== 0) {
     filtered.sort((a,b) => {
