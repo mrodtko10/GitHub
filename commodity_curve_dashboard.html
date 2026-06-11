@@ -685,6 +685,7 @@ function setSCSection(sec, btn) {
   const sf = document.getElementById('sectionFilter');
   if (sf) { sf.value = sec === 'Overall' ? '' : sec; filterActivities(); }
   updateSCurve();
+  updateFTE();
 }
 
 function togglePF(btn) {
@@ -718,8 +719,14 @@ function buildWeekSelector() {
 function onWeekChange() {
   const sel = document.getElementById('weekSelector');
   selectedWeekIdx = +sel.value;
+  // Snap the date-range slider so the S-curve zooms to show from start through selected week
+  const dMaxEl = document.getElementById('dateMax');
+  const snapMax = Math.min(selectedWeekIdx + 8, ALL_DATES.length - 1);
+  dMaxEl.value = snapMax;
+  document.getElementById('dateMin').value = 0;
   updateSCurve();
   updateDonut();
+  updateFTE();
   document.getElementById('headerWeekEnding').textContent = ALL_DATES[selectedWeekIdx];
 }
 
@@ -795,24 +802,17 @@ function setDonutMetric(m, btn) {
 // ============================================================
 const fteCtx = document.getElementById('fteChart').getContext('2d');
 const fteMaxIdx = FTE.bl.reduce((acc,v,i) => v>0 ? i : acc, 0);
-const fteDates = FTE.dates.slice(0, Math.min(fteMaxIdx + 5, FTE.dates.length));
-new Chart(fteCtx, {
+const fteChart = new Chart(fteCtx, {
   type: 'bar',
-  data: {
-    labels: fteDates,
-    datasets: [
-      { label:'BL FTE', type:'line',
-         data: FTE.bl.slice(0, fteDates.length),
-         backgroundColor:'rgba(59,130,246,0.2)', borderColor:'#3b82f6',
-         borderWidth:1.5, fill:true, tension:0.3, pointRadius:2, pointHoverRadius:5, order:1 },
-      { label:'Actual FTE',
-         data: FTE.spent.slice(0, fteDates.length),
-         backgroundColor:'rgba(245,158,11,0.7)', borderRadius:3, order:2 },
-      { label:'Earned FTE',
-         data: FTE.earned.slice(0, fteDates.length),
-         backgroundColor:'rgba(34,197,94,0.7)', borderRadius:3, order:2 }
-    ]
-  },
+  data: { labels: [], datasets: [
+    { label:'BL FTE', type:'line', data:[],
+       backgroundColor:'rgba(59,130,246,0.2)', borderColor:'#3b82f6',
+       borderWidth:1.5, fill:true, tension:0.3, pointRadius:2, pointHoverRadius:5, order:1 },
+    { label:'Actual FTE', data:[],
+       backgroundColor:'rgba(245,158,11,0.7)', borderRadius:3, order:2 },
+    { label:'Earned FTE', data:[],
+       backgroundColor:'rgba(34,197,94,0.7)', borderRadius:3, order:2 }
+  ]},
   options: {
     responsive:true, maintainAspectRatio:false,
     interaction:{ mode:'index', intersect:false },
@@ -825,6 +825,22 @@ new Chart(fteCtx, {
     }
   }
 });
+
+function updateFTE() {
+  // Show BL through the full project, trim actual/earned bars to selectedWeekIdx
+  const endIdx = Math.max(selectedWeekIdx + 4, fteMaxIdx + 2);
+  const visEnd = Math.min(endIdx, FTE.dates.length - 1);
+  const labels = FTE.dates.slice(0, visEnd + 1);
+  const blData     = FTE.bl.slice(0, labels.length);
+  const spentData  = FTE.spent.slice(0, labels.length).map((v,i) => i <= selectedWeekIdx ? v : null);
+  const earnedData = FTE.earned.slice(0, labels.length).map((v,i) => i <= selectedWeekIdx ? v : null);
+  fteChart.data.labels              = labels;
+  fteChart.data.datasets[0].data    = blData;
+  fteChart.data.datasets[1].data    = spentData;
+  fteChart.data.datasets[2].data    = earnedData;
+  fteChart.update('none');
+}
+updateFTE();
 
 // ============================================================
 // MANPOWER TABLE
