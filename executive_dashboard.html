@@ -154,12 +154,12 @@ input.fs{width:90px;}
   .grid-2-1 { display: grid !important; grid-template-columns: 2fr 1fr !important; gap: 12px !important; }
   .kpi-grid { display: grid !important; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)) !important; gap: 10px !important; }
 
-  /* Chart heights */
-  .h220 { height: 190px !important; }
-  .h260 { height: 210px !important; }
-  .h300 { height: 240px !important; }
-  .h340 { height: 260px !important; }
-  .h380 { height: 290px !important; }
+  /* Chart heights — keep natural screen dimensions so charts aren't distorted */
+  .h220 { height: 220px !important; }
+  .h260 { height: 260px !important; }
+  .h300 { height: 300px !important; }
+  .h340 { height: 340px !important; }
+  .h380 { height: 380px !important; }
 
   /* Tables */
   .data-table     { font-size: 9px !important; }
@@ -1596,8 +1596,8 @@ function printDashboard(){
   // Step 3 — render charts for every tab (they need visible canvases to draw)
   ['overview','jobs','projects','cashflow','wip'].forEach(id => renderTab(id));
 
-  // Step 4 — resize all Chart.js instances to their now-visible canvas sizes
-  Object.values(charts).forEach(c => { try { c.resize(); } catch(e){} });
+  // Step 4 — charts are already drawn at their screen dimensions; no resize needed
+  // (resizing distorts aspect ratios in print — print-color-adjust preserves them as-is)
 
   // Step 5 — give the browser one animation frame to finish painting, then print
   requestAnimationFrame(() => {
