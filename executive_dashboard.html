@@ -1582,31 +1582,37 @@ document.addEventListener('click',e=>{
 // PRINT
 // ============================================================
 function printDashboard(){
-  window.print();
-}
+  const btn = document.querySelector('.print-btn');
+  if(btn){ btn.textContent = 'Preparing…'; btn.disabled = true; }
 
-// Before the browser's print dialog opens:
-// show all tabs, render their charts, then resize all charts to fit print layout
-window.addEventListener('beforeprint', () => {
-  // Show every tab so canvases have real dimensions
+  // Step 1 — reveal every tab so canvases have real pixel dimensions
   document.querySelectorAll('.tab-content').forEach(el => {
     if(!el.classList.contains('active')) el.classList.add('_print-show');
   });
-  void document.body.offsetHeight; // force reflow
 
-  // Render any tab that hasn't been viewed yet
+  // Step 2 — force a synchronous reflow so the browser assigns sizes
+  void document.body.offsetHeight;
+
+  // Step 3 — render charts for every tab (they need visible canvases to draw)
   ['overview','jobs','projects','cashflow','wip'].forEach(id => renderTab(id));
 
-  // Resize all Chart.js instances to fit the print-mode canvas sizes
+  // Step 4 — resize all Chart.js instances to their now-visible canvas sizes
   Object.values(charts).forEach(c => { try { c.resize(); } catch(e){} });
-});
 
-// After printing: hide the extra tabs again
+  // Step 5 — give the browser one animation frame to finish painting, then print
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      if(btn){ btn.textContent = '🖨 Print / Export PDF'; btn.disabled = false; }
+      window.print();
+    });
+  });
+}
+
+// After the print dialog closes — hide extra tabs and restore active tab charts
 window.addEventListener('afterprint', () => {
   document.querySelectorAll('.tab-content._print-show').forEach(el => {
     el.classList.remove('_print-show');
   });
-  // Re-render the active tab to restore correct on-screen sizes
   const active = document.querySelector('.tab-content.active');
   if(active) renderTab(active.id.replace('tab-',''));
 });
