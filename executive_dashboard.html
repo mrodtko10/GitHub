@@ -1581,25 +1581,30 @@ function printDashboard(){
   const btn = document.querySelector('.print-btn');
   if(btn){ btn.textContent = 'Preparing…'; btn.disabled = true; }
 
-  // Show all tabs — their charts are already pre-rendered at page load
+  // Show all tabs before opening print dialog
   document.querySelectorAll('.tab-content').forEach(el => {
     if(!el.classList.contains('active')) el.classList.add('_print-show');
   });
   void document.body.offsetHeight;
 
-  // Resize charts to fit the now-visible print dimensions
-  Object.values(charts).forEach(c => { try{ c.resize(); }catch(e){} });
-
-  requestAnimationFrame(() => {
-    if(btn){ btn.textContent = '🖨 Print / Export PDF'; btn.disabled = false; }
-    window.print();
-  });
+  if(btn){ btn.textContent = '🖨 Print / Export PDF'; btn.disabled = false; }
+  window.print();
+  // beforeprint fires synchronously inside the print pipeline and redraws charts
+  // afterprint cleans up
 }
+
+window.addEventListener('beforeprint', () => {
+  // Show all tabs in case printDashboard wasn't used (Ctrl+P)
+  document.querySelectorAll('.tab-content').forEach(el => {
+    if(!el.classList.contains('active')) el.classList.add('_print-show');
+  });
+  void document.body.offsetHeight;
+  // c.resize() redraws synchronously — charts are fully painted before browser captures page
+  Object.values(charts).forEach(c => { try{ c.resize(); }catch(e){} });
+});
 
 window.addEventListener('afterprint', () => {
   document.querySelectorAll('.tab-content._print-show').forEach(el => el.classList.remove('_print-show'));
-  Chart.defaults.animation  = {};
-  Chart.defaults.animations = {};
   const active = document.querySelector('.tab-content.active');
   if(active) renderTab(active.id.replace('tab-',''));
 });
