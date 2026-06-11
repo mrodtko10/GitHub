@@ -326,7 +326,24 @@
         <div class="legend-item"><div class="legend-dot" style="background:#a78bfa;height:2px;border-top:2px dashed #a78bfa"></div>PF</div>
       </div>
 
-      <div class="chart-wrap" style="height:300px"><canvas id="scurveChart"></canvas></div>
+      <div class="chart-wrap" style="height:300px;position:relative">
+      <canvas id="scurveChart"></canvas>
+      <div id="scStatsTile" style="
+        position:absolute;top:10px;right:14px;
+        background:rgba(15,17,23,0.82);border:1px solid rgba(59,130,246,0.35);
+        border-radius:8px;padding:10px 14px;backdrop-filter:blur(4px);
+        display:grid;grid-template-columns:1fr 1fr;gap:4px 18px;
+        font-size:11px;pointer-events:none;z-index:10;">
+        <div style="color:#94a3b8">BL&nbsp;Plan</div>
+        <div style="color:#94a3b8">Earned</div>
+        <div id="tile-bl"     style="color:#3b82f6;font-size:16px;font-weight:700"></div>
+        <div id="tile-earned" style="color:#22c55e;font-size:16px;font-weight:700"></div>
+        <div style="color:#94a3b8;margin-top:4px">Spent</div>
+        <div style="color:#94a3b8;margin-top:4px">Cum.&nbsp;PF</div>
+        <div id="tile-spent"  style="color:#f59e0b;font-size:16px;font-weight:700"></div>
+        <div id="tile-pf"     style="font-size:16px;font-weight:700"></div>
+      </div>
+    </div>
     </div>
 
     <div class="chart-card">
@@ -444,7 +461,13 @@ const SCURVE = {
     PV:    { bl: [0.0, 0.0, 0.0, 0.0, 1.21, 1.27, 1.5, 1.78, 2.07, 2.35, 2.64, 2.92, 3.21, 3.53, 3.85, 4.17, 4.48, 4.8, 5.15, 5.54, 5.95, 6.43, 6.92, 7.49, 8.25, 9.27, 10.48, 12.13, 14.21, 16.6, 19.31, 22.17, 25.14, 28.44, 31.91, 35.52, 39.15, 41.48, 44.9, 48.31, 50.8, 51.07, 53.72, 57.5, 61.11, 64.48, 67.34, 69.83, 72.45, 75.16, 77.93, 80.54, 82.45, 84.21, 85.1, 86.38, 87.63, 88.81, 89.93, 90.99, 91.89, 92.4, 92.87, 93.33, 93.8, 94.41, 94.99, 95.53, 95.97, 96.4, 96.84, 97.03, 97.21, 97.4, 97.58, 97.76, 97.94, 98.12, 98.3, 98.48, 98.66, 98.84, 99.02, 99.2, 99.38, 99.56, 99.69, 99.79, 99.9, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0],    earned: [0.0, 0.0, 0.0, 1.21, 1.21, 1.21, 1.36, 1.48, 1.64, 1.81, 1.97, 2.17, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35, 2.35],    spent: [0.0, 0.0, 0.0, 1.51, 1.09, 1.31, 1.5, 1.71, 1.78, 1.97, 2.15, 2.35, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55, 2.55] },
     SS:    { bl: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.34, 5.16, 7.03, 10.08, 11.13, 12.88, 14.64, 16.39, 18.14, 19.89, 21.64, 23.4, 25.09, 26.84, 28.94, 31.04, 33.14, 35.25, 37.35, 40.15, 43.65, 47.15, 49.25, 50.12, 51.88, 53.63, 55.38, 55.38, 56.96, 59.06, 61.16, 63.26, 65.36, 67.46, 69.56, 71.67, 73.77, 75.87, 77.97, 80.07, 82.17, 84.27, 86.38, 88.48, 89.53, 90.58, 91.64, 92.69, 93.74, 94.79, 95.85, 96.9, 97.95, 99.01, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0],    earned: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.03, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31, 1.31],    spent: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47, 0.47] }
   },
-  pf: [null, null, null, 0.993, null, null, 1.236, 0.746, 1.857, 1.804, 1.74, 1.93, 1.773, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]
+  pf: {
+    Overall: [null, null, null, 0.804, 1.006, 0.851, 0.874, 0.86, 1.02, 1.122, 1.21, 1.423, 1.449, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+    Civil:   [null, null, null, 0.0, 0.0, 0.0, 0.607, 0.803, 1.51, 1.901, 2.083, 2.697, 2.612, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+    PV:      [null, null, null, 0.805, 1.116, 0.928, 0.902, 0.866, 0.925, 0.915, 0.918, 0.923, 0.924, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+    SS:      [null, null, null, null, null, null, null, null, null, null, null, null, 2.214, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]
+  },
+  stats: {"Overall": {"bl": 9.16, "earned": 4.33, "spent": 2.99, "cumu_pf": 1.449}, "Civil": {"bl": 39.66, "earned": 14.48, "spent": 5.54, "cumu_pf": 2.612}, "PV": {"bl": 3.21, "earned": 2.35, "spent": 2.55, "cumu_pf": 0.924}, "SS": {"bl": 0.0, "earned": 1.03, "spent": 0.47, "cumu_pf": 2.214}}
 };
 
 const FTE = {
@@ -599,7 +622,8 @@ function updateSCurve() {
   const blData   = src.bl.slice(dMin, dMax + 1);
   const earnData = trimActual(src.earned, dMin).slice(0, labels.length);
   const spentData = trimActual(src.spent, dMin).slice(0, labels.length);
-  const pfData   = SCURVE.pf.slice(dMin, dMax + 1).map((v, li) =>
+  const pfSrc    = SCURVE.pf[scSection] || SCURVE.pf['Overall'];
+  const pfData   = pfSrc.slice(dMin, dMax + 1).map((v, li) =>
     (dMin + li) <= SC_CURRENT_IDX ? v : null
   );
 
@@ -618,6 +642,19 @@ function updateSCurve() {
   scChart.options.scales.y.max     = pMax === 0 ? 1 : pMax;
   scChart.options.scales.yPF.display = showPF;
   scChart.update('none');
+  updateStatsTile();
+}
+
+function updateStatsTile() {
+  const s = SCURVE.stats[scSection];
+  document.getElementById('tile-bl').textContent     = s.bl.toFixed(1) + '%';
+  document.getElementById('tile-earned').textContent = s.earned.toFixed(1) + '%';
+  document.getElementById('tile-spent').textContent  = s.spent.toFixed(1) + '%';
+  document.getElementById('tile-pf').textContent     = s.cumu_pf !== null ? s.cumu_pf.toFixed(2) : '—';
+  const pfEl = document.getElementById('tile-pf');
+  if (s.cumu_pf !== null) {
+    pfEl.style.color = s.cumu_pf >= 1 ? '#22c55e' : '#ef4444';
+  }
 }
 
 function setSCSection(sec, btn) {
@@ -642,6 +679,7 @@ function toggleDataset(name, btn) {
 
 // Init S-curve
 updateSCurve();
+updateStatsTile();
 
 // ============================================================
 // SECTION DONUT
