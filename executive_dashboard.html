@@ -154,8 +154,12 @@ input.fs{width:90px;}
   .grid-2-1 { display: grid !important; grid-template-columns: 2fr 1fr !important; gap: 12px !important; }
   .kpi-grid { display: grid !important; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)) !important; gap: 10px !important; }
 
-  /* Canvases replaced with img snapshots before print */
-  .chart-wrap img, canvas + img { display: block !important; max-width: 100%; }
+  /* Lock chart container heights so c.resize() doesn't compress them */
+  .h220 { height: 220px !important; }
+  .h260 { height: 260px !important; }
+  .h300 { height: 300px !important; }
+  .h340 { height: 340px !important; }
+  .chart-wrap canvas { max-width: 100% !important; }
 
   /* Tables */
   .data-table     { font-size: 9px !important; }
