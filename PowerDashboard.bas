@@ -105,7 +105,7 @@ Sub RefreshPowerDashboard()
     '   AQ(43)= Chg Monthly Costs  AR(44)= Chg Contingency  AS(45)= Chg Earned Margin
     '   AT(46)= % Margin           AU(47)= Chg Earned Rev
 
-    lastRow  = 10001   ' scan up to row 10001 (row 1 = header, rows 2-10001 = data)
+    lastRow  = 25001   ' scan up to row 25001 (row 1 = header, rows 2-25001 = data)
     jsonArr  = "["
     Dim firstRec As Boolean
     firstRec = True
