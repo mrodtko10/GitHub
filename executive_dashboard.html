@@ -1596,15 +1596,10 @@ document.addEventListener('click',e=>{
 // PRINT
 // ============================================================
 function printDashboard(){
-  const TAB_IDS   = ['overview','jobs','projects','cashflow','wip'];
-  const TAB_NAMES = ['Executive Overview','Job Performance','Project Health','Cash & Billing','Preliminary WIP'];
-  const swaps     = [];
-  const hidden    = [];
+  const swaps  = [];
+  const hidden = [];
 
-  // Render all tabs so their charts exist before we capture them
-  TAB_IDS.forEach(id => renderTab(id));
-
-  // Make every tab visible for print (will be hidden again after)
+  // Step 1: Make ALL tabs visible FIRST so Chart.js can measure canvas dimensions
   document.querySelectorAll('.tab-content').forEach(el => {
     if(!el.classList.contains('active')){
       el.classList.add('_print-show');
@@ -1612,22 +1607,27 @@ function printDashboard(){
     }
   });
 
-  // Convert every canvas (across all tabs) to a PNG image with the dark
-  // background baked in so charts are readable on paper
+  // Step 2: Force a reflow so the browser assigns real pixel dimensions to canvases
+  void document.body.offsetHeight;
+
+  // Step 3: NOW render every tab — canvases have proper size so charts draw correctly
+  ['overview','jobs','projects','cashflow','wip'].forEach(id => renderTab(id));
+
+  // Step 4: Capture each canvas — composite dark bg + chart into a temp canvas
+  //         so the image looks identical to the on-screen version
   document.querySelectorAll('.tab-content canvas').forEach(canvas => {
     try {
       const w = canvas.offsetWidth  || canvas.width;
       const h = canvas.offsetHeight || canvas.height;
+      if(!w || !h) return;
 
-      // Composite: dark bg + chart onto a temp canvas
-      const tmp = document.createElement('canvas');
-      tmp.width  = w * window.devicePixelRatio;
-      tmp.height = h * window.devicePixelRatio;
+      const tmp  = document.createElement('canvas');
+      tmp.width  = canvas.width;   // use canvas's own backing-store size
+      tmp.height = canvas.height;
       const ctx  = tmp.getContext('2d');
-      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-      ctx.fillStyle = '#0d1117';          // match --bg CSS variable
-      ctx.fillRect(0, 0, w, h);
-      ctx.drawImage(canvas, 0, 0, w, h);
+      ctx.fillStyle = '#0d1117';
+      ctx.fillRect(0, 0, tmp.width, tmp.height);
+      ctx.drawImage(canvas, 0, 0);
 
       const img         = document.createElement('img');
       img.src           = tmp.toDataURL('image/png');
@@ -1642,7 +1642,7 @@ function printDashboard(){
 
   window.print();
 
-  // Restore everything
+  // Step 5: Restore everything
   swaps.forEach(({ canvas, img }) => {
     img.remove();
     canvas.style.display = '';
