@@ -713,20 +713,24 @@ function mkChart(id,cfg){
   return charts[id];
 }
 
-function buildMonthSelects(fromId,toId,defaultFrom,defaultTo){
+function buildMonthSelects(fromId,toId,defaultFrom,defaultTo,skipFirstInFrom){
   const fromSel=document.getElementById(fromId);
   const toSel=document.getElementById(toId);
   if(!fromSel||!toSel)return;
   const prev=fromSel.value,prev2=toSel.value;
   fromSel.innerHTML=''; toSel.innerHTML='';
-  ALL_MONTHS.forEach(m=>{
-    [fromSel,toSel].forEach(s=>{
-      const o=document.createElement('option');
-      o.value=m; o.textContent=m;
-      s.appendChild(o);
-    });
+  const fromMonths = skipFirstInFrom ? ALL_MONTHS.slice(1) : ALL_MONTHS;
+  fromMonths.forEach(m=>{
+    const o=document.createElement('option');
+    o.value=m; o.textContent=m;
+    fromSel.appendChild(o);
   });
-  fromSel.value = prev||defaultFrom||ALL_MONTHS[0];
+  ALL_MONTHS.forEach(m=>{
+    const o=document.createElement('option');
+    o.value=m; o.textContent=m;
+    toSel.appendChild(o);
+  });
+  fromSel.value = (prev && fromMonths.includes(prev)) ? prev : (defaultFrom||fromMonths[0]);
   toSel.value = prev2||defaultTo||ALL_MONTHS[ALL_MONTHS.length-1];
 }
 
@@ -1380,7 +1384,7 @@ function renderWIP(){
   mDCel.style.color=monthlyDCont<0?'var(--green)':monthlyDCont>0?'var(--red)':'var(--muted)';
 
   // Build per-chart slicers
-  buildMonthSelects('wipRevFrom','wipRevTo');
+  buildMonthSelects('wipRevFrom','wipRevTo',null,null,true);
 
   renderWIPEarnedRevChart();
 
