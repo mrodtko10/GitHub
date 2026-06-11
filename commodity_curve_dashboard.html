@@ -671,7 +671,6 @@ function updateSCurve() {
   scChart.options.scales.yPF.display = showPF;
   scChart.update('none');
   updateStatsTile();
-  updateDonut();
 }
 
 // ============================================================
@@ -682,6 +681,9 @@ function setSCSection(sec, btn) {
   document.querySelectorAll('[data-sc-tab]').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('scurveSubtitle').textContent = '(' + sec + ')';
+  // Sync activity table section filter (Overall = show all)
+  const sf = document.getElementById('sectionFilter');
+  if (sf) { sf.value = sec === 'Overall' ? '' : sec; filterActivities(); }
   updateSCurve();
 }
 
@@ -702,11 +704,12 @@ function toggleDataset(name, btn) {
 // ============================================================
 function buildWeekSelector() {
   const sel = document.getElementById('weekSelector');
-  // Only weeks up to the data's latest actual date (SC_CURRENT_IDX)
-  for (let i = SC_CURRENT_IDX; i >= 0; i--) {
+  // All dates — newest first; current week shown with "(Current)" marker
+  for (let i = ALL_DATES.length - 1; i >= 0; i--) {
     const opt = document.createElement('option');
     opt.value = i;
-    opt.textContent = 'Week Ending: ' + ALL_DATES[i];
+    const label = 'Week Ending: ' + ALL_DATES[i] + (i === SC_CURRENT_IDX ? '  ★ Current' : '');
+    opt.textContent = label;
     if (i === SC_CURRENT_IDX) opt.selected = true;
     sel.appendChild(opt);
   }
@@ -715,13 +718,8 @@ function buildWeekSelector() {
 function onWeekChange() {
   const sel = document.getElementById('weekSelector');
   selectedWeekIdx = +sel.value;
-  // Update pf curves — null out after selectedWeekIdx
-  Object.keys(SCURVE.pf).forEach(sec => {
-    const orig = SCURVE.pf[sec];
-    // pf array already has nulls after SC_CURRENT_IDX; we just clip further if needed
-  });
   updateSCurve();
-  // Update header week-ending display
+  updateDonut();
   document.getElementById('headerWeekEnding').textContent = ALL_DATES[selectedWeekIdx];
 }
 
