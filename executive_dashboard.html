@@ -119,6 +119,77 @@ input.fs{width:90px;}
 .bar-fill{height:100%;border-radius:4px;}
 .bar-val{width:75px;text-align:right;font-size:11px;color:var(--muted);flex-shrink:0;}
 .bar-pct{width:45px;text-align:right;font-size:11px;flex-shrink:0;}
+
+/* PRINT BUTTON */
+.print-btn{margin-left:12px;background:none;border:1px solid var(--border);color:var(--muted);font-size:12px;padding:6px 14px;border-radius:6px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px;white-space:nowrap;}
+.print-btn:hover{border-color:var(--accent2);color:var(--accent2);}
+
+/* ── PRINT STYLES ──────────────────────────────────────────────────────────── */
+@media print {
+  @page {
+    size: 17in 11in;   /* 11x17 landscape */
+    margin: 0.35in 0.4in;
+  }
+
+  /* Hide chrome */
+  nav, .filter-bar, .print-btn { display: none !important; }
+
+  /* Only show the active tab */
+  .tab-content                 { display: none !important; }
+  .tab-content.active          { display: block !important; }
+
+  /* Reset backgrounds / colors for readability on paper */
+  body, .tab-content           { background: #fff !important; color: #111 !important; }
+  .card                        { background: #fff !important; border: 1px solid #ccc !important;
+                                  border-radius: 6px; break-inside: avoid;
+                                  page-break-inside: avoid; }
+  .kpi                         { background: #f8f8f8 !important; border: 1px solid #ccc !important;
+                                  break-inside: avoid; }
+  .kpi-label                   { color: #555 !important; }
+  .kpi-sub                     { color: #666 !important; }
+  .card-title                  { color: #111 !important; }
+  .card-sub                    { color: #555 !important; }
+  .data-table th               { color: #555 !important; border-bottom: 1px solid #ccc !important; }
+  .data-table td               { border-bottom: 1px solid #eee !important; color: #111 !important; }
+  .data-table tr:hover td      { background: none !important; }
+  .ms-dropdown, .ms-btn,
+  .chart-slicer                { display: none !important; }
+  .section-header h2           { color: #111 !important; }
+  .section-header p            { color: #555 !important; }
+  .filter-count                { display: none !important; }
+  .alert                       { display: none !important; }
+
+  /* Grids — keep 2-col / 3-col layouts on wide paper */
+  .grid-2   { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 12px !important; }
+  .grid-3   { display: grid !important; grid-template-columns: 1fr 1fr 1fr !important; gap: 12px !important; }
+  .grid-4   { display: grid !important; grid-template-columns: repeat(4,1fr) !important; gap: 10px !important; }
+  .grid-2-1 { display: grid !important; grid-template-columns: 2fr 1fr !important; gap: 12px !important; }
+  .kpi-grid { display: grid !important; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)) !important; gap: 10px !important; }
+
+  /* Chart heights — slightly reduced so they fit with labels */
+  .h220 { height: 190px !important; }
+  .h260 { height: 210px !important; }
+  .h300 { height: 240px !important; }
+  .h340 { height: 270px !important; }
+  .h380 { height: 300px !important; }
+
+  /* Converted canvas → img fills its container */
+  .chart-wrap img { width: 100% !important; height: 100% !important; object-fit: contain; display: block; }
+
+  /* Tables — tighter font for dense data */
+  .data-table { font-size: 9px !important; }
+  .data-table th { font-size: 8px !important; padding: 5px 7px !important; }
+  .data-table td { padding: 5px 7px !important; }
+
+  /* Spacing */
+  .tab-content { padding: 16px !important; }
+  .mb          { margin-bottom: 12px !important; }
+  .section-header { margin-bottom: 12px !important; }
+
+  /* Prevent page breaks inside cards/rows */
+  .card, .kpi, .bar-row { break-inside: avoid; page-break-inside: avoid; }
+  .grid-2, .grid-3, .grid-4, .kpi-grid { break-inside: avoid; }
+}
 </style>
 </head>
 <body>
@@ -131,6 +202,7 @@ input.fs{width:90px;}
   <button class="tab-btn" onclick="showTab('cashflow',this)">Cash &amp; Billing</button>
   <button class="tab-btn" onclick="showTab('wip',this)">Preliminary WIP</button>
   <div class="nav-right" id="navRight"></div>
+  <button class="print-btn" onclick="printDashboard()">&#128438; Print / Export PDF</button>
 </nav>
 
 <div class="filter-bar">
@@ -1523,6 +1595,38 @@ document.addEventListener('click',e=>{
   if(!e.target.closest('.ms-wrap'))
     document.querySelectorAll('.ms-dropdown.open').forEach(el=>el.classList.remove('open'));
 });
+
+// ============================================================
+// PRINT
+// ============================================================
+function printDashboard(){
+  // Convert every visible canvas in the active tab to a static <img>
+  // so Chart.js graphs render correctly on paper
+  const tab   = document.querySelector('.tab-content.active');
+  const swaps = [];
+
+  tab.querySelectorAll('canvas').forEach(canvas => {
+    try {
+      const img      = document.createElement('img');
+      img.src        = canvas.toDataURL('image/png');
+      // Match the rendered canvas dimensions exactly
+      img.style.width  = canvas.offsetWidth  + 'px';
+      img.style.height = canvas.offsetHeight + 'px';
+      img.style.display = 'block';
+      canvas.parentNode.insertBefore(img, canvas);
+      canvas.style.display = 'none';
+      swaps.push({ canvas, img });
+    } catch(e) { /* cross-origin guard */ }
+  });
+
+  window.print();
+
+  // Restore canvases after the print dialog closes
+  swaps.forEach(({ canvas, img }) => {
+    img.remove();
+    canvas.style.display = '';
+  });
+}
 
 // ============================================================
 // INIT
