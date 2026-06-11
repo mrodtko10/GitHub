@@ -612,17 +612,26 @@ function rebuildDropdown(name, values, labelFn){
   if(btn) btn.textContent = checked.length===0 ? 'All' : checked.length===1 ? checked[0] : checked.length+' selected';
 }
 
-// Filter ALL_DATA by all filters EXCEPT the one named `exclude`
+// Filter to one row per project (latest month) then apply all filters except `exclude`
 function getRowsExcluding(exclude){
   const f = getF();
-  return ALL_DATA.filter(p => {
-    if(exclude!=='Status'  && f.statuses.length && !f.statuses.includes(LATEST_STATUS[p.id])) return false;
-    if(exclude!=='Client'  && f.clients.length  && !f.clients.includes(p.client))  return false;
-    if(exclude!=='Year'    && f.years.length){
+  // Deduplicate to latest snapshot per project
+  const latestRows = [];
+  const seen = new Set();
+  [...ALL_DATA].sort((a,b)=>b.month.localeCompare(a.month)).forEach(p=>{
+    if(!seen.has(p.id)){ seen.add(p.id); latestRows.push(p); }
+  });
+  return latestRows.filter(p => {
+    if(exclude!=='Status' && f.statuses.length){
+      const st = (LATEST_STATUS[p.id]||p.status||'').toLowerCase();
+      if(!f.statuses.some(s=>s.toLowerCase()===st)) return false;
+    }
+    if(exclude!=='Client' && f.clients.length && !f.clients.includes(p.client)) return false;
+    if(exclude!=='Year'   && f.years.length){
       const yr = '20'+(p.id.split('-')[0]||'');
       if(!f.years.includes(yr)) return false;
     }
-    if(exclude!=='Job'     && f.jobs.length     && !f.jobs.includes(p.id))         return false;
+    if(exclude!=='Job'    && f.jobs.length && !f.jobs.includes(p.id)) return false;
     return true;
   });
 }
