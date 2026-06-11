@@ -766,28 +766,28 @@ const DONUT_LABELS = { bl:'BL Hours', earned:'Earned Hours', spent:'Spent Hours'
 const DONUT_COLORS = ['#3b82f6','#22c55e','#a78bfa'];  // PV, Civil, SS order: Civil, PV, SS
 
 const sdCtx = document.getElementById('sectionDonut').getContext('2d');
+function _donutTooltipLabel(ctx) {
+  const total = ctx.dataset.data.reduce((a,b)=>a+b,0);
+  const pct = total > 0 ? (ctx.parsed/total*100).toFixed(1) : '0.0';
+  return ` ${ctx.label}: ${ctx.parsed.toLocaleString()} hrs (${pct}%)`;
+}
 const donutChart = new Chart(sdCtx, {
   type: 'doughnut',
   data: {
     labels: ['Civil','PV','SS'],
-    datasets: [{ data:[0,0,0],
+    datasets: [{ data:[1,1,1],
       backgroundColor:['#22c55e','#3b82f6','#a78bfa'],
       borderColor:'#1e2235', borderWidth:3, hoverOffset:8
     }]
   },
   options: {
     responsive:true, maintainAspectRatio:false, cutout:'65%',
+    animation: { duration: 400 },
     plugins:{
       legend:{ position:'right', labels:{boxWidth:10, padding:12} },
       tooltip:{
         backgroundColor:'#1e2235', borderColor:'#2a2d45', borderWidth:1,
-        callbacks:{
-          label: ctx => {
-            const total = ctx.dataset.data.reduce((a,b)=>a+b,0);
-            const pct = total > 0 ? (ctx.parsed/total*100).toFixed(1) : '0.0';
-            return ` ${ctx.label}: ${ctx.parsed.toLocaleString()} hrs (${pct}%)`;
-          }
-        }
+        callbacks:{ label: _donutTooltipLabel }
       }
     }
   }
@@ -797,13 +797,8 @@ function updateDonut() {
   const d = ALL_DATES[selectedWeekIdx];
   const src = PD_DONUT[d] || PD_DONUT[WEEK_ENDING];
   const vals = ['Civil','PV','SS'].map(sec => (src[sec] || {})[donutMetric] || 0);
-  donutChart.data.datasets[0].data = vals;
-  donutChart.options.plugins.tooltip.callbacks.label = ctx => {
-    const total = ctx.dataset.data.reduce((a,b)=>a+b,0);
-    const pct = total > 0 ? (ctx.parsed/total*100).toFixed(1) : '0.0';
-    return ` ${ctx.label}: ${ctx.parsed.toLocaleString()} hrs (${pct}%)`;
-  };
-  donutChart.update('none');
+  donutChart.data.datasets[0].data = vals.map(v => v || 0);
+  donutChart.update();
   // Update donut title
   document.getElementById('donutTitle').textContent = 'PD — ' + (DONUT_LABELS[donutMetric]||donutMetric);
   // Update summary table
