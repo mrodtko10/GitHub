@@ -134,30 +134,26 @@ input.fs{width:90px;}
   /* Hide chrome */
   nav, .filter-bar, .print-btn { display: none !important; }
 
-  /* Only show the active tab */
+  /* Show all tabs for printing, each on its own page */
   .tab-content                 { display: none !important; }
-  .tab-content.active          { display: block !important; }
+  .tab-content.active,
+  .tab-content._print-show     { display: block !important; }
+  .tab-content.active          { page-break-before: avoid; }
+  .tab-content._print-show     { page-break-before: always; break-before: page; }
 
-  /* Reset backgrounds / colors for readability on paper */
-  body, .tab-content           { background: #fff !important; color: #111 !important; }
-  .card                        { background: #fff !important; border: 1px solid #ccc !important;
-                                  border-radius: 6px; break-inside: avoid;
-                                  page-break-inside: avoid; }
-  .kpi                         { background: #f8f8f8 !important; border: 1px solid #ccc !important;
+  /* Keep dark theme — charts are captured with dark bg baked in */
+  body, .tab-content           { background: #0d1117 !important; color: #e6edf3 !important; }
+  .card                        { background: #161b22 !important; border: 1px solid #30363d !important;
+                                  border-radius: 6px; break-inside: avoid; page-break-inside: avoid; }
+  .kpi                         { background: #161b22 !important; border: 1px solid #30363d !important;
                                   break-inside: avoid; }
-  .kpi-label                   { color: #555 !important; }
-  .kpi-sub                     { color: #666 !important; }
-  .card-title                  { color: #111 !important; }
-  .card-sub                    { color: #555 !important; }
-  .data-table th               { color: #555 !important; border-bottom: 1px solid #ccc !important; }
-  .data-table td               { border-bottom: 1px solid #eee !important; color: #111 !important; }
-  .data-table tr:hover td      { background: none !important; }
   .ms-dropdown, .ms-btn,
   .chart-slicer                { display: none !important; }
-  .section-header h2           { color: #111 !important; }
-  .section-header p            { color: #555 !important; }
   .filter-count                { display: none !important; }
   .alert                       { display: none !important; }
+  /* Add a tab title above each section */
+  .tab-content._print-show .section-header,
+  .tab-content.active .section-header { display: block !important; }
 
   /* Grids — keep 2-col / 3-col layouts on wide paper */
   .grid-2   { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 12px !important; }
@@ -1600,18 +1596,43 @@ document.addEventListener('click',e=>{
 // PRINT
 // ============================================================
 function printDashboard(){
-  // Convert every visible canvas in the active tab to a static <img>
-  // so Chart.js graphs render correctly on paper
-  const tab   = document.querySelector('.tab-content.active');
-  const swaps = [];
+  const TAB_IDS   = ['overview','jobs','projects','cashflow','wip'];
+  const TAB_NAMES = ['Executive Overview','Job Performance','Project Health','Cash & Billing','Preliminary WIP'];
+  const swaps     = [];
+  const hidden    = [];
 
-  tab.querySelectorAll('canvas').forEach(canvas => {
+  // Render all tabs so their charts exist before we capture them
+  TAB_IDS.forEach(id => renderTab(id));
+
+  // Make every tab visible for print (will be hidden again after)
+  document.querySelectorAll('.tab-content').forEach(el => {
+    if(!el.classList.contains('active')){
+      el.classList.add('_print-show');
+      hidden.push(el);
+    }
+  });
+
+  // Convert every canvas (across all tabs) to a PNG image with the dark
+  // background baked in so charts are readable on paper
+  document.querySelectorAll('.tab-content canvas').forEach(canvas => {
     try {
-      const img      = document.createElement('img');
-      img.src        = canvas.toDataURL('image/png');
-      // Match the rendered canvas dimensions exactly
-      img.style.width  = canvas.offsetWidth  + 'px';
-      img.style.height = canvas.offsetHeight + 'px';
+      const w = canvas.offsetWidth  || canvas.width;
+      const h = canvas.offsetHeight || canvas.height;
+
+      // Composite: dark bg + chart onto a temp canvas
+      const tmp = document.createElement('canvas');
+      tmp.width  = w * window.devicePixelRatio;
+      tmp.height = h * window.devicePixelRatio;
+      const ctx  = tmp.getContext('2d');
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+      ctx.fillStyle = '#0d1117';          // match --bg CSS variable
+      ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(canvas, 0, 0, w, h);
+
+      const img         = document.createElement('img');
+      img.src           = tmp.toDataURL('image/png');
+      img.style.width   = w + 'px';
+      img.style.height  = h + 'px';
       img.style.display = 'block';
       canvas.parentNode.insertBefore(img, canvas);
       canvas.style.display = 'none';
@@ -1621,11 +1642,12 @@ function printDashboard(){
 
   window.print();
 
-  // Restore canvases after the print dialog closes
+  // Restore everything
   swaps.forEach(({ canvas, img }) => {
     img.remove();
     canvas.style.display = '';
   });
+  hidden.forEach(el => el.classList.remove('_print-show'));
 }
 
 // ============================================================
