@@ -369,6 +369,19 @@
     </div>
   </div>
 
+  <!-- FTE Chart -->
+  <div class="charts-grid" style="grid-template-columns: 1fr;">
+    <div class="chart-card">
+      <div class="chart-title">Weekly FTE – BL vs Actual vs Earned <span>(Full Project Timeline)</span></div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--bl-color)"></div>BL FTE</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--spent-color)"></div>Actual FTE</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--earned-color)"></div>Earned FTE</div>
+      </div>
+      <div class="chart-wrap" style="height:250px"><canvas id="fteChart"></canvas></div>
+    </div>
+  </div>
+
   <!-- Weekly Manpower Table -->
   <div class="chart-card" style="margin-bottom:20px">
     <div class="chart-title">Weekly Manpower Summary <span>(Last / Current / Next Week)</span></div>
