@@ -1578,60 +1578,41 @@ document.addEventListener('click',e=>{
 // PRINT
 // ============================================================
 function printDashboard(){
-  const btn   = document.querySelector('.print-btn');
-  const swaps = [];
+  const btn = document.querySelector('.print-btn');
   if(btn){ btn.textContent = 'Preparing…'; btn.disabled = true; }
 
-  // 1. Make all tab panels visible so canvases have real pixel dimensions
+  // Show all tabs so every canvas has real pixel dimensions
   document.querySelectorAll('.tab-content').forEach(el => {
     if(!el.classList.contains('active')) el.classList.add('_print-show');
   });
-  void document.body.offsetHeight; // force layout
+  void document.body.offsetHeight;
 
-  // 2. Disable animations and (re)render every tab's charts
+  // Disable animations so charts draw on first frame, then render all tabs
   Chart.defaults.animation  = false;
   Chart.defaults.animations = false;
-  ['overview','jobs','projects','cashflow','wip'].forEach(id => { try { renderTab(id); } catch(e){ console.warn('renderTab error',id,e); } });
-  Object.values(charts).forEach(c => { try { c.resize(); } catch(e){} });
+  ['overview','jobs','projects','cashflow','wip'].forEach(id => { try{ renderTab(id); }catch(e){} });
+  Object.values(charts).forEach(c => { try{ c.resize(); }catch(e){} });
 
-  // 3. Wait for Chart.js to finish drawing, then snapshot each canvas to an <img>
-  setTimeout(() => {
-    try {
-      document.querySelectorAll('.tab-content canvas').forEach(canvas => {
-        try {
-          const pw = canvas.width;
-          const ph = canvas.height;
-          if(!pw || !ph) return;
-          const tmp = document.createElement('canvas');
-          tmp.width  = pw;
-          tmp.height = ph;
-          const ctx  = tmp.getContext('2d');
-          ctx.fillStyle = '#0d1117';
-          ctx.fillRect(0, 0, pw, ph);
-          ctx.drawImage(canvas, 0, 0);
-          const img        = document.createElement('img');
-          img.src          = tmp.toDataURL('image/png');
-          img.style.width  = (canvas.offsetWidth  || pw) + 'px';
-          img.style.height = (canvas.offsetHeight || ph) + 'px';
-          img.style.display = 'block';
-          canvas.parentNode.insertBefore(img, canvas);
-          canvas.style.display = 'none';
-          swaps.push({ canvas, img });
-        } catch(e){ console.warn('canvas capture error',e); }
-      });
-    } catch(e){ console.warn('print capture error',e); }
+  // Chain enough animation frames to guarantee all Chart.js draws have completed
+  function waitFrames(n, done){
+    if(n <= 0){ done(); return; }
+    requestAnimationFrame(() => waitFrames(n - 1, done));
+  }
 
+  waitFrames(6, () => {
     if(btn){ btn.textContent = '🖨 Print / Export PDF'; btn.disabled = false; }
     window.print();
-
-    swaps.forEach(({ canvas, img }) => { img.remove(); canvas.style.display = ''; });
-    document.querySelectorAll('.tab-content._print-show').forEach(el => el.classList.remove('_print-show'));
-    Chart.defaults.animation  = {};
-    Chart.defaults.animations = {};
-    const active = document.querySelector('.tab-content.active');
-    if(active) renderTab(active.id.replace('tab-',''));
-  }, 500);
+    // afterprint handles cleanup
+  });
 }
+
+window.addEventListener('afterprint', () => {
+  document.querySelectorAll('.tab-content._print-show').forEach(el => el.classList.remove('_print-show'));
+  Chart.defaults.animation  = {};
+  Chart.defaults.animations = {};
+  const active = document.querySelector('.tab-content.active');
+  if(active) renderTab(active.id.replace('tab-',''));
+});
 
 // ============================================================
 // INIT
