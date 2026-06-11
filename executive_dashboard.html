@@ -1479,8 +1479,11 @@ function renderWIPEarnedRevChart(){
   const prevMonthIdx=allMonthsSorted.indexOf(firstInRange)-1;
   const baseline=prevMonthIdx>=0?getCumForMonth(allMonthsSorted[prevMonthIdx]):0;
 
-  // incremental = delta between consecutive months; first month uses out-of-range baseline
+  // incremental = delta between consecutive months
+  // If the first month in range is also the very first month of data, skip it (no true prior)
+  const firstDataMonth = allMonthsSorted[0];
   const incData=cumData.map((v,i)=>{
+    if(i===0 && firstInRange===firstDataMonth) return null; // no prior month exists
     const prev=i>0?cumData[i-1]:baseline;
     return+(v-prev).toFixed(2);
   });
