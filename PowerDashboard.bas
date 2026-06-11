@@ -105,7 +105,7 @@ Sub RefreshPowerDashboard()
     '   AQ(43)= Chg Monthly Costs  AR(44)= Chg Contingency  AS(45)= Chg Earned Margin
     '   AT(46)= % Margin           AU(47)= Chg Earned Rev
 
-    lastRow  = wsData.UsedRange.Row + wsData.UsedRange.Rows.Count - 1
+    lastRow  = 10001   ' scan up to row 10001 (row 1 = header, rows 2-10001 = data)
     jsonArr  = "["
     Dim firstRec As Boolean
     firstRec = True
@@ -116,6 +116,8 @@ Sub RefreshPowerDashboard()
         Dim fullName As String
         projId   = Trim(CStr(wsData.Cells(i, 3).Value))   ' C = Project id
         fullName = Trim(CStr(wsData.Cells(i, 5).Value))   ' E = Client/Project name
+        ' Skip completely blank rows, header echoes, and placeholder zeros
+        If projId = "" And Trim(CStr(wsData.Cells(i, 2).Value)) = "" Then GoTo SkipRow
         If projId = "" Or projId = "Project" Or projId = "0" Then GoTo SkipRow
 
         ' ── Report Month → "YYYY-MM" ─────────────────────────────────────────
@@ -260,9 +262,11 @@ SkipRow:
     Print #fNum, html
     Close #fNum
 
+    Dim recCount As Long
+    recCount = (Len(jsonArr) - Len(Replace(jsonArr, "},{", ""))) + 1
+    If jsonArr = "[]" Then recCount = 0
     MsgBox "Dashboard data refreshed!" & vbCrLf & _
-           (lastRow - 1) & " rows scanned, " & _
-           (Len(jsonArr) - Len(Replace(jsonArr, "},{", ""))) + 1 & " records written." & vbCrLf & vbCrLf & _
+           recCount & " records written." & vbCrLf & vbCrLf & _
            "Click 'Open Dashboard' or refresh your browser to see the latest data.", _
            vbInformation, "Refresh Complete"
 End Sub
