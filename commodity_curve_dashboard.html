@@ -221,42 +221,42 @@
   <div class="kpi-grid">
     <div class="kpi-card" style="--accent-bar: var(--bl-color)">
       <div class="kpi-label">BL % Complete</div>
-      <div class="kpi-value" style="color:var(--bl-color)">7.3%</div>
-      <div class="kpi-sub">Planned through this week</div>
+      <div class="kpi-value" style="color:var(--bl-color)" id="kpi-bl">—</div>
+      <div class="kpi-sub" id="kpi-bl-sub">Planned through this week</div>
     </div>
     <div class="kpi-card" style="--accent-bar: var(--earned-color)">
       <div class="kpi-label">Earned % Complete</div>
-      <div class="kpi-value" style="color:var(--earned-color)">2.8%</div>
-      <div class="kpi-sub">vs BL 7.3%</div>
+      <div class="kpi-value" style="color:var(--earned-color)" id="kpi-earned">—</div>
+      <div class="kpi-sub" id="kpi-earned-sub">vs BL —</div>
     </div>
     <div class="kpi-card" style="--accent-bar: var(--spent-color)">
       <div class="kpi-label">Spent % Complete</div>
-      <div class="kpi-value" style="color:var(--spent-color)">1.0%</div>
+      <div class="kpi-value" style="color:var(--spent-color)" id="kpi-spent">—</div>
       <div class="kpi-sub">Hours burned to date</div>
     </div>
     <div class="kpi-card" style="--accent-bar: var(--green)">
       <div class="kpi-label">CPI</div>
-      <div class="kpi-value" style="color:var(--green)">2.76</div>
+      <div class="kpi-value" id="kpi-cpi">—</div>
       <div class="kpi-sub">Earned / Spent</div>
     </div>
     <div class="kpi-card" style="--accent-bar: var(--amber)">
       <div class="kpi-label">SPI</div>
-      <div class="kpi-value" style="color:var(--amber)">0.39</div>
+      <div class="kpi-value" id="kpi-spi">—</div>
       <div class="kpi-sub">Earned / BL (Schedule)</div>
     </div>
     <div class="kpi-card" style="--accent-bar: var(--bl-color)">
       <div class="kpi-label">BL FTE</div>
-      <div class="kpi-value" style="color:var(--bl-color)">177</div>
+      <div class="kpi-value" style="color:var(--bl-color)" id="kpi-fte-bl">—</div>
       <div class="kpi-sub">Planned headcount this week</div>
     </div>
     <div class="kpi-card" style="--accent-bar: var(--spent-color)">
       <div class="kpi-label">Actual FTE</div>
-      <div class="kpi-value" style="color:var(--spent-color)">43</div>
-      <div class="kpi-sub">24% of BL</div>
+      <div class="kpi-value" style="color:var(--spent-color)" id="kpi-fte-act">—</div>
+      <div class="kpi-sub" id="kpi-fte-act-sub">% of BL</div>
     </div>
     <div class="kpi-card" style="--accent-bar: var(--earned-color)">
       <div class="kpi-label">Earned FTE</div>
-      <div class="kpi-value" style="color:var(--earned-color)">70</div>
+      <div class="kpi-value" style="color:var(--earned-color)" id="kpi-fte-earn">—</div>
       <div class="kpi-sub">Productivity equivalent</div>
     </div>
   </div>
@@ -567,12 +567,13 @@ function updateSliderLabels() {
 }
 
 // ============================================================
-// STATS TILE  — reads directly from STATS_BY_DATE so values
-//               always match the graph arrays
+// STATS TILE + KPI CARDS — both driven by selectedWeekIdx / scSection
 // ============================================================
 function updateStatsTile() {
   const d = ALL_DATES[selectedWeekIdx];
-  const s = (STATS_BY_DATE[d] || {})[scSection] || {bl:0,earned:0,spent:0,cumu_pf:null};
+  const s = (STATS_BY_DATE[d] || {})[scSection] || {bl:0, earned:0, spent:0, cumu_pf:null};
+
+  // --- S-curve inner stats tile ---
   document.getElementById('tile-bl').textContent     = s.bl.toFixed(1) + '%';
   document.getElementById('tile-earned').textContent = s.earned.toFixed(1) + '%';
   document.getElementById('tile-spent').textContent  = s.spent.toFixed(1) + '%';
@@ -584,6 +585,38 @@ function updateStatsTile() {
     pfEl.textContent = '—';
     pfEl.style.color = '#94a3b8';
   }
+
+  // --- Top KPI cards ---
+  const cpi = s.spent > 0 ? (s.earned / s.spent) : null;
+  const spi = s.bl    > 0 ? (s.earned / s.bl)    : null;
+  const fmt1 = v => v !== null && v !== undefined ? v.toFixed(1) + '%' : '—';
+  const fmt2 = v => v !== null ? v.toFixed(2) : '—';
+  const fmtFTE = v => (v && v > 0) ? Math.round(v).toString() : '—';
+
+  document.getElementById('kpi-bl').textContent        = fmt1(s.bl);
+  document.getElementById('kpi-earned').textContent     = fmt1(s.earned);
+  document.getElementById('kpi-earned-sub').textContent = 'vs BL ' + fmt1(s.bl);
+  document.getElementById('kpi-spent').textContent      = fmt1(s.spent);
+
+  const cpiEl = document.getElementById('kpi-cpi');
+  cpiEl.textContent = fmt2(cpi);
+  cpiEl.style.color = cpi === null ? '#94a3b8' : cpi >= 1 ? '#22c55e' : '#ef4444';
+
+  const spiEl = document.getElementById('kpi-spi');
+  spiEl.textContent = fmt2(spi);
+  spiEl.style.color = spi === null ? '#94a3b8' : spi >= 1 ? '#22c55e' : '#f59e0b';
+
+  // FTE tiles — overall data from FTE arrays (not per-section)
+  const fteBL   = FTE.bl[selectedWeekIdx]     || 0;
+  const fteAct  = FTE.spent[selectedWeekIdx]  || 0;
+  const fteEarn = FTE.earned[selectedWeekIdx] || 0;
+  document.getElementById('kpi-fte-bl').textContent    = fmtFTE(fteBL);
+  document.getElementById('kpi-fte-earn').textContent  = fmtFTE(fteEarn);
+  const actEl = document.getElementById('kpi-fte-act');
+  actEl.textContent = fmtFTE(fteAct);
+  actEl.style.color = fteAct > 0 ? '#f59e0b' : '#94a3b8';
+  document.getElementById('kpi-fte-act-sub').textContent =
+    fteBL > 0 && fteAct > 0 ? Math.round(fteAct / fteBL * 100) + '% of BL' : '% of BL';
 }
 
 // ============================================================
