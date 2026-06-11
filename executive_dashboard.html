@@ -154,8 +154,8 @@ input.fs{width:90px;}
   .grid-2-1 { display: grid !important; grid-template-columns: 2fr 1fr !important; gap: 12px !important; }
   .kpi-grid { display: grid !important; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)) !important; gap: 10px !important; }
 
-  /* Charts replaced with img snapshots — let them size naturally */
-  .chart-wrap img { display: block; max-width: 100%; height: auto; }
+  /* Canvas charts print directly — no image swap needed */
+  canvas { display: block !important; }
 
   /* Tables */
   .data-table     { font-size: 9px !important; }
@@ -1578,69 +1578,37 @@ document.addEventListener('click',e=>{
 // PRINT
 // ============================================================
 function printDashboard(){
-  const btn   = document.querySelector('.print-btn');
-  const swaps = [];
+  const btn = document.querySelector('.print-btn');
   if(btn){ btn.textContent = 'Preparing…'; btn.disabled = true; }
 
-  // 1. Show all tabs so canvases have real pixel dimensions
+  // Show all tabs so every canvas has real pixel dimensions before rendering
   document.querySelectorAll('.tab-content').forEach(el => {
     if(!el.classList.contains('active')) el.classList.add('_print-show');
   });
-  void document.body.offsetHeight; // force reflow
+  void document.body.offsetHeight; // force reflow so offsetWidth/Height are accurate
 
-  // 2. Disable Chart.js animations so charts draw instantly (no waiting for transitions)
+  // Disable animations and render all tabs while canvases are visible & sized
   Chart.defaults.animation = false;
   Chart.defaults.animations = false;
-
-  // 3. Render every tab's charts while canvases are visible & correctly sized
   ['overview','jobs','projects','cashflow','wip'].forEach(id => renderTab(id));
 
-  // 4. Give charts time to finish drawing (animations off but still async)
-  setTimeout(() => {
+  // Resize all live charts to fit current (visible) dimensions, same as reference dashboard
+  Object.values(charts).forEach(c => { try { c.resize(); } catch(e){} });
 
-    // 5. Freeze each canvas as a pixel-perfect image of exactly what's on screen
-    document.querySelectorAll('.tab-content canvas').forEach(canvas => {
-      try {
-        const w = canvas.offsetWidth;
-        const h = canvas.offsetHeight;
-        if(!w || !h) return;
-
-        // Composite onto a temp canvas with the dark bg baked in
-        const tmp   = document.createElement('canvas');
-        tmp.width   = canvas.width;
-        tmp.height  = canvas.height;
-        const ctx   = tmp.getContext('2d');
-        ctx.fillStyle = '#0d1117';
-        ctx.fillRect(0, 0, tmp.width, tmp.height);
-        ctx.drawImage(canvas, 0, 0);
-
-        const img         = document.createElement('img');
-        img.src           = tmp.toDataURL('image/png');
-        img.style.width   = w + 'px';
-        img.style.height  = h + 'px';
-        img.style.display = 'block';
-        canvas.parentNode.insertBefore(img, canvas);
-        canvas.style.display = 'none';
-        swaps.push({ canvas, img });
-      } catch(e) {}
-    });
-
-    // 5. Print — images render identically to the screen version
-    if(btn){ btn.textContent = '🖨 Print / Export PDF'; btn.disabled = false; }
-    window.print();
-
-    // 6. Restore canvases and hide extra tabs
-    swaps.forEach(({ canvas, img }) => {
-      img.remove();
-      canvas.style.display = '';
-    });
-    document.querySelectorAll('.tab-content._print-show').forEach(el => {
-      el.classList.remove('_print-show');
-    });
-    const active = document.querySelector('.tab-content.active');
-    if(active) renderTab(active.id.replace('tab-',''));
-  }, 300);
+  if(btn){ btn.textContent = '🖨 Print / Export PDF'; btn.disabled = false; }
+  window.print();
+  // afterprint listener handles cleanup
 }
+
+window.addEventListener('afterprint', () => {
+  document.querySelectorAll('.tab-content._print-show').forEach(el => {
+    el.classList.remove('_print-show');
+  });
+  Chart.defaults.animation = {};
+  Chart.defaults.animations = {};
+  const active = document.querySelector('.tab-content.active');
+  if(active) renderTab(active.id.replace('tab-',''));
+});
 
 // ============================================================
 // INIT
