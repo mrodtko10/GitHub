@@ -154,12 +154,8 @@ input.fs{width:90px;}
   .grid-2-1 { display: grid !important; grid-template-columns: 2fr 1fr !important; gap: 12px !important; }
   .kpi-grid { display: grid !important; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)) !important; gap: 10px !important; }
 
-  /* Chart heights — keep natural screen dimensions so charts aren't distorted */
-  .h220 { height: 220px !important; }
-  .h260 { height: 260px !important; }
-  .h300 { height: 300px !important; }
-  .h340 { height: 340px !important; }
-  .h380 { height: 380px !important; }
+  /* Charts replaced with img snapshots — let them size naturally */
+  .chart-wrap img { display: block; max-width: 100%; height: auto; }
 
   /* Tables */
   .data-table     { font-size: 9px !important; }
@@ -1582,40 +1578,65 @@ document.addEventListener('click',e=>{
 // PRINT
 // ============================================================
 function printDashboard(){
-  const btn = document.querySelector('.print-btn');
+  const btn   = document.querySelector('.print-btn');
+  const swaps = [];
   if(btn){ btn.textContent = 'Preparing…'; btn.disabled = true; }
 
-  // Step 1 — reveal every tab so canvases have real pixel dimensions
+  // 1. Show all tabs so canvases have real pixel dimensions
   document.querySelectorAll('.tab-content').forEach(el => {
     if(!el.classList.contains('active')) el.classList.add('_print-show');
   });
+  void document.body.offsetHeight; // force reflow
 
-  // Step 2 — force a synchronous reflow so the browser assigns sizes
-  void document.body.offsetHeight;
-
-  // Step 3 — render charts for every tab (they need visible canvases to draw)
+  // 2. Render every tab's charts while canvases are visible & correctly sized
   ['overview','jobs','projects','cashflow','wip'].forEach(id => renderTab(id));
 
-  // Step 4 — charts are already drawn at their screen dimensions; no resize needed
-  // (resizing distorts aspect ratios in print — print-color-adjust preserves them as-is)
+  // 3. Wait two frames so Chart.js finishes painting all charts
+  requestAnimationFrame(() => requestAnimationFrame(() => {
 
-  // Step 5 — give the browser one animation frame to finish painting, then print
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      if(btn){ btn.textContent = '🖨 Print / Export PDF'; btn.disabled = false; }
-      window.print();
+    // 4. Freeze each canvas as a pixel-perfect image of exactly what's on screen
+    document.querySelectorAll('.tab-content canvas').forEach(canvas => {
+      try {
+        const w = canvas.offsetWidth;
+        const h = canvas.offsetHeight;
+        if(!w || !h) return;
+
+        // Composite onto a temp canvas with the dark bg baked in
+        const tmp   = document.createElement('canvas');
+        tmp.width   = canvas.width;
+        tmp.height  = canvas.height;
+        const ctx   = tmp.getContext('2d');
+        ctx.fillStyle = '#0d1117';
+        ctx.fillRect(0, 0, tmp.width, tmp.height);
+        ctx.drawImage(canvas, 0, 0);
+
+        const img         = document.createElement('img');
+        img.src           = tmp.toDataURL('image/png');
+        img.style.width   = w + 'px';
+        img.style.height  = h + 'px';
+        img.style.display = 'block';
+        canvas.parentNode.insertBefore(img, canvas);
+        canvas.style.display = 'none';
+        swaps.push({ canvas, img });
+      } catch(e) {}
     });
-  });
-}
 
-// After the print dialog closes — hide extra tabs and restore active tab charts
-window.addEventListener('afterprint', () => {
-  document.querySelectorAll('.tab-content._print-show').forEach(el => {
-    el.classList.remove('_print-show');
-  });
-  const active = document.querySelector('.tab-content.active');
-  if(active) renderTab(active.id.replace('tab-',''));
-});
+    // 5. Print — images render identically to the screen version
+    if(btn){ btn.textContent = '🖨 Print / Export PDF'; btn.disabled = false; }
+    window.print();
+
+    // 6. Restore canvases and hide extra tabs
+    swaps.forEach(({ canvas, img }) => {
+      img.remove();
+      canvas.style.display = '';
+    });
+    document.querySelectorAll('.tab-content._print-show').forEach(el => {
+      el.classList.remove('_print-show');
+    });
+    const active = document.querySelector('.tab-content.active');
+    if(active) renderTab(active.id.replace('tab-',''));
+  }));
+}
 
 // ============================================================
 // INIT
