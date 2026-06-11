@@ -120,58 +120,7 @@ input.fs{width:90px;}
 .bar-val{width:75px;text-align:right;font-size:11px;color:var(--muted);flex-shrink:0;}
 .bar-pct{width:45px;text-align:right;font-size:11px;flex-shrink:0;}
 
-/* PRINT BUTTON */
-.print-btn{margin-left:12px;background:none;border:1px solid var(--border);color:var(--muted);font-size:12px;padding:6px 14px;border-radius:6px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px;white-space:nowrap;}
-.print-btn:hover{border-color:var(--accent2);color:var(--accent2);}
 
-/* ── PRINT STYLES ──────────────────────────────────────────────────────────── */
-@page { size: 17in 11in; margin: 8mm; }
-@media print {
-  /* Force exact color reproduction — preserves dark theme & chart colors */
-  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; box-sizing: border-box; }
-
-  /* Hide chrome */
-  nav, .filter-bar, .print-btn { display: none !important; }
-
-  /* Show all tabs, each starting on a new page */
-  .tab-content                 { display: none !important; }
-  .tab-content.active          { display: block !important; }
-  .tab-content._print-show     { display: block !important; page-break-before: always; break-before: page; }
-
-  /* Dark theme preserved */
-  body                         { background: #0d1117 !important; color: #e6edf3 !important; font-size: 11px; }
-  .card                        { background: #161b22 !important; border: 1px solid #30363d !important;
-                                  border-radius: 6px; break-inside: avoid; page-break-inside: avoid; }
-  .kpi                         { background: #161b22 !important; border: 1px solid #30363d !important; break-inside: avoid; }
-
-  /* Hide interactive controls */
-  .ms-dropdown, .ms-btn, .chart-slicer, .filter-count, .alert { display: none !important; }
-
-  /* Grids */
-  .grid-2   { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 12px !important; }
-  .grid-3   { display: grid !important; grid-template-columns: 1fr 1fr 1fr !important; gap: 12px !important; }
-  .grid-4   { display: grid !important; grid-template-columns: repeat(4,1fr) !important; gap: 10px !important; }
-  .grid-2-1 { display: grid !important; grid-template-columns: 2fr 1fr !important; gap: 12px !important; }
-  .kpi-grid { display: grid !important; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)) !important; gap: 10px !important; }
-
-  /* Lock chart container heights so c.resize() doesn't compress them */
-  .h220 { height: 220px !important; }
-  .h260 { height: 260px !important; }
-  .h300 { height: 300px !important; }
-  .h340 { height: 340px !important; }
-  .chart-wrap canvas { max-width: 100% !important; }
-
-  /* Tables */
-  .data-table     { font-size: 9px !important; }
-  .data-table th  { font-size: 8px !important; padding: 5px 7px !important; }
-  .data-table td  { padding: 5px 7px !important; }
-
-  /* Spacing */
-  .tab-content    { padding: 14px !important; }
-  .mb             { margin-bottom: 12px !important; }
-  .section-header { margin-bottom: 12px !important; }
-  .card, .kpi, .bar-row { break-inside: avoid; page-break-inside: avoid; }
-}
 </style>
 </head>
 <body>
@@ -184,7 +133,6 @@ input.fs{width:90px;}
   <button class="tab-btn" onclick="showTab('cashflow',this)">Cash &amp; Billing</button>
   <button class="tab-btn" onclick="showTab('wip',this)">Preliminary WIP</button>
   <div class="nav-right" id="navRight"></div>
-  <button class="print-btn" onclick="printDashboard()">&#128438; Print / Export PDF</button>
 </nav>
 
 <div class="filter-bar">
@@ -1578,40 +1526,6 @@ document.addEventListener('click',e=>{
     document.querySelectorAll('.ms-dropdown.open').forEach(el=>el.classList.remove('open'));
 });
 
-// ============================================================
-// PRINT
-// ============================================================
-function printDashboard(){
-  const btn = document.querySelector('.print-btn');
-  if(btn){ btn.textContent = 'Preparing…'; btn.disabled = true; }
-
-  // Show all tabs before opening print dialog
-  document.querySelectorAll('.tab-content').forEach(el => {
-    if(!el.classList.contains('active')) el.classList.add('_print-show');
-  });
-  void document.body.offsetHeight;
-
-  if(btn){ btn.textContent = '🖨 Print / Export PDF'; btn.disabled = false; }
-  window.print();
-  // beforeprint fires synchronously inside the print pipeline and redraws charts
-  // afterprint cleans up
-}
-
-window.addEventListener('beforeprint', () => {
-  // Show all tabs in case printDashboard wasn't used (Ctrl+P)
-  document.querySelectorAll('.tab-content').forEach(el => {
-    if(!el.classList.contains('active')) el.classList.add('_print-show');
-  });
-  void document.body.offsetHeight;
-  // c.resize() redraws synchronously — charts are fully painted before browser captures page
-  Object.values(charts).forEach(c => { try{ c.resize(); }catch(e){} });
-});
-
-window.addEventListener('afterprint', () => {
-  document.querySelectorAll('.tab-content._print-show').forEach(el => el.classList.remove('_print-show'));
-  const active = document.querySelector('.tab-content.active');
-  if(active) renderTab(active.id.replace('tab-',''));
-});
 
 // ============================================================
 // INIT
@@ -1636,26 +1550,6 @@ window.addEventListener('DOMContentLoaded',()=>{
   populateJobDropdown();
   updateFilterCount();
   renderOverview();
-
-  // Pre-render all other tabs off-screen so their charts are ready before print is clicked.
-  // Canvas pixels survive display:none — charts won't need to re-draw on print.
-  setTimeout(() => {
-    ['jobs','projects','cashflow','wip'].forEach(id => {
-      const el = document.getElementById('tab-' + id);
-      if(!el) return;
-      el.style.position   = 'absolute';
-      el.style.left       = '-9999px';
-      el.style.display    = 'block';
-      void el.offsetHeight;
-      try { renderTab(id); } catch(e){}
-      // keep display:block briefly so Chart.js finishes painting, then hide
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        el.style.display  = '';
-        el.style.position = '';
-        el.style.left     = '';
-      }));
-    });
-  }, 800);
 });
 </script>
 </body>
