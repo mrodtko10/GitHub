@@ -1591,39 +1591,39 @@ function printDashboard(){
   // 2. Disable animations and (re)render every tab's charts
   Chart.defaults.animation  = false;
   Chart.defaults.animations = false;
-  ['overview','jobs','projects','cashflow','wip'].forEach(id => renderTab(id));
+  ['overview','jobs','projects','cashflow','wip'].forEach(id => { try { renderTab(id); } catch(e){ console.warn('renderTab error',id,e); } });
   Object.values(charts).forEach(c => { try { c.resize(); } catch(e){} });
 
   // 3. Wait for Chart.js to finish drawing, then snapshot each canvas to an <img>
-  //    (browser print layout can clear/resize canvases, so freeze them first)
   setTimeout(() => {
-    document.querySelectorAll('.tab-content canvas').forEach(canvas => {
-      try {
-        const pw = canvas.width;
-        const ph = canvas.height;
-        if(!pw || !ph) return;
-        const tmp = document.createElement('canvas');
-        tmp.width  = pw;
-        tmp.height = ph;
-        const ctx  = tmp.getContext('2d');
-        ctx.fillStyle = '#0d1117';
-        ctx.fillRect(0, 0, pw, ph);
-        ctx.drawImage(canvas, 0, 0);
-        const img        = document.createElement('img');
-        img.src          = tmp.toDataURL('image/png');
-        img.style.width  = canvas.offsetWidth  + 'px';
-        img.style.height = canvas.offsetHeight + 'px';
-        img.style.display = 'block';
-        canvas.parentNode.insertBefore(img, canvas);
-        canvas.style.display = 'none';
-        swaps.push({ canvas, img });
-      } catch(e){}
-    });
+    try {
+      document.querySelectorAll('.tab-content canvas').forEach(canvas => {
+        try {
+          const pw = canvas.width;
+          const ph = canvas.height;
+          if(!pw || !ph) return;
+          const tmp = document.createElement('canvas');
+          tmp.width  = pw;
+          tmp.height = ph;
+          const ctx  = tmp.getContext('2d');
+          ctx.fillStyle = '#0d1117';
+          ctx.fillRect(0, 0, pw, ph);
+          ctx.drawImage(canvas, 0, 0);
+          const img        = document.createElement('img');
+          img.src          = tmp.toDataURL('image/png');
+          img.style.width  = (canvas.offsetWidth  || pw) + 'px';
+          img.style.height = (canvas.offsetHeight || ph) + 'px';
+          img.style.display = 'block';
+          canvas.parentNode.insertBefore(img, canvas);
+          canvas.style.display = 'none';
+          swaps.push({ canvas, img });
+        } catch(e){ console.warn('canvas capture error',e); }
+      });
+    } catch(e){ console.warn('print capture error',e); }
 
     if(btn){ btn.textContent = '🖨 Print / Export PDF'; btn.disabled = false; }
     window.print();
 
-    // Restore immediately after dialog closes
     swaps.forEach(({ canvas, img }) => { img.remove(); canvas.style.display = ''; });
     document.querySelectorAll('.tab-content._print-show').forEach(el => el.classList.remove('_print-show'));
     Chart.defaults.animation  = {};
