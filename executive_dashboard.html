@@ -172,21 +172,6 @@ input.fs{width:90px;}
       <div class="ms-dropdown" id="msDdClient">
         <div class="ms-all"><span onclick="selectAllMs('Client')">All</span><span onclick="clearMs('Client')">Clear</span></div>
         <div class="ms-divider"></div>
-        <label class="ms-option"><input type="checkbox" value="AP Sunray" onchange="msChanged('Client')"> AP Sunray</label>
-        <label class="ms-option"><input type="checkbox" value="Arava Power" onchange="msChanged('Client')"> Arava Power</label>
-        <label class="ms-option"><input type="checkbox" value="CHEVRON" onchange="msChanged('Client')"> CHEVRON</label>
-        <label class="ms-option"><input type="checkbox" value="Enfinity" onchange="msChanged('Client')"> Enfinity</label>
-        <label class="ms-option"><input type="checkbox" value="Entergy" onchange="msChanged('Client')"> Entergy</label>
-        <label class="ms-option"><input type="checkbox" value="Hyundia" onchange="msChanged('Client')"> Hyundia</label>
-        <label class="ms-option"><input type="checkbox" value="Leyline" onchange="msChanged('Client')"> Leyline</label>
-        <label class="ms-option"><input type="checkbox" value="NextEra" onchange="msChanged('Client')"> NextEra</label>
-        <label class="ms-option"><input type="checkbox" value="PGR" onchange="msChanged('Client')"> PGR</label>
-        <label class="ms-option"><input type="checkbox" value="Peregrine" onchange="msChanged('Client')"> Peregrine</label>
-        <label class="ms-option"><input type="checkbox" value="Silicon Ranch" onchange="msChanged('Client')"> Silicon Ranch</label>
-        <label class="ms-option"><input type="checkbox" value="Stellar" onchange="msChanged('Client')"> Stellar</label>
-        <label class="ms-option"><input type="checkbox" value="Treaty Oaks" onchange="msChanged('Client')"> Treaty Oaks</label>
-        <label class="ms-option"><input type="checkbox" value="Urban Grid" onchange="msChanged('Client')"> Urban Grid</label>
-        <label class="ms-option"><input type="checkbox" value="Vanguard" onchange="msChanged('Client')"> Vanguard</label>
       </div>
     </div>
   </div>
@@ -609,45 +594,71 @@ function updateMetricInputs(){
   applyFilters();
 }
 
-function populateYearDropdown(){
-  const dd=document.getElementById('msDdYear');
+// Rebuild a dropdown with new values, preserving checked state for values that still exist
+function rebuildDropdown(name, values, labelFn){
+  const dd = document.getElementById('msDd'+name);
+  const prev = new Set(getMsValues(name)); // currently checked
   dd.querySelectorAll('.ms-option').forEach(el=>el.remove());
-  const years=[...new Set(ALL_DATA.map(p=>'20'+(p.id.split('-')[0]||'')))].sort();
-  years.forEach(yr=>{
-    const lbl=document.createElement('label');
-    lbl.className='ms-option';
-    lbl.innerHTML=`<input type="checkbox" value="${yr}" onchange="msChanged('Year')"> ${yr}`;
+  values.forEach(v=>{
+    const lbl = document.createElement('label');
+    lbl.className = 'ms-option';
+    lbl.innerHTML = `<input type="checkbox" value="${v}" onchange="msChanged('${name}')">${labelFn ? labelFn(v) : ' '+v}`;
+    if(prev.has(v)) lbl.querySelector('input').checked = true;
     dd.appendChild(lbl);
+  });
+  // update button label
+  const checked = getMsValues(name);
+  const btn = document.getElementById('msBtn'+name);
+  if(btn) btn.textContent = checked.length===0 ? 'All' : checked.length===1 ? checked[0] : checked.length+' selected';
+}
+
+// Filter ALL_DATA by all filters EXCEPT the one named `exclude`
+function getRowsExcluding(exclude){
+  const f = getF();
+  return ALL_DATA.filter(p => {
+    if(exclude!=='Status'  && f.statuses.length && !f.statuses.includes(LATEST_STATUS[p.id])) return false;
+    if(exclude!=='Client'  && f.clients.length  && !f.clients.includes(p.client))  return false;
+    if(exclude!=='Year'    && f.years.length){
+      const yr = '20'+(p.id.split('-')[0]||'');
+      if(!f.years.includes(yr)) return false;
+    }
+    if(exclude!=='Job'     && f.jobs.length     && !f.jobs.includes(p.id))         return false;
+    return true;
   });
 }
 
-function populateJobDropdown(){
-  const dd = document.getElementById('msDdJob');
-  // Keep header rows, rebuild options
-  const header = dd.querySelector('.ms-all');
-  const divider = dd.querySelector('.ms-divider');
-  // Remove old checkboxes
-  dd.querySelectorAll('.ms-option').forEach(el=>el.remove());
-  const ids = [...new Set(ALL_DATA.map(p=>p.id))].sort();
-  ids.forEach(id=>{
-    const name = ALL_DATA.find(p=>p.id===id)?.name||id;
-    const lbl = document.createElement('label');
-    lbl.className='ms-option';
-    lbl.innerHTML=`<input type="checkbox" value="${id}" onchange="msChanged('Job')"> ${id} — ${name.split('/').pop().trim()}`;
-    dd.appendChild(lbl);
-  });
+function refreshCascadingDropdowns(){
+  // Client
+  const clientRows = getRowsExcluding('Client');
+  const clients = [...new Set(clientRows.map(p=>p.client))].filter(Boolean).sort();
+  rebuildDropdown('Client', clients, v => ' '+v);
+
+  // Year
+  const yearRows = getRowsExcluding('Year');
+  const years = [...new Set(yearRows.map(p=>'20'+(p.id.split('-')[0]||'')))].sort();
+  rebuildDropdown('Year', years, v => ' '+v);
+
+  // Job
+  const jobRows = getRowsExcluding('Job');
+  const jobIds = [...new Set(jobRows.map(p=>p.id))].sort((a,b)=>b.localeCompare(a));
+  const nameMap = {};
+  ALL_DATA.forEach(p=>{ if(!nameMap[p.id]) nameMap[p.id]=p.name; });
+  rebuildDropdown('Job', jobIds, id => ` ${id} — ${(nameMap[id]||id).split('/').pop().trim()}`);
 }
+
+function populateYearDropdown(){ refreshCascadingDropdowns(); }
+function populateJobDropdown(){  refreshCascadingDropdowns(); }
 
 function resetFilters(){
   document.getElementById('fMonth').value=ALL_MONTHS[ALL_MONTHS.length-1];
-  ['Status','Client','Year','Job'].forEach(n=>{
-    clearMs(n);
-  });
+  ['Status','Client','Year','Job'].forEach(n=>clearMs(n));
   document.getElementById('fMetricType').value='';
   document.getElementById('fMetricOp').value='gte';
   document.getElementById('fMetricVal1').value='';
   document.getElementById('fMetricVal2').value='';
   updateMetricInputs();
+  refreshCascadingDropdowns();
+  applyFilters();
 }
 
 
@@ -1507,6 +1518,7 @@ function msChanged(name){
   const btn=document.getElementById('msBtn'+name);
   if(checked.length===0){btn.textContent='All';btn.classList.remove('active-filter');}
   else{btn.textContent=checked.length===1?checked[0]:checked.length+' selected';btn.classList.add('active-filter');}
+  refreshCascadingDropdowns();
   applyFilters();
 }
 function getMsValues(name){
