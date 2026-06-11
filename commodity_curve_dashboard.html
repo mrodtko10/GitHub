@@ -20,7 +20,7 @@
     --text: #e2e8f0;
     --muted: #94a3b8;
     --bl-color: #3b82f6;
-    --spent-color: #f59e0b;
+    --spent-color: #ef4444;
     --earned-color: #22c55e;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -163,32 +163,42 @@
   .sc-controls { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 14px; align-items: flex-start; }
   .sc-control-group { display: flex; flex-direction: column; gap: 6px; }
 
-  /* Dual range sliders */
+  /* Dual range sliders — scrollbar style */
   .slider-group { margin-bottom: 10px; }
   .slider-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
   .slider-val { color: var(--text); font-weight: 600; }
-  .dual-slider { position: relative; height: 20px; }
+  .dual-slider {
+    position: relative; height: 22px;
+    background: #11132a; border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+  /* filled track drawn as a pseudo-element overlay — updated via JS */
+  .dual-slider::before {
+    content:''; position:absolute; top:0; bottom:0;
+    background: rgba(59,130,246,0.18); border-radius:3px;
+    pointer-events:none; z-index:0;
+  }
   .dual-slider input[type=range] {
-    position: absolute; width: 100%; height: 4px;
+    position: absolute; width: 100%; height: 22px;
     -webkit-appearance: none; appearance: none;
     background: transparent; pointer-events: none;
-    outline: none; top: 8px;
+    outline: none; top: 0; margin: 0; padding: 0;
   }
   .dual-slider input[type=range]::-webkit-slider-thumb {
     -webkit-appearance: none; appearance: none;
-    width: 14px; height: 14px; border-radius: 50%;
-    background: var(--accent); cursor: pointer;
-    pointer-events: all; border: 2px solid var(--bg);
-    box-shadow: 0 0 0 2px var(--accent);
-    transition: transform .1s;
+    width: 12px; height: 22px; border-radius: 3px;
+    background: #5b6a9a;
+    cursor: ew-resize;
+    pointer-events: all;
+    border: none;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15);
+    transition: background .15s;
   }
-  .dual-slider input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+  .dual-slider input[type=range]::-webkit-slider-thumb:hover { background: #7b8fcc; }
   .dual-slider input[type=range]::-moz-range-thumb {
-    width: 14px; height: 14px; border-radius: 50%;
-    background: var(--accent); cursor: pointer; pointer-events: all;
-    border: 2px solid var(--bg);
+    width: 12px; height: 22px; border-radius: 3px;
+    background: #5b6a9a; cursor: ew-resize; pointer-events: all; border: none;
   }
-  /* Track styling via gradient set in JS */
   .tab.inactive { opacity: 0.4; }
 
   @media (max-width: 900px) {
@@ -308,7 +318,7 @@
           <span>Date Range</span>
           <span id="dateRangeLabel" class="slider-val"></span>
         </div>
-        <div class="dual-slider">
+        <div class="dual-slider" id="dateSliderTrack">
           <input type="range" id="dateMin" min="0" max="97" value="0" oninput="updateSCurve()">
           <input type="range" id="dateMax" min="0" max="97" value="97" oninput="updateSCurve()">
         </div>
@@ -320,7 +330,7 @@
           <span>% Range</span>
           <span id="pctRangeLabel" class="slider-val"></span>
         </div>
-        <div class="dual-slider">
+        <div class="dual-slider" id="pctSliderTrack">
           <input type="range" id="pctMin" min="0" max="100" value="0" oninput="updateSCurve()">
           <input type="range" id="pctMax" min="0" max="100" value="100" oninput="updateSCurve()">
         </div>
@@ -557,11 +567,22 @@ function getSliderVals() {
   return { dMin, dMax, pMin, pMax };
 }
 
+function paintSliderTrack(minId, maxId, trackId, minVal, maxVal, totalRange) {
+  const el = document.getElementById(trackId);
+  if (!el) return;
+  const lo = Math.min(minVal, maxVal) / totalRange * 100;
+  const hi = Math.max(minVal, maxVal) / totalRange * 100;
+  el.style.background =
+    `linear-gradient(to right, #11132a ${lo}%, rgba(59,130,246,0.28) ${lo}%, rgba(59,130,246,0.28) ${hi}%, #11132a ${hi}%)`;
+}
+
 function updateSliderLabels() {
   const { dMin, dMax, pMin, pMax } = getSliderVals();
   document.getElementById('dateRangeLabel').textContent =
     ALL_DATES[dMin].slice(0,7) + ' → ' + ALL_DATES[dMax].slice(0,7);
   document.getElementById('pctRangeLabel').textContent = pMin + '% → ' + pMax + '%';
+  paintSliderTrack('dateMin','dateMax','dateSliderTrack', dMin, dMax, 97);
+  paintSliderTrack('pctMin','pctMax','pctSliderTrack',   pMin, pMax, 100);
 }
 
 // ============================================================
@@ -636,8 +657,8 @@ const scChart = new Chart(scCtx, {
          borderWidth:2.5, pointRadius:0, pointHoverRadius:4,
          spanGaps:false, yAxisID:'y' },
       { label:'Spent %', data:[],
-         borderColor:'#f59e0b', fill:false, tension:0.3,
-         borderWidth:2, borderDash:[5,3],
+         borderColor:'#ef4444', fill:false, tension:0.3,
+         borderWidth:2, borderDash:[],
          pointRadius:0, pointHoverRadius:4,
          spanGaps:false, yAxisID:'y' },
       { label:'Cum. PF', data:[],
@@ -657,6 +678,18 @@ const scChart = new Chart(scCtx, {
     interaction:{ mode:'index', intersect:false },
     plugins:{
       legend:{ display:false },
+      annotation:{
+        annotations:{
+          pf1Line:{
+            type:'line', yMin:1, yMax:1, yScaleID:'yPF',
+            borderColor:'rgba(167,139,250,0.45)', borderWidth:1.5,
+            borderDash:[4,4],
+            label:{ content:'PF = 1.0', display:true, position:'end',
+                    backgroundColor:'transparent', color:'rgba(167,139,250,0.7)',
+                    font:{size:9}, padding:2 }
+          }
+        }
+      },
       tooltip:{
         backgroundColor:'#1e2235', borderColor:'#2a2d45', borderWidth:1,
         callbacks:{
@@ -716,6 +749,7 @@ function updateSCurve() {
   scChart.options.scales.y.min = pMin;
   scChart.options.scales.y.max = pMax === 0 ? 1 : pMax;
   scChart.options.scales.yPF.display = showPF;
+  scChart.options.plugins.annotation.annotations.pf1Line.display = showPF;
   scChart.update('none');
   updateStatsTile();
 }
