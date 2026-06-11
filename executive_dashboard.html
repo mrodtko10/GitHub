@@ -1581,28 +1581,18 @@ function printDashboard(){
   const btn = document.querySelector('.print-btn');
   if(btn){ btn.textContent = 'Preparing…'; btn.disabled = true; }
 
-  // Show all tabs so every canvas has real pixel dimensions
+  // Show all tabs — their charts are already pre-rendered at page load
   document.querySelectorAll('.tab-content').forEach(el => {
     if(!el.classList.contains('active')) el.classList.add('_print-show');
   });
   void document.body.offsetHeight;
 
-  // Disable animations so charts draw on first frame, then render all tabs
-  Chart.defaults.animation  = false;
-  Chart.defaults.animations = false;
-  ['overview','jobs','projects','cashflow','wip'].forEach(id => { try{ renderTab(id); }catch(e){} });
+  // Resize charts to fit the now-visible print dimensions
   Object.values(charts).forEach(c => { try{ c.resize(); }catch(e){} });
 
-  // Chain enough animation frames to guarantee all Chart.js draws have completed
-  function waitFrames(n, done){
-    if(n <= 0){ done(); return; }
-    requestAnimationFrame(() => waitFrames(n - 1, done));
-  }
-
-  waitFrames(6, () => {
+  requestAnimationFrame(() => {
     if(btn){ btn.textContent = '🖨 Print / Export PDF'; btn.disabled = false; }
     window.print();
-    // afterprint handles cleanup
   });
 }
 
@@ -1637,6 +1627,26 @@ window.addEventListener('DOMContentLoaded',()=>{
   populateJobDropdown();
   updateFilterCount();
   renderOverview();
+
+  // Pre-render all other tabs off-screen so their charts are ready before print is clicked.
+  // Canvas pixels survive display:none — charts won't need to re-draw on print.
+  setTimeout(() => {
+    ['jobs','projects','cashflow','wip'].forEach(id => {
+      const el = document.getElementById('tab-' + id);
+      if(!el) return;
+      el.style.position   = 'absolute';
+      el.style.left       = '-9999px';
+      el.style.display    = 'block';
+      void el.offsetHeight;
+      try { renderTab(id); } catch(e){}
+      // keep display:block briefly so Chart.js finishes painting, then hide
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        el.style.display  = '';
+        el.style.position = '';
+        el.style.left     = '';
+      }));
+    });
+  }, 800);
 });
 </script>
 </body>
