@@ -125,66 +125,52 @@ input.fs{width:90px;}
 .print-btn:hover{border-color:var(--accent2);color:var(--accent2);}
 
 /* ── PRINT STYLES ──────────────────────────────────────────────────────────── */
+@page { size: 17in 11in; margin: 8mm; }
 @media print {
-  @page {
-    size: 17in 11in;   /* 11x17 landscape */
-    margin: 0.35in 0.4in;
-  }
+  /* Force exact color reproduction — preserves dark theme & chart colors */
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; box-sizing: border-box; }
 
   /* Hide chrome */
   nav, .filter-bar, .print-btn { display: none !important; }
 
-  /* Show all tabs for printing, each on its own page */
+  /* Show all tabs, each starting on a new page */
   .tab-content                 { display: none !important; }
-  .tab-content.active,
-  .tab-content._print-show     { display: block !important; }
-  .tab-content.active          { page-break-before: avoid; }
-  .tab-content._print-show     { page-break-before: always; break-before: page; }
+  .tab-content.active          { display: block !important; }
+  .tab-content._print-show     { display: block !important; page-break-before: always; break-before: page; }
 
-  /* Keep dark theme — charts are captured with dark bg baked in */
-  body, .tab-content           { background: #0d1117 !important; color: #e6edf3 !important; }
+  /* Dark theme preserved */
+  body                         { background: #0d1117 !important; color: #e6edf3 !important; font-size: 11px; }
   .card                        { background: #161b22 !important; border: 1px solid #30363d !important;
                                   border-radius: 6px; break-inside: avoid; page-break-inside: avoid; }
-  .kpi                         { background: #161b22 !important; border: 1px solid #30363d !important;
-                                  break-inside: avoid; }
-  .ms-dropdown, .ms-btn,
-  .chart-slicer                { display: none !important; }
-  .filter-count                { display: none !important; }
-  .alert                       { display: none !important; }
-  /* Add a tab title above each section */
-  .tab-content._print-show .section-header,
-  .tab-content.active .section-header { display: block !important; }
+  .kpi                         { background: #161b22 !important; border: 1px solid #30363d !important; break-inside: avoid; }
 
-  /* Grids — keep 2-col / 3-col layouts on wide paper */
+  /* Hide interactive controls */
+  .ms-dropdown, .ms-btn, .chart-slicer, .filter-count, .alert { display: none !important; }
+
+  /* Grids */
   .grid-2   { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 12px !important; }
   .grid-3   { display: grid !important; grid-template-columns: 1fr 1fr 1fr !important; gap: 12px !important; }
   .grid-4   { display: grid !important; grid-template-columns: repeat(4,1fr) !important; gap: 10px !important; }
   .grid-2-1 { display: grid !important; grid-template-columns: 2fr 1fr !important; gap: 12px !important; }
   .kpi-grid { display: grid !important; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)) !important; gap: 10px !important; }
 
-  /* Chart heights — slightly reduced so they fit with labels */
+  /* Chart heights */
   .h220 { height: 190px !important; }
   .h260 { height: 210px !important; }
   .h300 { height: 240px !important; }
-  .h340 { height: 270px !important; }
-  .h380 { height: 300px !important; }
+  .h340 { height: 260px !important; }
+  .h380 { height: 290px !important; }
 
-  /* Converted canvas → img fills its container */
-  .chart-wrap img { width: 100% !important; height: 100% !important; object-fit: contain; display: block; }
-
-  /* Tables — tighter font for dense data */
-  .data-table { font-size: 9px !important; }
-  .data-table th { font-size: 8px !important; padding: 5px 7px !important; }
-  .data-table td { padding: 5px 7px !important; }
+  /* Tables */
+  .data-table     { font-size: 9px !important; }
+  .data-table th  { font-size: 8px !important; padding: 5px 7px !important; }
+  .data-table td  { padding: 5px 7px !important; }
 
   /* Spacing */
-  .tab-content { padding: 16px !important; }
-  .mb          { margin-bottom: 12px !important; }
+  .tab-content    { padding: 14px !important; }
+  .mb             { margin-bottom: 12px !important; }
   .section-header { margin-bottom: 12px !important; }
-
-  /* Prevent page breaks inside cards/rows */
   .card, .kpi, .bar-row { break-inside: avoid; page-break-inside: avoid; }
-  .grid-2, .grid-3, .grid-4, .kpi-grid { break-inside: avoid; }
 }
 </style>
 </head>
@@ -1596,59 +1582,34 @@ document.addEventListener('click',e=>{
 // PRINT
 // ============================================================
 function printDashboard(){
-  const swaps  = [];
-  const hidden = [];
+  window.print();
+}
 
-  // Step 1: Make ALL tabs visible FIRST so Chart.js can measure canvas dimensions
+// Before the browser's print dialog opens:
+// show all tabs, render their charts, then resize all charts to fit print layout
+window.addEventListener('beforeprint', () => {
+  // Show every tab so canvases have real dimensions
   document.querySelectorAll('.tab-content').forEach(el => {
-    if(!el.classList.contains('active')){
-      el.classList.add('_print-show');
-      hidden.push(el);
-    }
+    if(!el.classList.contains('active')) el.classList.add('_print-show');
   });
+  void document.body.offsetHeight; // force reflow
 
-  // Step 2: Force a reflow so the browser assigns real pixel dimensions to canvases
-  void document.body.offsetHeight;
-
-  // Step 3: NOW render every tab — canvases have proper size so charts draw correctly
+  // Render any tab that hasn't been viewed yet
   ['overview','jobs','projects','cashflow','wip'].forEach(id => renderTab(id));
 
-  // Step 4: Capture each canvas — composite dark bg + chart into a temp canvas
-  //         so the image looks identical to the on-screen version
-  document.querySelectorAll('.tab-content canvas').forEach(canvas => {
-    try {
-      const w = canvas.offsetWidth  || canvas.width;
-      const h = canvas.offsetHeight || canvas.height;
-      if(!w || !h) return;
+  // Resize all Chart.js instances to fit the print-mode canvas sizes
+  Object.values(charts).forEach(c => { try { c.resize(); } catch(e){} });
+});
 
-      const tmp  = document.createElement('canvas');
-      tmp.width  = canvas.width;   // use canvas's own backing-store size
-      tmp.height = canvas.height;
-      const ctx  = tmp.getContext('2d');
-      ctx.fillStyle = '#0d1117';
-      ctx.fillRect(0, 0, tmp.width, tmp.height);
-      ctx.drawImage(canvas, 0, 0);
-
-      const img         = document.createElement('img');
-      img.src           = tmp.toDataURL('image/png');
-      img.style.width   = w + 'px';
-      img.style.height  = h + 'px';
-      img.style.display = 'block';
-      canvas.parentNode.insertBefore(img, canvas);
-      canvas.style.display = 'none';
-      swaps.push({ canvas, img });
-    } catch(e) { /* cross-origin guard */ }
+// After printing: hide the extra tabs again
+window.addEventListener('afterprint', () => {
+  document.querySelectorAll('.tab-content._print-show').forEach(el => {
+    el.classList.remove('_print-show');
   });
-
-  window.print();
-
-  // Step 5: Restore everything
-  swaps.forEach(({ canvas, img }) => {
-    img.remove();
-    canvas.style.display = '';
-  });
-  hidden.forEach(el => el.classList.remove('_print-show'));
-}
+  // Re-render the active tab to restore correct on-screen sizes
+  const active = document.querySelector('.tab-content.active');
+  if(active) renderTab(active.id.replace('tab-',''));
+});
 
 // ============================================================
 // INIT
