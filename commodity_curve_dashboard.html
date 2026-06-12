@@ -1122,11 +1122,15 @@ function updateSCurve() {
   const blData   = src.bl.slice(dMin, dMax + 1);
   const earnData = trimActual(src.earned, dMin).slice(0, labels.length);
   const spData   = trimActual(src.spent,  dMin).slice(0, labels.length);
-  // Forecast earned: always anchored at SC_CURRENT_IDX, visible from there forward
+  // Forecast: start at earned % of selected week, offset the fc series accordingly
   const fcSrc  = (SCURVE.fc || {})[scSection] || (SCURVE.fc || {})['Overall'] || [];
+  const earnedAtSelected = src.earned[selectedWeekIdx] ?? 0;
+  const fcAtSelected     = fcSrc[selectedWeekIdx] ?? 0;
+  const fcOffset         = earnedAtSelected - fcAtSelected;
   const fcData = fcSrc.slice(dMin, dMax + 1).map((v, li) => {
     const globalIdx = dMin + li;
-    return globalIdx >= SC_CURRENT_IDX ? v : null;
+    if (globalIdx < selectedWeekIdx || v == null) return null;
+    return Math.max(0, v + fcOffset);
   });
 
   scChart.data.labels           = labels;
@@ -1174,7 +1178,7 @@ function renderSCSubTable(lo, hi) {
     earnVals[i] = i <= selectedWeekIdx ? fmt1(src.earned[i]) : '—';
     spVals[i]   = i <= selectedWeekIdx ? fmt1(src.spent[i])  : '—';
     const globalIdx = i;
-    fcVals[i]   = globalIdx >= SC_CURRENT_IDX && fcSrc2[i] != null ? fmt1(fcSrc2[i]) : '—';
+    fcVals[i]   = globalIdx >= selectedWeekIdx && fcSrc2[i] != null ? fmt1(Math.max(0, fcSrc2[i] + fcOffset)) : '—';
   }
 
   el.innerHTML = `<div style="overflow-x:auto;margin-top:8px"><table style="font-size:10px;border-collapse:collapse;width:max-content;min-width:100%">
