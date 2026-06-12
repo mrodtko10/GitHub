@@ -359,12 +359,28 @@
           <input type="range" id="dateMax" min="0" max="97" value="97" oninput="updateSCurve()">
         </div>
       </div>
-      <div class="sc-control-group">
-        <div class="filter-label">X-Axis Interval</div>
-        <div class="tabs" style="margin-bottom:0">
-          <button class="tab" data-sc-interval onclick="setSCInterval(1,this)">1 Wk</button>
-          <button class="tab active" data-sc-interval onclick="setSCInterval(2,this)">2 Wk</button>
-          <button class="tab" data-sc-interval onclick="setSCInterval(4,this)">4 Wk</button>
+      <div class="sc-control-group" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <div>
+          <div class="filter-label">X-Axis Interval</div>
+          <div class="tabs" style="margin-bottom:0">
+            <button class="tab" data-sc-interval onclick="setSCInterval(1,this)">1 Wk</button>
+            <button class="tab active" data-sc-interval onclick="setSCInterval(2,this)">2 Wk</button>
+            <button class="tab" data-sc-interval onclick="setSCInterval(4,this)">4 Wk</button>
+          </div>
+        </div>
+        <div id="scInlineStats" style="display:flex;gap:16px;align-items:center;padding:4px 10px;background:#1e293b;border-radius:6px;border:1px solid #334155">
+          <div style="text-align:center">
+            <div style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em">BL Plan</div>
+            <div id="scStatBL" style="font-size:14px;font-weight:700;color:#60a5fa">—</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em">Earned</div>
+            <div id="scStatEarned" style="font-size:14px;font-weight:700;color:#4ade80">—</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em">Spent</div>
+            <div id="scStatSpent" style="font-size:14px;font-weight:700;color:#fbbf24">—</div>
+          </div>
         </div>
       </div>
 
@@ -1098,9 +1114,9 @@ const scChart = new Chart(scCtx, {
     },
     scales:{
       x:{ grid:{color:gridColor},
-           ticks:{maxRotation:30,
-                  filter: (tick, idx) => idx % scIntervalWeeks === 0,
+           ticks:{maxRotation:30, autoSkip:false,
                   callback:function(val,idx){
+                    if (idx % scIntervalWeeks !== 0) return '';
                     const iso = this.getLabelForValue(val);
                     if (!iso) return '';
                     const d = new Date(iso+'T00:00:00');
@@ -1142,6 +1158,15 @@ function updateSCurve() {
   scChart.update('none');
   updateStatsTile();
   renderSCSubTable(dMin, dMax);
+  // Update inline stats
+  const stats = (STATS_BY_DATE[ALL_DATES[selectedWeekIdx]] || {})[scSection] || (STATS_BY_DATE[ALL_DATES[selectedWeekIdx]] || {})['Overall'] || {};
+  const fmtPct = v => v != null ? v.toFixed(2)+'%' : '—';
+  const blEl = document.getElementById('scStatBL');
+  const eaEl = document.getElementById('scStatEarned');
+  const spEl = document.getElementById('scStatSpent');
+  if (blEl) blEl.textContent = fmtPct(stats.bl);
+  if (eaEl) eaEl.textContent = fmtPct(stats.earned);
+  if (spEl) spEl.textContent = fmtPct(stats.spent);
 }
 
 function renderSCSubTable(lo, hi) {
@@ -1195,9 +1220,7 @@ function setSCInterval(n, btn) {
   scIntervalWeeks = n;
   document.querySelectorAll('[data-sc-interval]').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  // Update chart tick filter
-  scChart.options.scales.x.ticks.filter = (tick, idx) => idx % scIntervalWeeks === 0;
-  scChart.update('none');
+  scChart.update();
 }
 
 function setSCSection(sec, btn) {
