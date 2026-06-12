@@ -388,26 +388,6 @@
     </div>
   </div>
 
-  <script>
-  let donutCollapsed = false;
-  function toggleDonut() {
-    donutCollapsed = !donutCollapsed;
-    const grid = document.getElementById('scDonutGrid');
-    const donutCard = grid.children[1];
-    const btn = document.getElementById('donutCollapseBtn');
-    if (donutCollapsed) {
-      donutCard.style.display = 'none';
-      grid.style.gridTemplateColumns = '1fr';
-      btn.textContent = '⊟ Show PD Chart';
-    } else {
-      donutCard.style.display = '';
-      grid.style.gridTemplateColumns = '';
-      btn.textContent = '⊞ Hide PD Chart';
-    }
-    setTimeout(() => scChart.resize(), 50);
-  }
-  </script>
-
   <!-- FTE Chart -->
   <div class="charts-grid" style="grid-template-columns: 1fr;">
     <div class="chart-card">
@@ -1269,6 +1249,28 @@ function initActSort() {
       filterActivities();
     });
   });
+}
+
+// ============================================================
+// COLLAPSIBLE DONUT
+// ============================================================
+let donutCollapsed = false;
+function toggleDonut() {
+  donutCollapsed = !donutCollapsed;
+  const grid     = document.getElementById('scDonutGrid');
+  const donutCard = grid.children[1];
+  const btn      = document.getElementById('donutCollapseBtn');
+  if (donutCollapsed) {
+    donutCard.style.display = 'none';
+    grid.style.gridTemplateColumns = '1fr';
+    btn.textContent = '⊞ Show PD Chart';
+  } else {
+    donutCard.style.display = '';
+    grid.style.gridTemplateColumns = '';
+    btn.textContent = '⊟ Hide PD Chart';
+  }
+  // Let the browser relayout, then tell Chart.js to fill the new container size
+  requestAnimationFrame(() => requestAnimationFrame(() => scChart.resize()));
 }
 
 // ============================================================
