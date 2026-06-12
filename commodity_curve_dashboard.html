@@ -75,6 +75,7 @@
 
   /* Charts Grid */
   .charts-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .charts-grid > * { min-width: 0; }
   .chart-card {
     background: var(--card);
     border: 1px solid var(--border);
@@ -1266,11 +1267,13 @@ function toggleDonut() {
     btn.textContent = '⊞ Show PD Chart';
     requestAnimationFrame(() => requestAnimationFrame(() => scChart.resize()));
   } else {
+    // Clear Chart.js inline canvas size so the grid column can constrain it
+    const cv = document.getElementById('scurveChart');
+    cv.style.width = '';
     donutCard.style.display = '';
     grid.style.gridTemplateColumns = '2fr 1fr';
     btn.textContent = '⊟ Hide PD Chart';
-    // Wait for grid to relayout before telling Chart.js to shrink the canvas
-    setTimeout(() => scChart.resize(), 80);
+    requestAnimationFrame(() => requestAnimationFrame(() => scChart.resize()));
   }
 }
 
