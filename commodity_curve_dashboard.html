@@ -1350,51 +1350,65 @@ function _applyFTEActivityFilter() {
     return;
   }
 
-  // Hide base datasets, show per-activity time series
+  // Hide base datasets, replace with aggregated activity series using same style
   fteChart.data.datasets.forEach(d => { d.hidden = true; });
 
-  // Get the current chart range from FTE slider
   const lo = +document.getElementById('fteMin').value;
   const hi = Math.min(+document.getElementById('fteMax').value, selectedWeekIdx);
+  const n  = hi - lo + 1;
 
   const fmtD = iso => { const d = new Date(iso + 'T00:00:00'); return (d.getMonth()+1) + '/' + d.getDate() + '/' + String(d.getFullYear()).slice(2); };
   fteChart.data.labels = FTE_BY_ACTIVITY.dates.slice(lo, hi + 1).map(fmtD);
 
-  checked.forEach((actName, idx) => {
+  // Sum all selected activities
+  const sumBL     = new Array(n).fill(0);
+  const sumSpent  = new Array(n).fill(0);
+  const sumEarned = new Array(n).fill(0);
+  const sumFC     = new Array(n).fill(0);
+
+  checked.forEach(actName => {
     const act = FTE_BY_ACTIVITY.activities[actName];
     if (!act) return;
-    const color = _FTE_ACT_COLORS[idx % _FTE_ACT_COLORS.length];
-    const short = actName.split('-').pop().trim() || actName;
-
-    const blSlice     = act.bl.slice(lo, hi + 1).map(v => v || null);
-    const spentSlice  = act.spent.slice(lo, hi + 1).map(v => v || null);
-    const earnedSlice = act.earned.slice(lo, hi + 1).map(v => v || null);
-    const fcSlice     = act.fc.slice(lo, hi + 1).map(v => v || null);
-
-    // BL — dashed
-    fteChart.data.datasets.push({
-      label: short + ' BL', type: 'line',
-      data: blSlice, borderColor: color, borderDash: [5,4],
-      backgroundColor: 'transparent', fill: false, tension: 0.3,
-      borderWidth: 1.5, pointRadius: 2, spanGaps: true, _isActivity: true,
-    });
-    // Earned — solid
-    fteChart.data.datasets.push({
-      label: short + ' Earned', type: 'line',
-      data: earnedSlice, borderColor: color,
-      backgroundColor: color + '18', fill: false, tension: 0.3,
-      borderWidth: 2.5, pointRadius: 3, spanGaps: true, _isActivity: true,
-    });
-    // FC — dotted
-    fteChart.data.datasets.push({
-      label: short + ' FC', type: 'line',
-      data: fcSlice, borderColor: color, borderDash: [2,3],
-      backgroundColor: 'transparent', fill: false, tension: 0.3,
-      borderWidth: 1.5, pointRadius: 0, spanGaps: true, _isActivity: true,
-    });
+    for (let i = 0; i < n; i++) {
+      sumBL[i]     += act.bl[lo + i]     || 0;
+      sumSpent[i]  += act.spent[lo + i]  || 0;
+      sumEarned[i] += act.earned[lo + i] || 0;
+      sumFC[i]     += act.fc[lo + i]     || 0;
+    }
   });
 
-  if (modeEl) modeEl.textContent = '— ' + checked.length + ' activit' + (checked.length > 1 ? 'ies' : 'y') + ' · dashed = BL · solid = Earned · dotted = FC';
+  const nullZero = arr => arr.map(v => v === 0 ? null : v);
+
+  // BL — same style as base chart
+  fteChart.data.datasets.push({
+    label: 'BL FTE', type: 'line',
+    data: nullZero(sumBL), borderColor: '#60a5fa',
+    backgroundColor: 'transparent', fill: false, tension: 0.3,
+    borderWidth: 2, pointRadius: 3, spanGaps: true, _isActivity: true,
+  });
+  // Actual (Spent)
+  fteChart.data.datasets.push({
+    label: 'Actual FTE', type: 'line',
+    data: nullZero(sumSpent), borderColor: '#ef4444',
+    backgroundColor: 'transparent', fill: false, tension: 0.3,
+    borderWidth: 2, pointRadius: 3, spanGaps: true, _isActivity: true,
+  });
+  // Earned
+  fteChart.data.datasets.push({
+    label: 'Earned FTE', type: 'line',
+    data: nullZero(sumEarned), borderColor: '#22c55e',
+    backgroundColor: 'rgba(34,197,94,0.08)', fill: true, tension: 0.3,
+    borderWidth: 2, pointRadius: 3, spanGaps: true, _isActivity: true,
+  });
+  // Forecast
+  fteChart.data.datasets.push({
+    label: 'Forecast FTE', type: 'line',
+    data: nullZero(sumFC), borderColor: 'rgba(251,146,60,0.55)',
+    backgroundColor: 'transparent', borderDash: [4,3], fill: false, tension: 0.3,
+    borderWidth: 2, pointRadius: 0, spanGaps: true, _isActivity: true,
+  });
+
+  if (modeEl) modeEl.textContent = checked.length > 1 ? '— ' + checked.length + ' activities combined' : '';
   fteChart.update();
 }
 
