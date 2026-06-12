@@ -394,16 +394,16 @@
           <canvas id="scurveChart"></canvas>
         </div>
         <!-- Vertical % Range slider -->
-        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0;min-width:36px">
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px 0;min-width:34px">
           <span style="font-size:9px;color:#94a3b8;white-space:nowrap" id="pctMaxLabel">100%</span>
-          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;width:36px">
+          <div style="position:relative;width:28px;height:200px">
             <input type="range" id="pctMax" min="0" max="100" value="100"
               orient="vertical"
-              style="writing-mode:vertical-lr;direction:rtl;width:28px;height:100%;cursor:pointer;accent-color:#3b82f6"
+              style="writing-mode:vertical-lr;direction:rtl;width:28px;height:200px;cursor:pointer;accent-color:#3b82f6"
               oninput="updateSCurve()">
             <input type="range" id="pctMin" min="0" max="100" value="0"
               orient="vertical"
-              style="writing-mode:vertical-lr;direction:rtl;width:28px;height:100%;cursor:pointer;accent-color:#3b82f6;position:absolute;top:0"
+              style="writing-mode:vertical-lr;direction:rtl;width:28px;height:200px;cursor:pointer;accent-color:#3b82f6;position:absolute;top:0;left:0"
               oninput="updateSCurve()">
           </div>
           <span style="font-size:9px;color:#94a3b8" id="pctMinLabel">0%</span>
