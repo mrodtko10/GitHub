@@ -979,12 +979,14 @@ function buildWeekSelector() {
     const d = new Date(ALL_DATES[i] + 'T00:00:00');
     const label = (d.getMonth()+1) + '/' + d.getDate() + '/' + String(d.getFullYear()).slice(2) + (i === SC_CURRENT_IDX ? '  ★ Current' : '');
     opt.textContent = label;
-    if (i === SC_CURRENT_IDX) opt.selected = true;
     sel.appendChild(opt);
     // Mirror into header selector
     const hopt = opt.cloneNode(true);
     hdr.appendChild(hopt);
   }
+  // Explicitly set both to the current week index (cloneNode doesn't preserve selected across selects)
+  sel.value = SC_CURRENT_IDX;
+  hdr.value = SC_CURRENT_IDX;
 }
 
 function _applyWeekIdx(idx) {
