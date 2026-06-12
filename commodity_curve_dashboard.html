@@ -159,6 +159,11 @@
 
   .section-divider { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
 
+  .page-tabs { display:flex; gap:4px; margin-bottom:16px; }
+  .page-tab { padding:8px 20px; border-radius:6px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.04); color:var(--muted); cursor:pointer; font-size:13px; font-weight:500; transition:all .15s; }
+  .page-tab.active { background:rgba(59,130,246,0.18); border-color:rgba(59,130,246,0.5); color:#93c5fd; }
+  .page-section { display:none; }
+  .page-section.active { display:block; }
   .sort-icon { font-size:10px; opacity:0.5; margin-left:3px; }
   th:hover .sort-icon { opacity:1; }
   #mpTable td, #mpTable th { padding: 8px 10px; font-size:12px; }
@@ -223,6 +228,14 @@
 </header>
 
 <div class="container">
+
+  <!-- Page tabs -->
+  <div class="page-tabs">
+    <button class="page-tab active" onclick="showPage('dashboard',this)">📊 Dashboard</button>
+    <button class="page-tab" onclick="showPage('pf',this)">⚡ PF Analysis</button>
+  </div>
+
+  <div id="page-dashboard" class="page-section active">
 
   <!-- Key Dates -->
   <div class="dates-bar">
@@ -311,7 +324,6 @@
         <div class="sc-control-group">
           <div class="filter-label">Overlay</div>
           <div class="tabs" style="margin-bottom:0">
-            <button class="tab active" id="pfToggle" onclick="togglePF(this)">PF Line</button>
             <button class="tab active" id="spentToggle" onclick="toggleDataset('spent',this)">Spent</button>
             <button class="tab active" id="earnedToggle" onclick="toggleDataset('earned',this)">Earned</button>
             <button class="tab active" id="fcToggle" onclick="toggleDataset('forecast',this)" style="border-color:#fb923c;color:#fb923c">Forecast</button>
@@ -350,7 +362,6 @@
         <div class="legend-item"><div class="legend-dot" style="background:var(--earned-color)"></div>Earned</div>
         <div class="legend-item"><div class="legend-dot" style="background:var(--spent-color)"></div>Spent</div>
         <div class="legend-item"><div class="legend-dot" style="background:#fb923c;border-top:2px dashed #fb923c;height:0"></div>Forecast</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#a78bfa;height:2px;border-top:2px dashed #a78bfa"></div>PF</div>
       </div>
 
       <div class="chart-wrap" style="height:300px;position:relative">
@@ -404,7 +415,7 @@
         </div>
       </div>
       <div class="legend">
-        <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>BL FTE</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#60a5fa"></div>BL FTE</div>
         <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Actual FTE</div>
         <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div>Earned FTE</div>
         <div class="legend-item"><div class="legend-dot" style="background:rgba(251,146,60,0.55)"></div>Forecast FTE</div>
@@ -556,7 +567,106 @@
     </div>
   </div>
 
-</div>
+</div><!-- end page-dashboard -->
+
+<div id="page-pf" class="page-section">
+
+  <!-- PF Summary Tiles -->
+  <div id="pfSummaryTiles" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px"></div>
+
+  <!-- 3 PF Charts -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px">
+    <div class="chart-card">
+      <div class="chart-title">Indirect PF <span style="font-size:11px;color:var(--muted)">(NP-WHC labor vs budget)</span></div>
+      <div class="legend" style="margin-bottom:6px">
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(167,139,250,0.6)"></div>Weekly Inc</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#a78bfa;height:0;border-top:2px solid #a78bfa;width:16px"></div>Cumulative</div>
+      </div>
+      <div class="chart-wrap" style="height:220px"><canvas id="pfIndirectChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Direct PF <span style="font-size:11px;color:var(--muted)">(PD-WHC earned / spent)</span></div>
+      <div class="legend" style="margin-bottom:6px">
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(34,197,94,0.6)"></div>Weekly Inc</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#22c55e;height:0;border-top:2px solid #22c55e;width:16px"></div>Cumulative</div>
+      </div>
+      <div class="chart-wrap" style="height:220px"><canvas id="pfDirectChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Job Total PF <span style="font-size:11px;color:var(--muted)">(PD earned / all WHC spent)</span></div>
+      <div class="legend" style="margin-bottom:6px">
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(251,146,60,0.6)"></div>Weekly Inc</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#fb923c;height:0;border-top:2px solid #fb923c;width:16px"></div>Cumulative</div>
+      </div>
+      <div class="chart-wrap" style="height:220px"><canvas id="pfOverallChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- PF Table -->
+  <div class="chart-card">
+    <div class="chart-title">PF Activity Detail <span style="font-size:11px;color:var(--muted)">— Direct contributes earned+spent · Indirect contributes spent only · Sub excluded</span></div>
+    <!-- Tiles -->
+    <div id="pfTableTiles" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px"></div>
+    <!-- Filters -->
+    <div class="filters" style="margin-bottom:8px">
+      <span class="filter-label">Section:</span>
+      <select id="pfSectionFilter" onchange="renderPFTable()">
+        <option value="">All</option>
+        <option value="Civil">Civil</option>
+        <option value="PV">PV</option>
+        <option value="SS">SS</option>
+      </select>
+      <span class="filter-label">Type:</span>
+      <select id="pfTypeFilter" onchange="renderPFTable()">
+        <option value="">All</option>
+        <option value="PD-WHC">Direct (PD-WHC)</option>
+        <option value="NP-WHC">Indirect (NP-WHC)</option>
+        <option value="PD-SUB">Sub (Excluded)</option>
+      </select>
+      <span class="filter-label">Search:</span>
+      <input type="text" id="pfSearch" placeholder="Activity…" oninput="renderPFTable()">
+      <span id="pfCount" style="font-size:11px;color:var(--muted);margin-left:auto"></span>
+    </div>
+    <div class="filters" style="margin-bottom:10px;align-items:center;gap:6px">
+      <span class="filter-label" style="white-space:nowrap">Column filter:</span>
+      <select id="pfColFilter" onchange="renderPFTable()" style="flex:0 0 auto;min-width:150px">
+        <option value="">— none —</option>
+        <option value="bl_pct">BL %</option>
+        <option value="ea_pct">Earned %</option>
+        <option value="pct_var">Earned vs BL Var</option>
+        <option value="ea_week">Weekly Earned (hrs)</option>
+      </select>
+      <select id="pfOpFilter" onchange="renderPFTable()" style="flex:0 0 auto;width:60px">
+        <option value=">=">≥</option>
+        <option value="<=">≤</option>
+        <option value=">">></option>
+        <option value="<"><</option>
+        <option value="=">=</option>
+      </select>
+      <input type="number" id="pfColVal" placeholder="value" step="any" style="width:80px" oninput="renderPFTable()">
+      <button onclick="document.getElementById('pfColFilter').value='';document.getElementById('pfColVal').value='';renderPFTable()" style="padding:3px 8px;font-size:11px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:4px;color:var(--muted);cursor:pointer">Clear</button>
+    </div>
+    <div class="table-wrap">
+      <table id="pfTable">
+        <thead>
+          <tr>
+            <th data-pf-col="activity">Activity <span class="sort-icon">⇅</span></th>
+            <th data-pf-col="whc_sub">WHC/Sub <span class="sort-icon">⇅</span></th>
+            <th data-pf-col="category">Category <span class="sort-icon">⇅</span></th>
+            <th data-pf-col="section">Section <span class="sort-icon">⇅</span></th>
+            <th data-pf-col="bl_pct" style="text-align:right">BL % <span class="sort-icon">⇅</span></th>
+            <th data-pf-col="ea_pct" style="text-align:right">Earned % <span class="sort-icon">⇅</span></th>
+            <th data-pf-col="pct_var" style="text-align:right">Earned vs BL Var <span class="sort-icon">⇅</span></th>
+            <th data-pf-col="ea_week" style="text-align:right">Wkly Earned (hrs) <span class="sort-icon">⇅</span></th>
+            <th style="text-align:center">PF Role</th>
+          </tr>
+        </thead>
+        <tbody id="pfTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- end page-pf -->
 
 <script>
 // ============================================================
@@ -596,6 +706,8 @@ const PD_DONUT = {"2026-03-15":{"Civil":{"bl":76560,"earned":0,"spent":0,"remain
 ;
 
 const FTE = {"Overall":{"bl":[0.0,0.0,0.0,0.0,104.02,10.0,56.55,71.55,119.38,127.72,149.01,156.11,177.38,201.84,150.98,99.13,86.77,95.11,102.95,80.42,78.31,52.22,53.28,59.78,75.92,97.63,114.37,151.21,189.28,215.14,243.05,255.76,265.75,296.84,314.05,326.85,322.24,203.79,304.68,302.68,224.2,23.62,236.05,336.33,320.98,300.39,257.43,225.54,236.86,241.78,248.69,234.25,175.07,162.74,87.95,121.1,119.1,112.35,105.02,99.02,85.68,53.08,48.45,48.2,48.2,60.51,56.46,53.51,43.64,40.79,40.79,20.2,19.01,19.01,19.01,33.41,33.41,33.41,33.41,33.41,28.01,26.92,26.92,26.92,25.92,21.16,15.39,11.33,11.33,11.33,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"spent":[0.0,0.0,0.0,0.0,-25.89,20.92,20.52,26.31,29.47,30.14,42.19,42.61,44.38,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"earned":[0.0,0.0,0.0,0.0,0.0,0.0,20.88,19.98,68.88,50.95,76.16,125.94,73.12,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"fc":[null,null,null,null,null,null,null,null,null,null,null,null,0.0,53.26,74.42,81.39,94.87,101.39,112.05,123.61,115.61,115.61,114.43,112.97,105.31,123.14,109.77,134.86,189.18,202.03,201.27,205.75,221.91,261.21,267.97,313.07,319.35,319.81,319.81,319.37,318.49,318.49,349.25,369.29,315.19,292.15,222.1,193.85,192.83,186.69,194.71,190.6,124.99,118.23,115.08,111.22,103.96,103.96,103.96,103.96,71.31,51.33,51.33,52.06,53.41,70.0,68.93,63.32,62.2,61.39,48.46,32.23,30.06,30.06,30.06,44.46,44.46,44.46,44.46,44.46,39.05,37.97,37.97,37.97,203.53,45.82,2.61,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]},"Civil":{"bl":[0.0,0.0,0.0,0.0,0.0,5.0,37.21,47.19,95.02,103.35,124.65,131.75,153.01,174.4,116.83,63.63,54.97,58.95,69.32,42.69,38.14,5.86,5.86,5.86,5.86,5.86,5.55,4.86,4.86,4.86,4.86,4.86,4.86,6.86,6.86,6.86,5.86,1.93,6.11,6.11,5.86,0.0,4.93,6.11,6.11,6.11,6.11,6.11,6.11,3.86,5.2,5.47,5.47,5.47,5.47,5.72,5.72,5.72,5.72,5.72,5.72,5.72,5.72,5.47,5.47,5.14,3.8,3.53,3.53,3.53,3.53,3.53,3.53,3.53,3.53,17.94,17.94,17.94,17.94,17.94,12.53,11.45,11.45,11.45,10.45,5.69,4.37,2.53,2.53,2.53,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"spent":[0.0,0.0,0.0,0.0,10.07,0.0,3.28,2.22,21.55,14.4,22.27,21.43,22.34,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"earned":[0.0,0.0,0.0,0.0,0.0,0.0,8.4,5.26,48.48,37.99,57.3,105.18,50.32,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"fc":[null,null,null,null,null,null,null,null,null,null,null,null,0.0,36.21,57.36,64.34,77.82,83.55,82.02,93.58,85.59,85.59,83.31,63.76,45.43,35.58,19.11,9.64,9.64,9.64,7.8,6.88,6.88,8.28,9.67,9.67,9.67,9.67,9.67,9.67,9.67,9.67,9.67,9.67,9.67,9.67,9.67,9.67,9.67,7.42,8.49,8.49,8.49,8.49,8.49,8.49,8.49,8.49,8.49,8.49,8.49,8.49,8.49,8.49,8.49,7.95,6.88,6.88,6.88,6.88,6.44,6.44,6.44,6.44,6.44,20.84,20.84,20.84,20.84,20.84,15.43,14.35,14.35,14.35,17.41,2.86,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]},"PV":{"bl":[0.0,0.0,0.0,0.0,104.02,5.0,19.34,24.36,24.36,24.36,24.36,24.36,24.36,27.44,27.44,27.44,26.43,27.44,30.62,32.72,35.16,41.35,42.41,48.91,65.04,86.75,103.97,141.33,178.41,204.26,232.17,244.89,254.87,281.96,297.18,309.98,310.36,199.35,293.55,291.55,213.32,23.62,226.62,324.21,308.86,288.26,245.3,213.42,224.73,231.9,237.47,222.77,163.59,151.26,76.47,109.37,107.37,100.62,96.29,90.29,76.95,44.35,39.72,39.72,39.72,52.36,49.65,46.96,37.26,37.26,37.26,16.66,15.47,15.47,15.47,15.47,15.47,15.47,15.47,15.47,15.47,15.47,15.47,15.47,15.47,15.47,11.02,8.8,8.8,8.8,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"spent":[0.0,0.0,0.0,0.0,-35.96,20.92,17.24,24.09,7.92,15.74,19.92,21.19,20.44,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"earned":[0.0,0.0,0.0,0.0,0.0,0.0,12.48,14.72,20.4,12.96,18.86,20.76,19.26,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"fc":[null,null,null,null,null,null,null,null,null,null,null,null,0.0,17.05,17.05,17.05,17.05,17.05,25.31,25.31,25.31,25.31,25.31,43.17,53.84,81.53,84.62,119.18,173.5,186.35,187.43,192.83,208.99,246.9,252.27,297.37,303.65,304.1,304.1,304.1,304.1,304.1,334.87,354.9,300.8,277.76,207.71,179.46,178.45,171.89,177.5,174.06,111.78,105.03,101.87,98.01,90.76,90.76,90.76,90.76,58.11,38.13,38.13,38.85,40.21,57.33,57.33,51.72,50.6,49.78,38.88,25.79,23.62,23.62,23.62,23.62,23.62,23.62,23.62,23.62,23.62,23.62,23.62,23.62,186.12,42.96,2.61,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]},"SS":{"bl":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,6.71,8.05,5.37,8.71,3.01,5.01,5.01,5.01,5.01,5.01,5.01,5.01,4.84,5.01,6.01,6.01,6.01,6.01,6.01,8.01,10.01,10.01,6.01,2.51,5.01,5.01,5.01,0.0,4.51,6.01,6.01,6.01,6.01,6.01,6.01,6.01,6.01,6.01,6.01,6.01,6.01,6.01,6.01,6.01,3.01,3.01,3.01,3.01,3.01,3.01,3.01,3.01,3.01,3.01,2.84,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"spent":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.6,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"earned":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,3.54,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"fc":[null,null,null,null,null,null,null,null,null,null,null,null,0.0,0.0,0.0,0.0,0.0,0.79,4.72,4.72,4.72,4.72,5.82,6.04,6.04,6.04,6.04,6.04,6.04,6.04,6.04,6.04,6.04,6.04,6.04,6.04,6.04,6.04,6.04,5.6,4.72,4.72,4.72,4.72,4.72,4.72,4.72,4.72,4.72,7.38,8.72,8.05,4.72,4.72,4.72,4.72,4.72,4.72,4.72,4.72,4.72,4.72,4.72,4.72,4.72,4.72,4.72,4.72,4.72,4.72,3.15,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]}};
+
+const PF_SERIES = {"dates": ["2026-03-15", "2026-03-22", "2026-03-29", "2026-04-05", "2026-04-12", "2026-04-19", "2026-04-26", "2026-05-03", "2026-05-10", "2026-05-17", "2026-05-24", "2026-05-31", "2026-06-07", "2026-06-14", "2026-06-21", "2026-06-28", "2026-07-05", "2026-07-12", "2026-07-19", "2026-07-26", "2026-08-02", "2026-08-09", "2026-08-16", "2026-08-23", "2026-08-30", "2026-09-06", "2026-09-13", "2026-09-20", "2026-09-27", "2026-10-04", "2026-10-11", "2026-10-18", "2026-10-25", "2026-11-01", "2026-11-08", "2026-11-15", "2026-11-22", "2026-11-29", "2026-12-06", "2026-12-13", "2026-12-20", "2026-12-27", "2027-01-03", "2027-01-10", "2027-01-17", "2027-01-24", "2027-01-31", "2027-02-07", "2027-02-14", "2027-02-21", "2027-02-28", "2027-03-07", "2027-03-14", "2027-03-21", "2027-03-28", "2027-04-04", "2027-04-11", "2027-04-18", "2027-04-25", "2027-05-02", "2027-05-09", "2027-05-16", "2027-05-23", "2027-05-30", "2027-06-06", "2027-06-13", "2027-06-20", "2027-06-27", "2027-07-04", "2027-07-11", "2027-07-18", "2027-07-25", "2027-08-01", "2027-08-08", "2027-08-15", "2027-08-22", "2027-08-29", "2027-09-05", "2027-09-12", "2027-09-19", "2027-09-26", "2027-10-03", "2027-10-10", "2027-10-17", "2027-10-24", "2027-10-31", "2027-11-07", "2027-11-14", "2027-11-21", "2027-11-28", "2027-12-05", "2027-12-12", "2027-12-19", "2027-12-26", "2028-01-02", "2028-01-09", "2028-01-16", "2028-01-23"], "indirect": {"inc": [null, null, null, 0.8149, null, null, 0.9209, 0.677, 2.4646, 1.0806, 1.2418, 1.3892, 1.0832, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "cumu": [null, null, null, 0.8149, 1.0223, 0.8626, 0.8703, 0.8481, 0.9207, 0.9373, 0.9627, 0.9983, 1.0052, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]}, "direct": {"inc": [null, null, null, null, null, null, 2.1974, 1.6517, 2.2606, 2.5412, 2.4355, 4.7542, 2.1634, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "cumu": [null, null, null, null, null, null, 1.0409, 1.2515, 1.9754, 2.2264, 2.2948, 2.9289, 2.7582, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]}, "overall": {"inc": [null, null, null, 0.8044, null, null, 1.0174, 0.7593, 2.3372, 1.6905, 1.8052, 2.9553, 1.5992, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "cumu": [null, null, null, 0.8044, 1.0058, 0.8509, 0.8741, 0.8601, 1.0201, 1.1223, 1.2102, 1.4228, 1.4434, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]}};
 
 const MANPOWER = [{"activity":"0-4000-01-Civil Mob","whc_sub":"WHC","category":"NP-WHC","section":"Civil","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4001-01-Civil DeMob","whc_sub":"WHC","category":"NP-WHC","section":"Civil","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4005-FOE","whc_sub":"WHC","category":"NP-WHC","section":"PV","pw_bl_fte":8.0,"pw_act_fte":11.81,"cw_bl_fte":8.0,"cw_act_fte":10.22},{"activity":"0-4005-00 PreCon FOE","whc_sub":"WHC","category":"NP-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4005-01-Civil FOE","whc_sub":"WHC","category":"NP-WHC","section":"Civil","pw_bl_fte":15.65,"pw_act_fte":0.67,"cw_bl_fte":15.65,"cw_act_fte":0.8},{"activity":"0-4005-02-Commish FOE","whc_sub":"WHC","category":"NP-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4006-Yard and Trailer","whc_sub":"WHC","category":"NP-WHC","section":"PV","pw_bl_fte":4.33,"pw_act_fte":6.73,"cw_bl_fte":4.33,"cw_act_fte":7.06},{"activity":"0-4007-Mowing","whc_sub":"WHC","category":"NP-WHC","section":"Civil","pw_bl_fte":2.0,"pw_act_fte":0.0,"cw_bl_fte":2.0,"cw_act_fte":0.0},{"activity":"0-4013-02-Weather Cont.","whc_sub":"WHC","category":"NP-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.67,"cw_bl_fte":0.0,"cw_act_fte":0.96},{"activity":"0-4015-Survey","whc_sub":"WHC","category":"NP-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4015-01-Civil Survey","whc_sub":"WHC","category":"NP-WHC","section":"Civil","pw_bl_fte":0.33,"pw_act_fte":2.18,"cw_bl_fte":0.33,"cw_act_fte":1.94},{"activity":"0-4031-Hire-In and Orientation","whc_sub":"WHC","category":"NP-WHC","section":"PV","pw_bl_fte":1.0,"pw_act_fte":0.73,"cw_bl_fte":1.0,"cw_act_fte":0.2},{"activity":"0-4100-Silt Fence","whc_sub":"WHC","category":"PD-WHC","section":"Civil","pw_bl_fte":12.0,"pw_act_fte":5.29,"cw_bl_fte":12.0,"cw_act_fte":5.0},{"activity":"0-4101-Clearing","whc_sub":"WHC","category":"PD-WHC","section":"Civil","pw_bl_fte":5.54,"pw_act_fte":3.54,"cw_bl_fte":5.54,"cw_act_fte":5.2},{"activity":"0-4102-Cut & Fill","whc_sub":"WHC","category":"PD-WHC","section":"Civil","pw_bl_fte":14.1,"pw_act_fte":0.0,"cw_bl_fte":28.2,"cw_act_fte":0.0},{"activity":"0-4103-Erosion Control","whc_sub":"WHC","category":"PD-WHC","section":"Civil","pw_bl_fte":5.51,"pw_act_fte":0.0,"cw_bl_fte":5.51,"cw_act_fte":0.0},{"activity":"0-4104-Grading","whc_sub":"WHC","category":"PD-WHC","section":"Civil","pw_bl_fte":18.0,"pw_act_fte":0.0,"cw_bl_fte":30.0,"cw_act_fte":0.0},{"activity":"0-4105-Top Soil Stripping","whc_sub":"WHC","category":"PD-WHC","section":"Civil","pw_bl_fte":8.03,"pw_act_fte":0.62,"cw_bl_fte":8.03,"cw_act_fte":1.6},{"activity":"0-4106-Top Soil Respread","whc_sub":"WHC","category":"PD-WHC","section":"Civil","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4107-Seeding & Revegetation","whc_sub":"WHC","category":"PD-WHC","section":"Civil","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4108-Fences & Gates","whc_sub":"Sub","category":"PD-SUB","section":"Civil","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4109-Site Roadways","whc_sub":"WHC","category":"PD-WHC","section":"Civil","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.6},{"activity":"0-4109-01-Existing Roads","whc_sub":"WHC","category":"PD-WHC","section":"Civil","pw_bl_fte":10.0,"pw_act_fte":5.0,"cw_bl_fte":0.0,"cw_act_fte":3.2},{"activity":"0-4110-Ditches","whc_sub":"WHC","category":"PD-WHC","section":"Civil","pw_bl_fte":8.76,"pw_act_fte":0.0,"cw_bl_fte":8.76,"cw_act_fte":0.0},{"activity":"0-4113-Construction Entrance","whc_sub":"WHC","category":"PD-WHC","section":"Civil","pw_bl_fte":2.08,"pw_act_fte":0.0,"cw_bl_fte":2.08,"cw_act_fte":0.0},{"activity":"0-4115-Clean Up","whc_sub":"WHC","category":"NP-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4115-01-Clean Up","whc_sub":"WHC","category":"PD-WHC","section":"Civil","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4116-Bush Hog","whc_sub":"WHC","category":"PD-WHC","section":"Civil","pw_bl_fte":5.03,"pw_act_fte":0.83,"cw_bl_fte":5.03,"cw_act_fte":0.8},{"activity":"0-4121-Laydown Areas","whc_sub":"WHC","category":"PD-WHC","section":"Civil","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4122-Road Maintenance","whc_sub":"WHC","category":"NP-WHC","section":"Civil","pw_bl_fte":0.77,"pw_act_fte":0.0,"cw_bl_fte":0.77,"cw_act_fte":0.0},{"activity":"0-4123-Dust Control","whc_sub":"WHC","category":"NP-WHC","section":"Civil","pw_bl_fte":0.26,"pw_act_fte":0.0,"cw_bl_fte":0.26,"cw_act_fte":0.0},{"activity":"0-4124-Dewatering","whc_sub":"WHC","category":"NP-WHC","section":"Civil","pw_bl_fte":0.12,"pw_act_fte":0.0,"cw_bl_fte":0.12,"cw_act_fte":0.0},{"activity":"0-4125-SWPPP Maintenance","whc_sub":"WHC","category":"NP-WHC","section":"Civil","pw_bl_fte":0.39,"pw_act_fte":0.0,"cw_bl_fte":0.39,"cw_act_fte":0.0},{"activity":"0-4126-Stockpile Surface Rock","whc_sub":"WHC","category":"PD-WHC","section":"Civil","pw_bl_fte":3.27,"pw_act_fte":0.0,"cw_bl_fte":3.27,"cw_act_fte":0.0},{"activity":"0-4128-Basin Installation","whc_sub":"WHC","category":"PD-WHC","section":"Civil","pw_bl_fte":15.0,"pw_act_fte":0.0,"cw_bl_fte":20.17,"cw_act_fte":0.0},{"activity":"0-4131-Demo","whc_sub":"WHC","category":"PD-WHC","section":"Civil","pw_bl_fte":4.92,"pw_act_fte":2.29,"cw_bl_fte":4.92,"cw_act_fte":2.2},{"activity":"0-4190 Civil QC","whc_sub":"WHC","category":"PD-WHC","section":"Civil","pw_bl_fte":0.0,"pw_act_fte":1.0,"cw_bl_fte":0.0,"cw_act_fte":1.0},{"activity":"0-4205-PreDrill","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4207-Backfill PreDrill","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4300-Mechanical Receiving","whc_sub":"WHC","category":"NP-WHC","section":"PV","pw_bl_fte":8.0,"pw_act_fte":0.0,"cw_bl_fte":8.0,"cw_act_fte":0.0},{"activity":"0-4301-Pile Layout","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4302-Pile Installs","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4303-Pile QAQC","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4304-Racking Layout","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4305-Racking Install","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4306-Racking QAQC","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4307-Modules Layout","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4308-Modules Install","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4309-Modules QAQC","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4320-Mechanical Punch List","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4400-Electrical Receiving","whc_sub":"WHC","category":"NP-WHC","section":"PV","pw_bl_fte":3.04,"pw_act_fte":0.0,"cw_bl_fte":3.04,"cw_act_fte":0.0},{"activity":"0-4401-DC Trenching","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4402-Transitions Pre-Fab","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4403-DC Transitions Install","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4405-DC Homerun","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4407-Module Wiring","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4408-Harness Install","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4410-DC Terminations","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4411-LDB Install","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4412-CAB System Install","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4413-DC Testing","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4414-Commisioning","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4415-Grounding","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4416-Trunk Bus System","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4418-Electrical QC","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4420-Electrical DC Punch List","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4500-AC-MV Trenching & Boring","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":1.25,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4501-AC-MV Terminations","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4502-AC-MV Splices","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4503-AC-MV Cabling","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4505-AC-MV Boring","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4511-Junction Box","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4512-AC Testing","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4520-Electrical MV Punch List","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4614-Scada-Met Install","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4700-Inv Skid Excavation","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4701-Inv Skid Conduit","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4702-Inv Skid Backfill","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4703-Inv Skid Pile Caps","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4704-Inv Skid Setting","whc_sub":"WHC","category":"PD-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4705-Inverter Pads","whc_sub":"WHC","category":"PD-WHC","section":"Civil","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"2-4004-SS BODEC ","whc_sub":"Sub","category":"PD-SUB","section":"SS","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"2-4005-SS FOE","whc_sub":"WHC","category":"NP-WHC","section":"SS","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"2-4205-SS Pad","whc_sub":"WHC","category":"PD-WHC","section":"SS","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":1.6},{"activity":"2-4241-MPT Setting & Install","whc_sub":"WHC","category":"PD-WHC","section":"SS","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":0.0},{"activity":"0-4027-01 Predrill Test Piles","whc_sub":"WHC","category":"NP-WHC","section":"PV","pw_bl_fte":0.0,"pw_act_fte":0.0,"cw_bl_fte":0.0,"cw_act_fte":2.0}];
 const ACTIVITIES = [{"activity":"0-4000-01-Civil Mob","whc_sub":"WHC","category":"NP-WHC","section":"Civil","bl_finish":"2026-04-26","fc_finish":"2026-06-14","fin_var":49,"bl_pct":100.0,"ea_pct":0.0,"bl_act_var":-8.0,"ea_week":0.0},{"activity":"0-4001-01-Civil DeMob","whc_sub":"WHC","category":"NP-WHC","section":"Civil","bl_finish":"2027-11-07","fc_finish":"2027-10-31","fin_var":-7,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4005-FOE","whc_sub":"WHC","category":"NP-WHC","section":"PV","bl_finish":"2027-11-28","fc_finish":"2027-10-31","fin_var":-28,"bl_pct":7.1,"ea_pct":10.4,"bl_act_var":1118.5,"ea_week":711.1},{"activity":"0-4005-00 PreCon FOE","whc_sub":"WHC","category":"NP-WHC","section":"PV","bl_finish":"2026-04-12","fc_finish":null,"fin_var":null,"bl_pct":100.0,"ea_pct":100.0,"bl_act_var":0.4,"ea_week":0.0},{"activity":"0-4005-01-Civil FOE","whc_sub":"WHC","category":"NP-WHC","section":"Civil","bl_finish":"2026-06-28","fc_finish":"2027-10-31","fin_var":490,"bl_pct":73.7,"ea_pct":18.4,"bl_act_var":814.3,"ea_week":278.8},{"activity":"0-4005-02-Commish FOE","whc_sub":"WHC","category":"NP-WHC","section":"PV","bl_finish":"2027-11-28","fc_finish":"2027-11-07","fin_var":-21,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4006-Yard and Trailer","whc_sub":"WHC","category":"NP-WHC","section":"PV","bl_finish":"2027-11-28","fc_finish":"2027-10-31","fin_var":-28,"bl_pct":7.2,"ea_pct":2.8,"bl_act_var":-1215.3,"ea_week":125.1},{"activity":"0-4007-Mowing","whc_sub":"WHC","category":"NP-WHC","section":"Civil","bl_finish":"2027-11-28","fc_finish":"2027-10-31","fin_var":-28,"bl_pct":5.4,"ea_pct":2.8,"bl_act_var":226.5,"ea_week":53.6},{"activity":"0-4015-01-Civil Survey","whc_sub":"WHC","category":"NP-WHC","section":"Civil","bl_finish":"2027-06-06","fc_finish":"2027-10-31","fin_var":147,"bl_pct":11.1,"ea_pct":16.9,"bl_act_var":-293.7,"ea_week":30.4},{"activity":"0-4031-Hire-In and Orientation","whc_sub":"WHC","category":"NP-WHC","section":"PV","bl_finish":"2027-06-06","fc_finish":"2027-06-06","fin_var":0,"bl_pct":10.4,"ea_pct":2.8,"bl_act_var":-221.4,"ea_week":19.5},{"activity":"0-4100-Silt Fence","whc_sub":"WHC","category":"PD-WHC","section":"Civil","bl_finish":"2026-06-14","fc_finish":"2026-06-28","fin_var":14,"bl_pct":84.5,"ea_pct":69.0,"bl_act_var":1718.6,"ea_week":587.4},{"activity":"0-4101-Clearing","whc_sub":"WHC","category":"PD-WHC","section":"Civil","bl_finish":"2026-06-21","fc_finish":"2026-07-12","fin_var":21,"bl_pct":81.1,"ea_pct":82.9,"bl_act_var":680.6,"ea_week":322.1},{"activity":"0-4102-Cut & Fill","whc_sub":"WHC","category":"PD-WHC","section":"Civil","bl_finish":"2026-06-14","fc_finish":"2026-08-30","fin_var":77,"bl_pct":60.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4103-Erosion Control","whc_sub":"WHC","category":"PD-WHC","section":"Civil","bl_finish":"2026-06-14","fc_finish":"2026-08-16","fin_var":63,"bl_pct":86.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4104-Grading","whc_sub":"WHC","category":"PD-WHC","section":"Civil","bl_finish":"2026-06-21","fc_finish":"2026-08-30","fin_var":70,"bl_pct":36.4,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4105-Top Soil Stripping","whc_sub":"WHC","category":"PD-WHC","section":"Civil","bl_finish":"2026-06-28","fc_finish":"2026-08-23","fin_var":56,"bl_pct":52.9,"ea_pct":11.7,"bl_act_var":208.7,"ea_week":104.3},{"activity":"0-4106-Top Soil Respread","whc_sub":"WHC","category":"PD-WHC","section":"Civil","bl_finish":"2026-08-02","fc_finish":"2026-09-13","fin_var":42,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4107-Seeding & Revegetation","whc_sub":"WHC","category":"PD-WHC","section":"Civil","bl_finish":"2027-09-26","fc_finish":"2027-09-26","fin_var":0,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4108-Fences & Gates","whc_sub":"Sub","category":"PD-SUB","section":"Civil","bl_finish":"2027-02-14","fc_finish":"2027-02-14","fin_var":0,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4109-Site Roadways","whc_sub":"WHC","category":"PD-WHC","section":"Civil","bl_finish":"2026-08-02","fc_finish":"2026-09-13","fin_var":42,"bl_pct":0.0,"ea_pct":0.5,"bl_act_var":-76.1,"ea_week":43.9},{"activity":"0-4109-01-Existing Roads","whc_sub":"WHC","category":"PD-WHC","section":"Civil","bl_finish":"2026-05-31","fc_finish":"2026-09-13","fin_var":105,"bl_pct":100.0,"ea_pct":99.5,"bl_act_var":2711.6,"ea_week":758.4},{"activity":"0-4110-Ditches","whc_sub":"WHC","category":"PD-WHC","section":"Civil","bl_finish":"2026-06-21","fc_finish":"2026-07-26","fin_var":35,"bl_pct":79.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4113-Construction Entrance","whc_sub":"WHC","category":"PD-WHC","section":"Civil","bl_finish":"2026-06-21","fc_finish":"2027-02-14","fin_var":238,"bl_pct":79.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4115-Clean Up","whc_sub":"WHC","category":"NP-WHC","section":"PV","bl_finish":"2027-06-27","fc_finish":"2027-10-31","fin_var":126,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4115-01-Clean Up","whc_sub":"WHC","category":"PD-WHC","section":"Civil","bl_finish":"2027-10-31","fc_finish":"2027-10-31","fin_var":0,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4116-Bush Hog","whc_sub":"WHC","category":"PD-WHC","section":"Civil","bl_finish":"2026-06-21","fc_finish":"2027-07-11","fin_var":385,"bl_pct":81.1,"ea_pct":16.5,"bl_act_var":129.2,"ea_week":45.2},{"activity":"0-4121-Laydown Areas","whc_sub":"WHC","category":"PD-WHC","section":"Civil","bl_finish":"2026-05-24","fc_finish":"2026-10-11","fin_var":140,"bl_pct":100.0,"ea_pct":53.9,"bl_act_var":3079.8,"ea_week":0.0},{"activity":"0-4122-Road Maintenance","whc_sub":"WHC","category":"NP-WHC","section":"Civil","bl_finish":"2027-11-28","fc_finish":"2027-10-24","fin_var":-35,"bl_pct":7.6,"ea_pct":2.8,"bl_act_var":106.0,"ea_week":18.6},{"activity":"0-4123-Dust Control","whc_sub":"WHC","category":"NP-WHC","section":"Civil","bl_finish":"2027-11-28","fc_finish":"2027-10-31","fin_var":-28,"bl_pct":7.6,"ea_pct":2.8,"bl_act_var":35.3,"ea_week":6.2},{"activity":"0-4124-Dewatering","whc_sub":"WHC","category":"NP-WHC","section":"Civil","bl_finish":"2027-11-28","fc_finish":"2027-10-31","fin_var":-28,"bl_pct":7.6,"ea_pct":2.8,"bl_act_var":16.6,"ea_week":2.9},{"activity":"0-4125-SWPPP Maintenance","whc_sub":"WHC","category":"NP-WHC","section":"Civil","bl_finish":"2027-11-28","fc_finish":"2027-10-31","fin_var":-28,"bl_pct":7.6,"ea_pct":2.8,"bl_act_var":53.0,"ea_week":9.3},{"activity":"0-4126-Stockpile Surface Rock","whc_sub":"WHC","category":"PD-WHC","section":"Civil","bl_finish":"2026-07-19","fc_finish":"2026-07-19","fin_var":0,"bl_pct":36.7,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4128-Basin Installation","whc_sub":"WHC","category":"PD-WHC","section":"Civil","bl_finish":"2026-07-19","fc_finish":"2026-08-23","fin_var":35,"bl_pct":23.1,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4131-Demo","whc_sub":"WHC","category":"PD-WHC","section":"Civil","bl_finish":"2026-06-21","fc_finish":"2026-07-12","fin_var":21,"bl_pct":81.1,"ea_pct":27.0,"bl_act_var":241.4,"ea_week":254.8},{"activity":"0-4205-PreDrill","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-01-31","fc_finish":"2027-01-17","fin_var":-14,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4207-Backfill PreDrill","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-01-31","fc_finish":"2027-01-10","fin_var":-21,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4300-Mechanical Receiving","whc_sub":"WHC","category":"NP-WHC","section":"PV","bl_finish":"2027-02-28","fc_finish":"2027-01-17","fin_var":-42,"bl_pct":14.9,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4301-Pile Layout","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-01-10","fc_finish":"2027-01-10","fin_var":0,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4302-Pile Installs","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-01-10","fc_finish":"2027-01-10","fin_var":0,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4303-Pile QAQC","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-01-17","fc_finish":"2027-01-17","fin_var":0,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4304-Racking Layout","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-01-24","fc_finish":"2027-01-24","fin_var":0,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4305-Racking Install","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-01-31","fc_finish":"2027-01-31","fin_var":0,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4306-Racking QAQC","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-01-31","fc_finish":"2027-01-31","fin_var":0,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4307-Modules Layout","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-03-07","fc_finish":"2027-03-07","fin_var":0,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4308-Modules Install","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-03-07","fc_finish":"2027-03-07","fin_var":0,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4309-Modules QAQC","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-03-14","fc_finish":"2027-03-14","fin_var":0,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4320-Mechanical Punch List","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-06-27","fc_finish":"2027-06-27","fin_var":0,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4400-Electrical Receiving","whc_sub":"WHC","category":"NP-WHC","section":"PV","bl_finish":"2027-03-07","fc_finish":"2026-11-01","fin_var":-126,"bl_pct":15.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4401-DC Trenching","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-01-17","fc_finish":"2027-01-31","fin_var":14,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4402-Transitions Pre-Fab","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-01-17","fc_finish":"2027-01-17","fin_var":0,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4403-DC Transitions Install","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-02-21","fc_finish":"2027-03-21","fin_var":28,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4405-DC Homerun","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-03-21","fc_finish":"2027-01-31","fin_var":-49,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4407-Module Wiring","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-05-09","fc_finish":"2027-05-09","fin_var":0,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4408-Harness Install","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-05-09","fc_finish":"2027-05-09","fin_var":0,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4410-DC Terminations","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-06-13","fc_finish":null,"fin_var":null,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4411-LDB Install","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-03-14","fc_finish":"2027-03-14","fin_var":0,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4412-CAB System Install","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-05-02","fc_finish":"2027-05-02","fin_var":0,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4413-DC Testing","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-05-09","fc_finish":"2027-05-09","fin_var":0,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4414-Commisioning","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-11-07","fc_finish":"2027-11-07","fin_var":0,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":-60.0,"ea_week":0.0},{"activity":"0-4415-Grounding","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-06-13","fc_finish":"2027-05-09","fin_var":-35,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4416-Trunk Bus System","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-05-09","fc_finish":"2027-05-09","fin_var":0,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4418-Electrical QC","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-06-27","fc_finish":"2027-07-04","fin_var":7,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":-50.0,"ea_week":0.0},{"activity":"0-4420-Electrical DC Punch List","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-07-25","fc_finish":"2027-07-25","fin_var":0,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4500-AC-MV Trenching & Boring","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2026-10-25","fc_finish":"2027-01-31","fin_var":98,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":-110.0,"ea_week":0.0},{"activity":"0-4501-AC-MV Terminations","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-06-06","fc_finish":"2027-06-06","fin_var":0,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4502-AC-MV Splices","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-03-14","fc_finish":"2027-04-04","fin_var":21,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4503-AC-MV Cabling","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2026-10-25","fc_finish":"2027-02-14","fin_var":112,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4505-AC-MV Boring","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2026-10-11","fc_finish":"2027-01-31","fin_var":112,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4511-Junction Box","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2026-10-25","fc_finish":"2027-02-14","fin_var":112,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4512-AC Testing","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-04-11","fc_finish":"2027-04-04","fin_var":-7,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4520-Electrical MV Punch List","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-07-18","fc_finish":"2027-07-18","fin_var":0,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4614-Scada-Met Install","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-06-13","fc_finish":"2027-06-06","fin_var":-7,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4700-Inv Skid Excavation","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-01-10","fc_finish":"2027-01-10","fin_var":0,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4701-Inv Skid Conduit","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-01-10","fc_finish":"2027-01-10","fin_var":0,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4702-Inv Skid Backfill","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-01-17","fc_finish":"2027-01-17","fin_var":0,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4703-Inv Skid Pile Caps","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-01-17","fc_finish":"2027-01-17","fin_var":0,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4704-Inv Skid Setting","whc_sub":"WHC","category":"PD-WHC","section":"PV","bl_finish":"2027-02-07","fc_finish":"2027-02-14","fin_var":7,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"0-4705-Inverter Pads","whc_sub":"WHC","category":"PD-WHC","section":"Civil","bl_finish":"2027-06-20","fc_finish":"2027-06-13","fin_var":-7,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"2-4004-SS BODEC ","whc_sub":"Sub","category":"PD-SUB","section":"SS","bl_finish":"2027-07-04","fc_finish":"2027-07-18","fin_var":14,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"2-4005-SS FOE","whc_sub":"WHC","category":"NP-WHC","section":"SS","bl_finish":"2027-07-04","fc_finish":"2027-07-18","fin_var":14,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0},{"activity":"2-4205-SS Pad","whc_sub":"WHC","category":"PD-WHC","section":"SS","bl_finish":"2026-07-12","fc_finish":"2026-12-13","fin_var":154,"bl_pct":0.0,"ea_pct":11.0,"bl_act_var":97.1,"ea_week":177.1},{"activity":"2-4241-MPT Setting & Install","whc_sub":"WHC","category":"PD-WHC","section":"SS","bl_finish":"2026-11-15","fc_finish":"2027-03-07","fin_var":112,"bl_pct":0.0,"ea_pct":0.0,"bl_act_var":0.0,"ea_week":0.0}];
@@ -757,11 +869,7 @@ const scChart = new Chart(scCtx, {
          borderWidth:2, borderDash:[],
          pointRadius:0, pointHoverRadius:4,
          spanGaps:false, yAxisID:'y' },
-      { label:'Cum. PF', data:[],
-         borderColor:'#a78bfa', fill:false, tension:0,
-         borderWidth:1.5, borderDash:[3,3],
-         pointRadius:3, pointHoverRadius:5,
-         spanGaps:false, yAxisID:'yPF' },
+
       { label:'Forecast Earned %', data:[],
          borderColor:'#fb923c', fill:false, tension:0.3,
          borderWidth:2, borderDash:[6,3],
@@ -775,23 +883,13 @@ const scChart = new Chart(scCtx, {
     plugins:{
       legend:{ display:false },
       annotation:{
-        annotations:{
-          pf1Line:{
-            type:'line', yMin:1, yMax:1, yScaleID:'yPF',
-            borderColor:'rgba(167,139,250,0.45)', borderWidth:1.5,
-            borderDash:[4,4],
-            label:{ content:'PF = 1.0', display:true, position:'end',
-                    backgroundColor:'transparent', color:'rgba(167,139,250,0.7)',
-                    font:{size:9}, padding:2 }
-          }
-        }
+        annotations:{}
       },
       tooltip:{
         backgroundColor:'#1e2235', borderColor:'#2a2d45', borderWidth:1,
         callbacks:{
           label: ctx => {
             if (ctx.parsed.y === null) return null;
-            if (ctx.datasetIndex === 3) return ` Cum. PF: ${ctx.parsed.y.toFixed(2)}`;
             return ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}%`;
           },
           filter: ctx => ctx.parsed.y !== null
@@ -821,10 +919,6 @@ function updateSCurve() {
   const blData   = src.bl.slice(dMin, dMax + 1);
   const earnData = trimActual(src.earned, dMin).slice(0, labels.length);
   const spData   = trimActual(src.spent,  dMin).slice(0, labels.length);
-  const pfSrc    = SCURVE.pf[scSection] || SCURVE.pf['Overall'];
-  const pfData   = pfSrc.slice(dMin, dMax + 1).map((v, li) =>
-    (dMin + li) <= selectedWeekIdx ? v : null
-  );
   // Forecast earned: always anchored at SC_CURRENT_IDX, visible from there forward
   const fcSrc  = (SCURVE.fc || {})[scSection] || (SCURVE.fc || {})['Overall'] || [];
   const fcData = fcSrc.slice(dMin, dMax + 1).map((v, li) => {
@@ -836,16 +930,12 @@ function updateSCurve() {
   scChart.data.datasets[0].data = blData;
   scChart.data.datasets[1].data = earnData;
   scChart.data.datasets[2].data = spData;
-  scChart.data.datasets[3].data = pfData;
-  scChart.data.datasets[4].data = fcData;
+  scChart.data.datasets[3].data = fcData;
   scChart.data.datasets[1].hidden = !!hiddenDS.earned;
   scChart.data.datasets[2].hidden = !!hiddenDS.spent;
-  scChart.data.datasets[3].hidden = !showPF;
-  scChart.data.datasets[4].hidden = !!hiddenDS.forecast;
+  scChart.data.datasets[3].hidden = !!hiddenDS.forecast;
   scChart.options.scales.y.min = pMin;
   scChart.options.scales.y.max = pMax === 0 ? 1 : pMax;
-  scChart.options.scales.yPF.display = showPF;
-  scChart.options.plugins.annotation.annotations.pf1Line.display = showPF;
   scChart.update('none');
   updateStatsTile();
 }
@@ -866,11 +956,6 @@ function setSCSection(sec, btn) {
   renderManpower();
 }
 
-function togglePF(btn) {
-  showPF = !showPF;
-  btn.classList.toggle('inactive', !showPF);
-  updateSCurve();
-}
 
 function toggleDataset(name, btn) {
   hiddenDS[name] = !hiddenDS[name];
@@ -978,7 +1063,7 @@ const fteMaxIdx = FTE.Overall.bl.reduce((acc,v,i) => v>0 ? i : acc, 0);
 const fteChart = new Chart(fteCtx, {
   type: 'bar',
   data: { labels: [], datasets: [
-    { label:'BL FTE', data:[], backgroundColor:'rgba(59,130,246,0.35)', borderRadius:3, order:3 },
+    { label:'BL FTE', data:[], backgroundColor:'rgba(96,165,250,0.75)', borderRadius:3, order:3 },
     { label:'Actual FTE', data:[],
        backgroundColor:'rgba(239,68,68,0.7)', borderRadius:3, order:2 },
     { label:'Earned FTE', data:[],
@@ -1253,6 +1338,16 @@ function initActSort() {
 }
 
 // ============================================================
+// PAGE NAVIGATION
+// ============================================================
+function showPage(name, btn) {
+  document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.page-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ============================================================
 // COLLAPSIBLE DONUT
 // ============================================================
 let donutCollapsed = false;
@@ -1278,6 +1373,201 @@ function toggleDonut() {
 }
 
 // ============================================================
+// PF ANALYSIS CHARTS
+// ============================================================
+const pfGridColor = 'rgba(255,255,255,0.05)';
+
+function makePFChart(canvasId, incColor, cumuColor) {
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  return new Chart(ctx, {
+    type: 'bar',
+    data: { labels: [], datasets: [
+      { label:'Weekly PF', data:[], backgroundColor: incColor, borderRadius:3, order:2 },
+      { label:'Cumulative PF', type:'line', data:[], borderColor: cumuColor,
+        fill:false, tension:0.3, borderWidth:2, pointRadius:2, pointHoverRadius:5,
+        spanGaps:false, order:1 }
+    ]},
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      interaction:{ mode:'index', intersect:false },
+      plugins:{
+        legend:{display:false},
+        annotation:{ annotations:{ pf1:{
+          type:'line', yMin:1, yMax:1,
+          borderColor:'rgba(255,255,255,0.2)', borderWidth:1.5, borderDash:[4,4],
+          label:{ content:'PF = 1.0', display:true, position:'end',
+                  backgroundColor:'transparent', color:'rgba(255,255,255,0.35)',
+                  font:{size:9}, padding:2 }
+        }}},
+        tooltip:{ backgroundColor:'#1e2235', borderColor:'#2a2d45', borderWidth:1,
+          callbacks:{ label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y !== null ? ctx.parsed.y.toFixed(3) : 'N/A'}` }
+        }
+      },
+      scales:{
+        x:{ grid:{color:pfGridColor}, ticks:{maxRotation:30, callback:function(v){ return this.getLabelForValue(v).slice(0,7); }} },
+        y:{ grid:{color:pfGridColor}, min:0, suggestedMax:3.5 }
+      }
+    }
+  });
+}
+
+const pfIndirectChart = makePFChart('pfIndirectChart', 'rgba(167,139,250,0.55)', '#a78bfa');
+const pfDirectChart   = makePFChart('pfDirectChart',   'rgba(34,197,94,0.55)',  '#22c55e');
+const pfOverallChart  = makePFChart('pfOverallChart',  'rgba(251,146,60,0.55)', '#fb923c');
+
+function updatePFCharts() {
+  const charts = [
+    { chart: pfIndirectChart, key: 'indirect' },
+    { chart: pfDirectChart,   key: 'direct' },
+    { chart: pfOverallChart,  key: 'overall' },
+  ];
+  const endIdx = SC_CURRENT_IDX + 1;
+  const labels = ALL_DATES.slice(0, endIdx);
+  charts.forEach(({chart, key}) => {
+    const inc  = (PF_SERIES[key].inc  || []).slice(0, endIdx);
+    const cumu = (PF_SERIES[key].cumu || []).slice(0, endIdx);
+    chart.data.labels           = labels;
+    chart.data.datasets[0].data = inc;
+    chart.data.datasets[1].data = cumu;
+    chart.update();
+  });
+}
+
+// PF Summary tiles
+function updatePFTiles() {
+  const idx = SC_CURRENT_IDX;
+  const tiles = [
+    { label:'Indirect PF',   key:'indirect', color:'#a78bfa', desc:'NP-WHC: contributes to spent only' },
+    { label:'Direct PF',     key:'direct',   color:'#22c55e', desc:'PD-WHC: earned ÷ spent' },
+    { label:'Job Total PF',  key:'overall',  color:'#fb923c', desc:'PD earned ÷ all WHC spent' },
+  ];
+  document.getElementById('pfSummaryTiles').innerHTML = tiles.map(t => {
+    const val = PF_SERIES[t.key].cumu[idx];
+    const wkval = PF_SERIES[t.key].inc[idx];
+    const dispVal = val != null ? val.toFixed(3) : '—';
+    const dispWk  = wkval != null ? wkval.toFixed(3) : '—';
+    const pfColor = val == null ? '#94a3b8' : val >= 1 ? '#22c55e' : val >= 0.85 ? '#f59e0b' : '#ef4444';
+    return `<div style="flex:1;min-width:200px;background:linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:14px 18px;position:relative;overflow:hidden">
+      <div style="position:absolute;top:0;left:0;width:3px;height:100%;background:${t.color}"></div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">${t.label}</div>
+      <div style="display:flex;gap:24px;align-items:flex-end">
+        <div>
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">CUMULATIVE</div>
+          <div style="font-size:32px;font-weight:700;color:${pfColor};line-height:1">${dispVal}</div>
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">WEEKLY</div>
+          <div style="font-size:18px;font-weight:600;color:${t.color};line-height:1">${dispWk}</div>
+        </div>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-top:6px">${t.desc}</div>
+    </div>`;
+  }).join('');
+}
+
+// PF Table
+let pfSortCol = null, pfSortDir = 0;
+
+function updatePFTableTiles() {
+  const pd = ACTIVITIES.filter(a => a.category === 'PD-WHC');
+  const np = ACTIVITIES.filter(a => a.category === 'NP-WHC');
+  const sub= ACTIVITIES.filter(a => a.category === 'PD-SUB');
+  const avg = (arr, key) => arr.length ? (arr.reduce((s,r)=>(s+(r[key]||0)),0)/arr.length) : 0;
+  const tiles = [
+    { label:'Direct (PD-WHC)', color:'#22c55e', count:pd.length, avgEa: avg(pd,'ea_pct'), avgBl: avg(pd,'bl_pct'), desc:'Contributes earned + spent to PF' },
+    { label:'Indirect (NP-WHC)', color:'#a78bfa', count:np.length, avgEa: avg(np,'ea_pct'), avgBl: avg(np,'bl_pct'), desc:'Contributes spent only' },
+    { label:'Sub (Excluded)', color:'#94a3b8', count:sub.length, avgEa: avg(sub,'ea_pct'), avgBl: avg(sub,'bl_pct'), desc:'Excluded from PF calculation' },
+  ];
+  document.getElementById('pfTableTiles').innerHTML = tiles.map(t => `
+    <div style="flex:1;min-width:180px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:12px 16px;border-left:3px solid ${t.color}">
+      <div style="font-size:11px;color:${t.color};font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">${t.label}</div>
+      <div style="display:flex;gap:20px">
+        <div><div style="font-size:9px;color:var(--muted);margin-bottom:1px">ACTIVITIES</div><div style="font-size:22px;font-weight:700;color:var(--text)">${t.count}</div></div>
+        <div><div style="font-size:9px;color:var(--muted);margin-bottom:1px">AVG BL%</div><div style="font-size:16px;font-weight:600;color:#3b82f6">${t.avgBl.toFixed(1)}%</div></div>
+        <div><div style="font-size:9px;color:var(--muted);margin-bottom:1px">AVG EARNED%</div><div style="font-size:16px;font-weight:600;color:#22c55e">${t.avgEa.toFixed(1)}%</div></div>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-top:6px">${t.desc}</div>
+    </div>`).join('');
+}
+
+function renderPFTable() {
+  const sec    = document.getElementById('pfSectionFilter').value;
+  const type   = document.getElementById('pfTypeFilter').value;
+  const q      = document.getElementById('pfSearch').value.toLowerCase();
+  const colF   = document.getElementById('pfColFilter').value;
+  const op     = document.getElementById('pfOpFilter').value;
+  const colVal = parseFloat(document.getElementById('pfColVal').value);
+  const getColV = (a, col) => {
+    if (col === 'pct_var') return (a.ea_pct||0)-(a.bl_pct||0);
+    return a[col]||0;
+  };
+  const passesCol = (a) => {
+    if (!colF || isNaN(colVal)) return true;
+    const v = getColV(a, colF);
+    if (op==='>=') return v>=colVal; if (op==='<=') return v<=colVal;
+    if (op==='>') return v>colVal;   if (op==='<') return v<colVal;
+    if (op==='=') return Math.abs(v-colVal)<0.001;
+    return true;
+  };
+  let rows = ACTIVITIES.filter(a =>
+    (!sec  || a.section === sec) &&
+    (!type || a.category === type) &&
+    (!q    || (a.activity||'').toLowerCase().includes(q)) &&
+    passesCol(a)
+  );
+  if (pfSortCol && pfSortDir !== 0) {
+    rows.sort((a,b) => {
+      let av, bv;
+      if (pfSortCol==='pct_var'){av=(a.ea_pct||0)-(a.bl_pct||0);bv=(b.ea_pct||0)-(b.bl_pct||0);}
+      else{av=a[pfSortCol]??'';bv=b[pfSortCol]??'';}
+      const cmp = typeof av==='number'?av-bv:String(av).localeCompare(String(bv));
+      return pfSortDir*cmp;
+    });
+  }
+  document.getElementById('pfCount').textContent = `${rows.length} of ${ACTIVITIES.length}`;
+  const pctBar = (pct,color) => `<div class="pct-bar-wrap"><span style="color:${color};min-width:36px;display:inline-block">${pct.toFixed(1)}%</span><div class="pct-bar"><div class="pct-fill" style="width:${Math.min(pct,100)}%;background:${color}"></div></div></div>`;
+  const html = rows.map(a => {
+    const catClass = a.category==='PD-WHC'?'cat-PD':a.category==='NP-WHC'?'cat-NP':'cat-PS';
+    const blColor  = a.bl_pct>=80?'#22c55e':a.bl_pct>=40?'#f59e0b':'#ef4444';
+    const eaColor  = a.ea_pct>=80?'#22c55e':a.ea_pct>=40?'#f59e0b':'#ef4444';
+    const pctVar   = (a.ea_pct||0)-(a.bl_pct||0);
+    const varColor = pctVar>=0?'#22c55e':pctVar>=-10?'#f59e0b':'#ef4444';
+    const varStr   = (pctVar>0?'+':'')+pctVar.toFixed(1)+'%';
+    let pfRoleHtml;
+    if (a.category==='PD-WHC') pfRoleHtml = `<span style="background:rgba(34,197,94,0.15);color:#22c55e;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600">Direct</span>`;
+    else if (a.category==='NP-WHC') pfRoleHtml = `<span style="background:rgba(167,139,250,0.15);color:#a78bfa;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600">Indirect</span>`;
+    else pfRoleHtml = `<span style="background:rgba(148,163,184,0.15);color:#94a3b8;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600">Sub</span>`;
+    return `<tr>
+      <td>${a.activity}</td>
+      <td>${a.whc_sub}</td>
+      <td><span class="cat-badge ${catClass}">${a.category}</span></td>
+      <td>${a.section}</td>
+      <td>${pctBar(a.bl_pct, blColor)}</td>
+      <td>${pctBar(a.ea_pct, eaColor)}</td>
+      <td style="text-align:right"><span style="color:${varColor};font-weight:600">${varStr}</span></td>
+      <td style="text-align:right">${a.ea_week>0?a.ea_week.toFixed(1):'—'}</td>
+      <td style="text-align:center">${pfRoleHtml}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('pfTableBody').innerHTML = html ||
+    '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px">No results</td></tr>';
+}
+
+function initPFSort() {
+  document.querySelectorAll('#pfTable th[data-pf-col]').forEach(th => {
+    th.style.cursor = 'pointer';
+    th.addEventListener('click', () => {
+      const col = th.dataset.pfCol;
+      if (pfSortCol===col){pfSortDir=pfSortDir===1?-1:pfSortDir===-1?0:1;}
+      else{pfSortCol=col;pfSortDir=1;}
+      document.querySelectorAll('#pfTable th[data-pf-col] .sort-icon').forEach(s=>s.textContent='⇅');
+      if (pfSortDir!==0) th.querySelector('.sort-icon').textContent=pfSortDir===1?'↑':'↓';
+      renderPFTable();
+    });
+  });
+}
+
+// ============================================================
 // INIT
 // ============================================================
 buildWeekSelector();
@@ -1289,6 +1579,11 @@ renderManpower();
 filterActivities();
 initMpSort();
 initActSort();
+updatePFCharts();
+updatePFTiles();
+updatePFTableTiles();
+renderPFTable();
+initPFSort();
 </script>
 </body>
 </html>
