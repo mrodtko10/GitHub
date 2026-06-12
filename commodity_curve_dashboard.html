@@ -346,6 +346,32 @@
           </div>
         </div>
 
+        <!-- X-Axis Interval + inline stats -->
+        <div class="sc-control-group">
+          <div class="filter-label">X-Axis Interval</div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="tabs" style="margin-bottom:0">
+              <button class="tab" data-sc-interval onclick="setSCInterval(1,this)">1 Wk</button>
+              <button class="tab active" data-sc-interval onclick="setSCInterval(2,this)">2 Wk</button>
+              <button class="tab" data-sc-interval onclick="setSCInterval(4,this)">4 Wk</button>
+            </div>
+            <div id="scInlineStats" style="display:flex;gap:12px;align-items:center;padding:3px 10px;background:#1e293b;border-radius:6px;border:1px solid #334155">
+              <div style="text-align:center">
+                <div style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em">BL Plan</div>
+                <div id="scStatBL" style="font-size:13px;font-weight:700;color:#60a5fa">—</div>
+              </div>
+              <div style="text-align:center">
+                <div style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em">Earned</div>
+                <div id="scStatEarned" style="font-size:13px;font-weight:700;color:#4ade80">—</div>
+              </div>
+              <div style="text-align:center">
+                <div style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em">Spent</div>
+                <div id="scStatSpent" style="font-size:13px;font-weight:700;color:#fbbf24">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <!-- Date Range Slider -->
@@ -359,31 +385,6 @@
           <input type="range" id="dateMax" min="0" max="97" value="97" oninput="updateSCurve()">
         </div>
       </div>
-      <div class="sc-control-group" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-        <div>
-          <div class="filter-label">X-Axis Interval</div>
-          <div class="tabs" style="margin-bottom:0">
-            <button class="tab" data-sc-interval onclick="setSCInterval(1,this)">1 Wk</button>
-            <button class="tab active" data-sc-interval onclick="setSCInterval(2,this)">2 Wk</button>
-            <button class="tab" data-sc-interval onclick="setSCInterval(4,this)">4 Wk</button>
-          </div>
-        </div>
-        <div id="scInlineStats" style="display:flex;gap:16px;align-items:center;padding:4px 10px;background:#1e293b;border-radius:6px;border:1px solid #334155">
-          <div style="text-align:center">
-            <div style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em">BL Plan</div>
-            <div id="scStatBL" style="font-size:14px;font-weight:700;color:#60a5fa">—</div>
-          </div>
-          <div style="text-align:center">
-            <div style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em">Earned</div>
-            <div id="scStatEarned" style="font-size:14px;font-weight:700;color:#4ade80">—</div>
-          </div>
-          <div style="text-align:center">
-            <div style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em">Spent</div>
-            <div id="scStatSpent" style="font-size:14px;font-weight:700;color:#fbbf24">—</div>
-          </div>
-        </div>
-      </div>
-
       <!-- % Range Slider -->
       <div class="slider-group">
         <div class="slider-label">
@@ -406,20 +407,6 @@
 
       <div class="chart-wrap" style="height:280px;position:relative">
       <canvas id="scurveChart"></canvas>
-      <div id="scStatsTile" style="
-        position:absolute;top:10px;left:14px;
-        background:rgba(15,17,23,0.82);border:1px solid rgba(59,130,246,0.35);
-        border-radius:8px;padding:10px 14px;backdrop-filter:blur(4px);
-        display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px 14px;
-        font-size:11px;pointer-events:none;z-index:10;">
-        <div style="color:#94a3b8">BL&nbsp;Plan</div>
-        <div style="color:#94a3b8">Earned</div>
-        <div style="color:#94a3b8">Spent</div>
-        <div id="tile-bl"     style="color:#3b82f6;font-size:16px;font-weight:700"></div>
-        <div id="tile-earned" style="color:#22c55e;font-size:16px;font-weight:700"></div>
-        <div id="tile-spent"  style="color:#f59e0b;font-size:16px;font-weight:700"></div>
-        <div id="tile-pf" style="display:none"></div>
-      </div>
     </div>
       <div id="scSubTable" style="margin-top:8px;overflow-x:auto;max-height:130px;overflow-y:auto"></div>
     </div>
