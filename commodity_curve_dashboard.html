@@ -172,7 +172,7 @@
   #actTable tbody tr:hover { background: rgba(255,255,255,0.04); }
 
   /* S-Curve Controls */
-  .sc-controls { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 14px; align-items: flex-start; }
+  .sc-controls { display: flex; flex-wrap: nowrap; gap: 16px; margin-bottom: 14px; align-items: flex-start; overflow-x: auto; }
   .sc-control-group { display: flex; flex-direction: column; gap: 6px; }
 
   /* Dual range sliders — scrollbar style */
@@ -336,10 +336,10 @@
           </div>
         </div>
 
-        <!-- Productivity Overlay + Interval + Stats (all inline) -->
+        <!-- Productivity Overlay + Interval + Stats (all on one row) -->
         <div class="sc-control-group">
           <div class="filter-label">Overlay</div>
-          <div style="display:flex;align-items:center;gap:10px">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:nowrap">
             <div class="tabs" style="margin-bottom:0">
               <button class="tab active" id="spentToggle" onclick="toggleDataset('spent',this)">Spent</button>
               <button class="tab active" id="earnedToggle" onclick="toggleDataset('earned',this)">Earned</button>
@@ -350,16 +350,16 @@
               <button class="tab active" data-sc-interval onclick="setSCInterval(2,this)">2 Wk</button>
               <button class="tab" data-sc-interval onclick="setSCInterval(4,this)">4 Wk</button>
             </div>
-            <div id="scInlineStats" style="display:flex;flex-direction:column;gap:2px;padding:4px 12px;background:#1e293b;border-radius:6px;border:1px solid #334155;min-width:90px">
-              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+            <div id="scInlineStats" style="display:flex;flex-direction:column;gap:1px;padding:4px 12px;background:#1e293b;border-radius:6px;border:1px solid #334155">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
                 <span style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em">BL Plan</span>
                 <span id="scStatBL" style="font-size:13px;font-weight:700;color:#60a5fa">—</span>
               </div>
-              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
                 <span style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em">Earned</span>
                 <span id="scStatEarned" style="font-size:13px;font-weight:700;color:#4ade80">—</span>
               </div>
-              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
                 <span style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em">Spent</span>
                 <span id="scStatSpent" style="font-size:13px;font-weight:700;color:#fbbf24">—</span>
               </div>
