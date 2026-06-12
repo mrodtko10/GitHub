@@ -1353,9 +1353,9 @@ function _applyFTEActivityFilter() {
   // Hide base datasets, replace with aggregated activity series using same style
   fteChart.data.datasets.forEach(d => { d.hidden = true; });
 
-  const lo = +document.getElementById('fteMin').value;
-  const hi = Math.min(+document.getElementById('fteMax').value, selectedWeekIdx);
-  const n  = hi - lo + 1;
+  const lo  = +document.getElementById('fteMin').value;
+  const hi  = +document.getElementById('fteMax').value;  // full slider range, not capped by week
+  const n   = hi - lo + 1;
 
   const fmtD = iso => { const d = new Date(iso + 'T00:00:00'); return (d.getMonth()+1) + '/' + d.getDate() + '/' + String(d.getFullYear()).slice(2); };
   fteChart.data.labels = FTE_BY_ACTIVITY.dates.slice(lo, hi + 1).map(fmtD);
@@ -1370,10 +1370,14 @@ function _applyFTEActivityFilter() {
     const act = FTE_BY_ACTIVITY.activities[actName];
     if (!act) return;
     for (let i = 0; i < n; i++) {
-      sumBL[i]     += act.bl[lo + i]     || 0;
-      sumSpent[i]  += act.spent[lo + i]  || 0;
-      sumEarned[i] += act.earned[lo + i] || 0;
-      sumFC[i]     += act.fc[lo + i]     || 0;
+      const absIdx = lo + i;
+      sumBL[i]  += act.bl[absIdx]  || 0;
+      sumFC[i]  += act.fc[absIdx]  || 0;
+      // Actual & Earned only exist up to the selected week
+      if (absIdx <= selectedWeekIdx) {
+        sumSpent[i]  += act.spent[absIdx]  || 0;
+        sumEarned[i] += act.earned[absIdx] || 0;
+      }
     }
   });
 
