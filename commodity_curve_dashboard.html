@@ -224,7 +224,10 @@
   <div>
     <h1>Hillsboro 25-4002 <span class="badge">Project Status Report</span></h1>
   </div>
-  <div class="meta">Week Ending: <strong id="headerWeekEnding" style="color:var(--text)">June 7, 2026</strong></div>
+  <div class="meta" style="display:flex;align-items:center;gap:8px">
+    <span style="color:var(--muted)">Week Ending:</span>
+    <select id="headerWeekSelector" onchange="onHeaderWeekChange()" style="background:transparent;border:1px solid rgba(255,255,255,0.15);color:var(--text);border-radius:6px;padding:3px 8px;font-size:13px;font-weight:700;cursor:pointer"></select>
+  </div>
 </header>
 
 <div class="container">
@@ -579,24 +582,24 @@
     <div class="chart-card">
       <div class="chart-title">Indirect PF <span style="font-size:11px;color:var(--muted)">(NP-WHC labor vs budget)</span></div>
       <div class="legend" style="margin-bottom:6px">
-        <div class="legend-item"><div class="legend-dot" style="background:rgba(167,139,250,0.6)"></div>Weekly Inc</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#a78bfa;height:0;border-top:2px solid #a78bfa;width:16px"></div>Cumulative</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ef4444;height:0;border-top:2px solid #ef4444;width:16px"></div>Incremental</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#60a5fa;height:0;border-top:2.5px solid #60a5fa;width:16px"></div>Cumulative</div>
       </div>
       <div class="chart-wrap" style="height:220px"><canvas id="pfIndirectChart"></canvas></div>
     </div>
     <div class="chart-card">
       <div class="chart-title">Direct PF <span style="font-size:11px;color:var(--muted)">(PD-WHC earned / spent)</span></div>
       <div class="legend" style="margin-bottom:6px">
-        <div class="legend-item"><div class="legend-dot" style="background:rgba(34,197,94,0.6)"></div>Weekly Inc</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#22c55e;height:0;border-top:2px solid #22c55e;width:16px"></div>Cumulative</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ef4444;height:0;border-top:2px solid #ef4444;width:16px"></div>Incremental</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#60a5fa;height:0;border-top:2.5px solid #60a5fa;width:16px"></div>Cumulative</div>
       </div>
       <div class="chart-wrap" style="height:220px"><canvas id="pfDirectChart"></canvas></div>
     </div>
     <div class="chart-card">
       <div class="chart-title">Job Total PF <span style="font-size:11px;color:var(--muted)">(PD earned / all WHC spent)</span></div>
       <div class="legend" style="margin-bottom:6px">
-        <div class="legend-item"><div class="legend-dot" style="background:rgba(251,146,60,0.6)"></div>Weekly Inc</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#fb923c;height:0;border-top:2px solid #fb923c;width:16px"></div>Cumulative</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ef4444;height:0;border-top:2px solid #ef4444;width:16px"></div>Incremental</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#60a5fa;height:0;border-top:2.5px solid #60a5fa;width:16px"></div>Cumulative</div>
       </div>
       <div class="chart-wrap" style="height:220px"><canvas id="pfOverallChart"></canvas></div>
     </div>
@@ -968,29 +971,44 @@ function toggleDataset(name, btn) {
 // ============================================================
 function buildWeekSelector() {
   const sel = document.getElementById('weekSelector');
+  const hdr = document.getElementById('headerWeekSelector');
   // All dates — newest first; current week shown with "(Current)" marker
   for (let i = ALL_DATES.length - 1; i >= 0; i--) {
     const opt = document.createElement('option');
     opt.value = i;
-    const label = 'Week Ending: ' + ALL_DATES[i] + (i === SC_CURRENT_IDX ? '  ★ Current' : '');
+    const d = new Date(ALL_DATES[i] + 'T00:00:00');
+    const label = (d.getMonth()+1) + '/' + d.getDate() + '/' + String(d.getFullYear()).slice(2) + (i === SC_CURRENT_IDX ? '  ★ Current' : '');
     opt.textContent = label;
     if (i === SC_CURRENT_IDX) opt.selected = true;
     sel.appendChild(opt);
+    // Mirror into header selector
+    const hopt = opt.cloneNode(true);
+    hdr.appendChild(hopt);
   }
 }
 
-function onWeekChange() {
-  const sel = document.getElementById('weekSelector');
-  selectedWeekIdx = +sel.value;
+function _applyWeekIdx(idx) {
+  selectedWeekIdx = idx;
+  // Sync both selectors
+  document.getElementById('weekSelector').value = idx;
+  document.getElementById('headerWeekSelector').value = idx;
   // Snap the date-range slider so the S-curve zooms to show from start through selected week
-  const dMaxEl = document.getElementById('dateMax');
-  const snapMax = Math.min(selectedWeekIdx + 8, ALL_DATES.length - 1);
-  dMaxEl.value = snapMax;
+  const snapMax = Math.min(idx + 8, ALL_DATES.length - 1);
+  document.getElementById('dateMax').value = snapMax;
   document.getElementById('dateMin').value = 0;
   updateSCurve();
   updateDonut();
   updateFTE();
-  document.getElementById('headerWeekEnding').textContent = ALL_DATES[selectedWeekIdx];
+  renderManpower();
+  filterActivities();
+}
+
+function onWeekChange() {
+  _applyWeekIdx(+document.getElementById('weekSelector').value);
+}
+
+function onHeaderWeekChange() {
+  _applyWeekIdx(+document.getElementById('headerWeekSelector').value);
 }
 
 // ============================================================
@@ -1377,14 +1395,21 @@ function toggleDonut() {
 // ============================================================
 const pfGridColor = 'rgba(255,255,255,0.05)';
 
-function makePFChart(canvasId, incColor, cumuColor) {
+function _fmtPFDate(isoStr) {
+  const d = new Date(isoStr + 'T00:00:00');
+  return (d.getMonth()+1) + '/' + d.getDate() + '/' + String(d.getFullYear()).slice(2);
+}
+
+function makePFChart(canvasId) {
   const ctx = document.getElementById(canvasId).getContext('2d');
   return new Chart(ctx, {
-    type: 'bar',
+    type: 'line',
     data: { labels: [], datasets: [
-      { label:'Weekly PF', data:[], backgroundColor: incColor, borderRadius:3, order:2 },
-      { label:'Cumulative PF', type:'line', data:[], borderColor: cumuColor,
-        fill:false, tension:0.3, borderWidth:2, pointRadius:2, pointHoverRadius:5,
+      { label:'Incremental PF', data:[], borderColor:'#ef4444', backgroundColor:'rgba(239,68,68,0.15)',
+        fill:false, tension:0.3, borderWidth:2, pointRadius:3, pointHoverRadius:6,
+        spanGaps:false, order:2 },
+      { label:'Cumulative PF', data:[], borderColor:'#60a5fa', backgroundColor:'rgba(96,165,250,0.15)',
+        fill:false, tension:0.3, borderWidth:2.5, pointRadius:3, pointHoverRadius:6,
         spanGaps:false, order:1 }
     ]},
     options: {
@@ -1404,16 +1429,26 @@ function makePFChart(canvasId, incColor, cumuColor) {
         }
       },
       scales:{
-        x:{ grid:{color:pfGridColor}, ticks:{maxRotation:30, callback:function(v){ return this.getLabelForValue(v).slice(0,7); }} },
+        x:{
+          grid:{ color: (ctx) => ctx.index % 2 === 0 ? pfGridColor : 'transparent' },
+          ticks:{ maxRotation:30, autoSkip:false,
+            callback: function(v, i) {
+              // show label every 2 weeks
+              if (i % 2 !== 0) return null;
+              const lbl = this.getLabelForValue(v);
+              return lbl || null;
+            }
+          }
+        },
         y:{ grid:{color:pfGridColor}, min:0, suggestedMax:3.5 }
       }
     }
   });
 }
 
-const pfIndirectChart = makePFChart('pfIndirectChart', 'rgba(167,139,250,0.55)', '#a78bfa');
-const pfDirectChart   = makePFChart('pfDirectChart',   'rgba(34,197,94,0.55)',  '#22c55e');
-const pfOverallChart  = makePFChart('pfOverallChart',  'rgba(251,146,60,0.55)', '#fb923c');
+const pfIndirectChart = makePFChart('pfIndirectChart');
+const pfDirectChart   = makePFChart('pfDirectChart');
+const pfOverallChart  = makePFChart('pfOverallChart');
 
 function updatePFCharts() {
   const charts = [
@@ -1422,7 +1457,7 @@ function updatePFCharts() {
     { chart: pfOverallChart,  key: 'overall' },
   ];
   const endIdx = SC_CURRENT_IDX + 1;
-  const labels = ALL_DATES.slice(0, endIdx);
+  const labels = ALL_DATES.slice(0, endIdx).map(_fmtPFDate);
   charts.forEach(({chart, key}) => {
     const inc  = (PF_SERIES[key].inc  || []).slice(0, endIdx);
     const cumu = (PF_SERIES[key].cumu || []).slice(0, endIdx);
