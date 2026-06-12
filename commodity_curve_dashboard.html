@@ -1379,34 +1379,11 @@ function _applyFTEActivityFilter() {
 
   const nullZero = arr => arr.map(v => v === 0 ? null : v);
 
-  // BL — same style as base chart
-  fteChart.data.datasets.push({
-    label: 'BL FTE', type: 'line',
-    data: nullZero(sumBL), borderColor: '#60a5fa',
-    backgroundColor: 'transparent', fill: false, tension: 0.3,
-    borderWidth: 2, pointRadius: 3, spanGaps: true, _isActivity: true,
-  });
-  // Actual (Spent)
-  fteChart.data.datasets.push({
-    label: 'Actual FTE', type: 'line',
-    data: nullZero(sumSpent), borderColor: '#ef4444',
-    backgroundColor: 'transparent', fill: false, tension: 0.3,
-    borderWidth: 2, pointRadius: 3, spanGaps: true, _isActivity: true,
-  });
-  // Earned
-  fteChart.data.datasets.push({
-    label: 'Earned FTE', type: 'line',
-    data: nullZero(sumEarned), borderColor: '#22c55e',
-    backgroundColor: 'rgba(34,197,94,0.08)', fill: true, tension: 0.3,
-    borderWidth: 2, pointRadius: 3, spanGaps: true, _isActivity: true,
-  });
-  // Forecast
-  fteChart.data.datasets.push({
-    label: 'Forecast FTE', type: 'line',
-    data: nullZero(sumFC), borderColor: 'rgba(251,146,60,0.55)',
-    backgroundColor: 'transparent', borderDash: [4,3], fill: false, tension: 0.3,
-    borderWidth: 2, pointRadius: 0, spanGaps: true, _isActivity: true,
-  });
+  // Same bar style as base chart
+  fteChart.data.datasets.push({ label:'BL FTE',       data: nullZero(sumBL),     backgroundColor:'rgba(96,165,250,0.75)',  borderRadius:3, order:3, _isActivity:true });
+  fteChart.data.datasets.push({ label:'Actual FTE',   data: nullZero(sumSpent),  backgroundColor:'rgba(239,68,68,0.7)',    borderRadius:3, order:2, _isActivity:true });
+  fteChart.data.datasets.push({ label:'Earned FTE',   data: nullZero(sumEarned), backgroundColor:'rgba(34,197,94,0.7)',    borderRadius:3, order:2, _isActivity:true });
+  fteChart.data.datasets.push({ label:'Forecast FTE', data: nullZero(sumFC),     backgroundColor:'rgba(251,146,60,0.55)',  borderRadius:3, order:2, _isActivity:true });
 
   if (modeEl) modeEl.textContent = checked.length > 1 ? '— ' + checked.length + ' activities combined' : '';
   fteChart.update();
