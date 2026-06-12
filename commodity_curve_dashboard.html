@@ -1343,7 +1343,13 @@ const fteChart = new Chart(fteCtx, {
       tooltip:{backgroundColor:'#1e2235', borderColor:'#2a2d45', borderWidth:1} },
     scales:{
       x:{ grid:{color:gridColor},
-           ticks:{maxRotation:30, callback:function(val){ return this.getLabelForValue(val).slice(0,7); }} },
+           ticks:{maxRotation:30,
+                  callback:function(val){
+                    const iso = this.getLabelForValue(val);
+                    if (!iso) return '';
+                    const d = new Date(iso+'T00:00:00');
+                    return (d.getMonth()+1)+'/'+(d.getDate())+'/'+String(d.getFullYear()).slice(2);
+                  }} },
       y:{ grid:{color:gridColor}, min:0 }
     }
   }
