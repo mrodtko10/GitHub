@@ -359,6 +359,14 @@
           <input type="range" id="dateMax" min="0" max="97" value="97" oninput="updateSCurve()">
         </div>
       </div>
+      <div class="sc-control-group">
+        <div class="filter-label">X-Axis Interval</div>
+        <div class="tabs" style="margin-bottom:0">
+          <button class="tab" data-sc-interval onclick="setSCInterval(1,this)">1 Wk</button>
+          <button class="tab active" data-sc-interval onclick="setSCInterval(2,this)">2 Wk</button>
+          <button class="tab" data-sc-interval onclick="setSCInterval(4,this)">4 Wk</button>
+        </div>
+      </div>
 
       <!-- % Range Slider -->
       <div class="slider-group">
@@ -383,7 +391,7 @@
       <div class="chart-wrap" style="height:280px;position:relative">
       <canvas id="scurveChart"></canvas>
       <div id="scStatsTile" style="
-        position:absolute;top:10px;right:14px;
+        position:absolute;top:10px;left:14px;
         background:rgba(15,17,23,0.82);border:1px solid rgba(59,130,246,0.35);
         border-radius:8px;padding:10px 14px;backdrop-filter:blur(4px);
         display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px 14px;
@@ -884,6 +892,7 @@ const ACTIVITIES = [{"activity":"0-4000-01-Civil Mob","whc_sub":"WHC","category"
 // STATE
 // ============================================================
 let scSection    = 'Overall';
+let scIntervalWeeks = 2;
 let showPF       = true;
 let hiddenDS     = {};
 let selectedWeekIdx = SC_CURRENT_IDX;  // changes with week selector
@@ -985,7 +994,7 @@ function updateStatsTile() {
   }
   const cpfEl = document.getElementById('kpi-cumu-pf');
   if (cpfEl) {
-    cpfEl.textContent = s.cumu_pf != null ? s.cumu_pf.toFixed(3) : '—';
+    cpfEl.textContent = s.cumu_pf != null ? s.cumu_pf.toFixed(2) : '—';
     cpfEl.style.color = s.cumu_pf == null ? '#94a3b8' : s.cumu_pf >= 1 ? '#22c55e' : '#ef4444';
     const subEl = document.getElementById('kpi-cumu-pf-sub');
     if (subEl && scSection !== 'Overall') subEl.textContent = scSection + ' section';
@@ -1077,8 +1086,14 @@ const scChart = new Chart(scCtx, {
     },
     scales:{
       x:{ grid:{color:gridColor},
-           ticks:{maxTicksLimit:12, maxRotation:30,
-                  callback:function(val){ return this.getLabelForValue(val).slice(0,7); }} },
+           ticks:{maxRotation:30,
+                  filter: (tick, idx) => idx % scIntervalWeeks === 0,
+                  callback:function(val,idx){
+                    const iso = this.getLabelForValue(val);
+                    if (!iso) return '';
+                    const d = new Date(iso+'T00:00:00');
+                    return (d.getMonth()+1)+'/'+(d.getDate())+'/'+String(d.getFullYear()).slice(2);
+                  }} },
       y:{ position:'left', grid:{color:gridColor},
            min:0, max:100, ticks:{callback: v=>v+'%'} },
 
@@ -1140,19 +1155,23 @@ function renderSCSubTable(lo, hi) {
     return `<tr>${cells}</tr>`;
   };
 
-  const blVals   = {}, earnVals = {}, spVals = {};
+  const fcSrc2 = (SCURVE.fc || {})[scSection] || (SCURVE.fc || {})['Overall'] || [];
+  const blVals = {}, earnVals = {}, spVals = {}, fcVals = {};
   for (let i = lo; i <= hi; i++) {
     blVals[i]   = fmt1(src.bl[i]);
     earnVals[i] = i <= selectedWeekIdx ? fmt1(src.earned[i]) : '—';
     spVals[i]   = i <= selectedWeekIdx ? fmt1(src.spent[i])  : '—';
+    const globalIdx = i;
+    fcVals[i]   = globalIdx >= SC_CURRENT_IDX && fcSrc2[i] != null ? fmt1(fcSrc2[i]) : '—';
   }
 
   el.innerHTML = `<div style="overflow-x:auto;margin-top:8px"><table style="font-size:10px;border-collapse:collapse;width:max-content;min-width:100%">
     <thead><tr style="background:rgba(255,255,255,0.05)">${hdr}</tr></thead>
     <tbody>
-      ${makeRow('BL %',     '#3b82f6', blVals)}
-      ${makeRow('Earned %', '#22c55e', earnVals)}
-      ${makeRow('Spent %',  '#ef4444', spVals)}
+      ${makeRow('BL %',       '#3b82f6', blVals)}
+      ${makeRow('Earned %',   '#22c55e', earnVals)}
+      ${makeRow('Spent %',    '#ef4444', spVals)}
+      ${makeRow('Forecast %', '#fb923c', fcVals)}
     </tbody>
   </table></div>`;
 }
@@ -1160,6 +1179,15 @@ function renderSCSubTable(lo, hi) {
 // ============================================================
 // SECTION TABS / TOGGLES
 // ============================================================
+function setSCInterval(n, btn) {
+  scIntervalWeeks = n;
+  document.querySelectorAll('[data-sc-interval]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  // Update chart tick filter
+  scChart.options.scales.x.ticks.filter = (tick, idx) => idx % scIntervalWeeks === 0;
+  scChart.update('none');
+}
+
 function setSCSection(sec, btn) {
   scSection = sec;
   document.querySelectorAll('[data-sc-tab]').forEach(b => b.classList.remove('active'));
@@ -1930,15 +1958,15 @@ function updatePFTiles() {
 
   const _tile = (label, color, desc, s) => {
     const pfColor = s.cumPF == null ? '#94a3b8' : s.cumPF >= 1 ? '#22c55e' : s.cumPF >= 0.85 ? '#f59e0b' : '#ef4444';
-    const fmt1 = v => v > 0 ? v.toFixed(1) : '—';
+    const fmt1 = v => v > 0 ? Math.round(v).toLocaleString() : '—';
     return `<div style="flex:1;min-width:220px;background:linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px 14px;position:relative;overflow:hidden">
       <div style="position:absolute;top:0;left:0;width:3px;height:100%;background:${color}"></div>
       <div style="font-size:11px;font-weight:700;color:${color};margin-bottom:7px;text-transform:uppercase;letter-spacing:.1em;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:5px">${label}</div>
       <div style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap">
         <div><div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:1px">CUMU PF</div>
-          <div style="font-size:24px;font-weight:700;color:${pfColor};line-height:1">${s.cumPF != null ? s.cumPF.toFixed(3) : '—'}</div></div>
+          <div style="font-size:24px;font-weight:700;color:${pfColor};line-height:1">${s.cumPF != null ? s.cumPF.toFixed(2) : '—'}</div></div>
         <div><div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:1px">WK PF</div>
-          <div style="font-size:24px;font-weight:700;color:${s.wkPF == null ? '#94a3b8' : s.wkPF >= 1 ? '#22c55e' : '#ef4444'};line-height:1">${s.wkPF != null ? s.wkPF.toFixed(3) : '—'}</div></div>
+          <div style="font-size:24px;font-weight:700;color:${s.wkPF == null ? '#94a3b8' : s.wkPF >= 1 ? '#22c55e' : '#ef4444'};line-height:1">${s.wkPF != null ? s.wkPF.toFixed(2) : '—'}</div></div>
         <div><div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:1px">WK FTE</div>
           <div style="font-size:15px;font-weight:600;color:var(--text);line-height:1">${s.wkFTE.toFixed(1)}</div></div>
         <div><div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:1px">WK EARNED</div>
@@ -2056,7 +2084,7 @@ function renderPFTable() {
 
   document.getElementById('pfCount').textContent = `${rows.length} of ${ACTIVITIES.length}`;
 
-  const fmt1 = v => v > 0 ? v.toFixed(1) : '—';
+  const fmt1 = v => v > 0 ? Math.round(v).toLocaleString() : '—';
   const fmtPF = (v, isGoal, cumPF) => {
     if (v == null) return '—';
     if (isGoal && (cumPF == null || cumPF >= 1)) return '—';
@@ -2067,18 +2095,16 @@ function renderPFTable() {
   const fmtPFRag = (v, prev, overall) => {
     if (v == null) return '—';
     const color = v >= 1 ? '#22c55e' : v >= 0.85 ? '#f59e0b' : '#ef4444';
-    // Arrow: compare to previous value (trend) and flag vs 1.0
     let arrow = '';
     if (prev != null) {
       const diff = v - prev;
       if (Math.abs(diff) >= 0.005) arrow = diff > 0
-        ? `<span style="color:#22c55e;font-size:9px;margin-left:3px">▲</span>`
-        : `<span style="color:#ef4444;font-size:9px;margin-left:3px">▼</span>`;
+        ? `<span style="color:#22c55e;font-size:9px;margin-right:3px">▲</span>`
+        : `<span style="color:#ef4444;font-size:9px;margin-right:3px">▼</span>`;
     }
-    // Small dot indicator relative to 1.0 (overall job PF target)
     const dot = overall != null
       ? `<span style="font-size:7px;margin-left:2px;opacity:0.7">${overall>=1?'●':'○'}</span>` : '';
-    return `<span style="color:${color}">${v.toFixed(3)}${arrow}${dot}</span>`;
+    return `<span style="color:${color}">${arrow}${dot}${v.toFixed(2)}</span>`;
   };
 
   const html = rows.map(a => {
