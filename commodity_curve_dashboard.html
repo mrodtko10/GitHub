@@ -226,7 +226,7 @@
   </div>
   <div class="meta" style="display:flex;align-items:center;gap:8px">
     <span style="color:var(--muted)">Week Ending:</span>
-    <select id="headerWeekSelector" onchange="onHeaderWeekChange()" style="background:transparent;border:1px solid rgba(255,255,255,0.15);color:var(--text);border-radius:6px;padding:3px 8px;font-size:13px;font-weight:700;cursor:pointer"></select>
+    <select id="headerWeekSelector" onchange="onHeaderWeekChange()" style="background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:3px 8px;font-size:13px;font-weight:700;cursor:pointer"></select>
   </div>
 </header>
 
@@ -427,6 +427,30 @@
     </div>
   </div>
 
+  <!-- FTE Cost Code Drill-Down -->
+  <div class="chart-card" style="margin-top:16px" id="fteDrillCard">
+    <div class="chart-title">Cost Code FTE Breakdown — Current Week
+      <span id="fteDrillSubtitle" style="font-size:11px;color:var(--muted);margin-left:6px"></span>
+    </div>
+    <div class="filters" style="margin-bottom:10px">
+      <span class="filter-label">Cost Codes:</span>
+      <select id="fteDrillSelect" multiple size="5" style="min-width:300px;height:auto;max-height:120px" onchange="updateFTEDrilldown()">
+      </select>
+      <div style="display:flex;flex-direction:column;gap:4px;margin-left:4px">
+        <button onclick="Array.from(document.getElementById('fteDrillSelect').options).forEach(o=>o.selected=true);updateFTEDrilldown()" style="padding:3px 10px;font-size:11px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:4px;color:var(--muted);cursor:pointer">All</button>
+        <button onclick="Array.from(document.getElementById('fteDrillSelect').options).forEach(o=>o.selected=false);updateFTEDrilldown()" style="padding:3px 10px;font-size:11px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:4px;color:var(--muted);cursor:pointer">Clear</button>
+      </div>
+      <span style="font-size:11px;color:var(--muted);margin-left:16px">Ctrl/⌘+click to multi-select</span>
+    </div>
+    <div class="legend" style="margin-bottom:6px">
+      <div class="legend-item"><div class="legend-dot" style="background:#60a5fa"></div>CW BL FTE</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>CW Actual FTE</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(96,165,250,0.35)"></div>PW BL FTE</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(239,68,68,0.35)"></div>PW Actual FTE</div>
+    </div>
+    <div class="chart-wrap" style="height:280px"><canvas id="fteDrillChart"></canvas></div>
+  </div>
+
   <!-- Weekly Manpower Table -->
   <div class="chart-card">
     <div class="chart-title">Weekly Manpower Summary</div>
@@ -573,6 +597,36 @@
 </div><!-- end page-dashboard -->
 
 <div id="page-pf" class="page-section">
+
+  <!-- PF Controls Bar -->
+  <div class="chart-card" style="margin-bottom:16px;padding:14px 18px">
+    <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-end">
+
+      <!-- Job Type -->
+      <div class="sc-control-group">
+        <div class="filter-label">Job Type</div>
+        <div class="tabs" style="margin-bottom:0">
+          <button class="tab active" data-pf-tab onclick="setPFSection('Overall',this)">Overall</button>
+          <button class="tab" data-pf-tab onclick="setPFSection('Civil',this)">Civil</button>
+          <button class="tab" data-pf-tab onclick="setPFSection('PV',this)">PV</button>
+          <button class="tab" data-pf-tab onclick="setPFSection('SS',this)">SS</button>
+        </div>
+      </div>
+
+      <!-- Chart Timeline Slider -->
+      <div class="sc-control-group" style="flex:1;min-width:260px">
+        <div class="slider-label">
+          <span>Chart Range</span>
+          <span id="pfRangeLabel" class="slider-val"></span>
+        </div>
+        <div class="dual-slider" id="pfSliderTrack">
+          <input type="range" id="pfRangeMinEl" min="0" max="97" value="0" oninput="updatePFSlider()">
+          <input type="range" id="pfRangeMaxEl" min="0" max="97" value="12" oninput="updatePFSlider()">
+        </div>
+      </div>
+
+    </div>
+  </div>
 
   <!-- PF Summary Tiles -->
   <div id="pfSummaryTiles" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px"></div>
@@ -723,6 +777,9 @@ let showPF       = true;
 let hiddenDS     = {};
 let selectedWeekIdx = SC_CURRENT_IDX;  // changes with week selector
 let donutMetric  = 'bl';               // bl | earned | spent | remaining
+let pfSection = 'Overall';
+let pfRangeMin = 0;
+let pfRangeMax = SC_CURRENT_IDX;
 
 // ============================================================
 // CHART DEFAULTS
@@ -957,6 +1014,7 @@ function setSCSection(sec, btn) {
   updateSCurve();   // calls updateStatsTile() internally
   updateFTE();
   renderManpower();
+  buildFTEDrillSelect();
 }
 
 
@@ -1003,6 +1061,9 @@ function _applyWeekIdx(idx) {
   updateFTE();
   renderManpower();
   filterActivities();
+  updatePFTiles();
+  updatePFCharts();
+  renderPFTable();
 }
 
 function onWeekChange() {
@@ -1128,6 +1189,63 @@ function updateFTE() {
   fteChart.update('none');
 }
 updateFTE();
+
+// ============================================================
+// FTE COST CODE DRILL-DOWN
+// ============================================================
+const fteDrillCtx = document.getElementById('fteDrillChart').getContext('2d');
+const fteDrillChart = new Chart(fteDrillCtx, {
+  type: 'bar',
+  data: { labels: [], datasets: [
+    { label:'CW BL FTE',     data:[], backgroundColor:'rgba(96,165,250,0.75)',  borderRadius:3 },
+    { label:'CW Actual FTE', data:[], backgroundColor:'rgba(239,68,68,0.75)',   borderRadius:3 },
+    { label:'PW BL FTE',     data:[], backgroundColor:'rgba(96,165,250,0.3)',   borderRadius:3 },
+    { label:'PW Actual FTE', data:[], backgroundColor:'rgba(239,68,68,0.3)',    borderRadius:3 },
+  ]},
+  options: {
+    responsive:true, maintainAspectRatio:false,
+    interaction:{ mode:'index', intersect:false },
+    plugins:{ legend:{display:false},
+      tooltip:{ backgroundColor:'#1e2235', borderColor:'#2a2d45', borderWidth:1,
+        callbacks:{ label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y != null ? ctx.parsed.y.toFixed(1) : '—'}` }
+      }
+    },
+    scales:{
+      x:{ grid:{color:'rgba(255,255,255,0.05)'}, ticks:{maxRotation:35, font:{size:10}} },
+      y:{ grid:{color:'rgba(255,255,255,0.05)'}, min:0 }
+    }
+  }
+});
+
+function buildFTEDrillSelect() {
+  const sel = document.getElementById('fteDrillSelect');
+  sel.innerHTML = '';
+  const rows = MANPOWER.filter(r => scSection === 'Overall' || r.section === scSection);
+  rows.forEach(r => {
+    const opt = document.createElement('option');
+    opt.value = r.activity;
+    opt.textContent = r.activity;
+    sel.appendChild(opt);
+  });
+  document.getElementById('fteDrillSubtitle').textContent = '(' + (scSection === 'Overall' ? 'All Sections' : scSection) + ')';
+  // Default: select first 10
+  Array.from(sel.options).slice(0, 10).forEach(o => o.selected = true);
+  updateFTEDrilldown();
+}
+
+function updateFTEDrilldown() {
+  const sel = document.getElementById('fteDrillSelect');
+  const selected = Array.from(sel.selectedOptions).map(o => o.value);
+  const rows = MANPOWER.filter(r => selected.includes(r.activity));
+  // Shorten label to last segment after last '-'
+  const shorten = s => { const p = s.split('-'); return p[p.length-1].trim() || s; };
+  fteDrillChart.data.labels           = rows.map(r => shorten(r.activity));
+  fteDrillChart.data.datasets[0].data = rows.map(r => r.cw_bl_fte  || 0);
+  fteDrillChart.data.datasets[1].data = rows.map(r => r.cw_act_fte || 0);
+  fteDrillChart.data.datasets[2].data = rows.map(r => r.pw_bl_fte  || 0);
+  fteDrillChart.data.datasets[3].data = rows.map(r => r.pw_act_fte || 0);
+  fteDrillChart.update('none');
+}
 
 // ============================================================
 // MANPOWER TABLE
@@ -1452,17 +1570,37 @@ const pfIndirectChart = makePFChart('pfIndirectChart');
 const pfDirectChart   = makePFChart('pfDirectChart');
 const pfOverallChart  = makePFChart('pfOverallChart');
 
+function setPFSection(section, btn) {
+  pfSection = section;
+  document.querySelectorAll('[data-pf-tab]').forEach(b => b.classList.toggle('active', b === btn));
+  updatePFTiles();
+  updatePFCharts();
+  renderPFTable();
+}
+
+function updatePFSlider() {
+  const a = +document.getElementById('pfRangeMinEl').value;
+  const b = +document.getElementById('pfRangeMaxEl').value;
+  pfRangeMin = Math.min(a, b);
+  pfRangeMax = Math.max(a, b);
+  document.getElementById('pfRangeLabel').textContent = _fmtPFDate(ALL_DATES[pfRangeMin]) + ' → ' + _fmtPFDate(ALL_DATES[pfRangeMax]);
+  paintSliderTrack('pfRangeMinEl','pfRangeMaxEl','pfSliderTrack', pfRangeMin, pfRangeMax, ALL_DATES.length - 1);
+  updatePFCharts();
+}
+
 function updatePFCharts() {
   const charts = [
     { chart: pfIndirectChart, key: 'indirect' },
     { chart: pfDirectChart,   key: 'direct' },
     { chart: pfOverallChart,  key: 'overall' },
   ];
-  const endIdx = SC_CURRENT_IDX + 1;
-  const labels = ALL_DATES.slice(0, endIdx).map(_fmtPFDate);
+  const capIdx = Math.min(selectedWeekIdx, pfRangeMax);
+  const lo = Math.min(pfRangeMin, capIdx);
+  const hi = capIdx + 1;
+  const labels = ALL_DATES.slice(lo, hi).map(_fmtPFDate);
   charts.forEach(({chart, key}) => {
-    const inc  = (PF_SERIES[key].inc  || []).slice(0, endIdx);
-    const cumu = (PF_SERIES[key].cumu || []).slice(0, endIdx);
+    const inc  = (PF_SERIES[key].inc  || []).slice(lo, hi).map((v,i) => v != null ? v : null);
+    const cumu = (PF_SERIES[key].cumu || []).slice(lo, hi).map((v,i) => v != null ? v : null);
     chart.data.labels           = labels;
     chart.data.datasets[0].data = inc;
     chart.data.datasets[1].data = cumu;
@@ -1472,7 +1610,7 @@ function updatePFCharts() {
 
 // PF Summary tiles
 function updatePFTiles() {
-  const idx = SC_CURRENT_IDX;
+  const idx = selectedWeekIdx;
   const tiles = [
     { label:'Indirect PF',   key:'indirect', color:'#a78bfa', desc:'NP-WHC: contributes to spent only' },
     { label:'Direct PF',     key:'direct',   color:'#22c55e', desc:'PD-WHC: earned ÷ spent' },
@@ -1552,6 +1690,7 @@ function renderPFTable() {
     (!q    || (a.activity||'').toLowerCase().includes(q)) &&
     passesCol(a)
   );
+  if (pfSection !== 'Overall') rows = rows.filter(r => r.section === pfSection);
   if (pfSortCol && pfSortDir !== 0) {
     rows.sort((a,b) => {
       let av, bv;
@@ -1621,6 +1760,9 @@ updatePFTiles();
 updatePFTableTiles();
 renderPFTable();
 initPFSort();
+document.getElementById('pfRangeLabel').textContent = _fmtPFDate(ALL_DATES[0]) + ' → ' + _fmtPFDate(ALL_DATES[SC_CURRENT_IDX]);
+paintSliderTrack('pfRangeMinEl','pfRangeMaxEl','pfSliderTrack', 0, SC_CURRENT_IDX, ALL_DATES.length - 1);
+buildFTEDrillSelect();
 </script>
 </body>
 </html>
