@@ -1123,26 +1123,38 @@ function renderSCSubTable(lo, hi) {
   const src = getSCData();
   const fmtD = iso => { const d = new Date(iso+'T00:00:00'); return (d.getMonth()+1)+'/'+d.getDate()+'/'+String(d.getFullYear()).slice(2); };
   const fmt1 = v => v != null ? v.toFixed(1)+'%' : '—';
-  let rows = '';
+
+  // Build header row: week dates as columns
+  let hdr = '<th style="position:sticky;left:0;background:var(--surface);z-index:2;padding:3px 10px;white-space:nowrap;color:var(--muted);font-weight:600;border-right:1px solid var(--border)">Metric</th>';
   for (let i = lo; i <= hi; i++) {
-    const isActive = (i === selectedWeekIdx);
-    const bg = isActive ? 'background:rgba(96,165,250,0.1);font-weight:600' : (i%2===0?'background:rgba(255,255,255,0.015)':'');
-    rows += `<tr style="${bg}">
-      <td style="padding:2px 8px;white-space:nowrap;color:${isActive?'#60a5fa':'var(--muted)'}">${fmtD(ALL_DATES[i])}</td>
-      <td style="padding:2px 8px;text-align:right;color:#3b82f6">${fmt1(src.bl[i])}</td>
-      <td style="padding:2px 8px;text-align:right;color:#22c55e">${i<=selectedWeekIdx?fmt1(src.earned[i]):'—'}</td>
-      <td style="padding:2px 8px;text-align:right;color:#ef4444">${i<=selectedWeekIdx?fmt1(src.spent[i]):'—'}</td>
-    </tr>`;
+    const isActive = i === selectedWeekIdx;
+    hdr += `<th style="padding:3px 8px;text-align:right;white-space:nowrap;min-width:60px;${isActive?'background:rgba(96,165,250,0.12);color:#60a5fa;':'color:var(--muted);'}">${fmtD(ALL_DATES[i])}</th>`;
   }
-  el.innerHTML = `<table style="width:100%;font-size:10px;border-collapse:collapse">
-    <thead><tr style="background:rgba(255,255,255,0.05);position:sticky;top:0">
-      <th style="padding:3px 8px;text-align:left;color:var(--muted);font-weight:600">Week</th>
-      <th style="padding:3px 8px;text-align:right;color:#3b82f6;font-weight:600">BL %</th>
-      <th style="padding:3px 8px;text-align:right;color:#22c55e;font-weight:600">Earned %</th>
-      <th style="padding:3px 8px;text-align:right;color:#ef4444;font-weight:600">Spent %</th>
-    </tr></thead>
-    <tbody>${rows}</tbody>
-  </table>`;
+
+  const makeRow = (label, color, vals) => {
+    let cells = `<td style="position:sticky;left:0;background:var(--surface);z-index:2;padding:3px 10px;white-space:nowrap;color:${color};font-weight:600;border-right:1px solid var(--border)">${label}</td>`;
+    for (let i = lo; i <= hi; i++) {
+      const isActive = i === selectedWeekIdx;
+      cells += `<td style="padding:3px 8px;text-align:right;color:${color};${isActive?'background:rgba(96,165,250,0.08);font-weight:700;':''}">${vals[i] ?? '—'}</td>`;
+    }
+    return `<tr>${cells}</tr>`;
+  };
+
+  const blVals   = {}, earnVals = {}, spVals = {};
+  for (let i = lo; i <= hi; i++) {
+    blVals[i]   = fmt1(src.bl[i]);
+    earnVals[i] = i <= selectedWeekIdx ? fmt1(src.earned[i]) : '—';
+    spVals[i]   = i <= selectedWeekIdx ? fmt1(src.spent[i])  : '—';
+  }
+
+  el.innerHTML = `<div style="overflow-x:auto;margin-top:8px"><table style="font-size:10px;border-collapse:collapse;width:max-content;min-width:100%">
+    <thead><tr style="background:rgba(255,255,255,0.05)">${hdr}</tr></thead>
+    <tbody>
+      ${makeRow('BL %',     '#3b82f6', blVals)}
+      ${makeRow('Earned %', '#22c55e', earnVals)}
+      ${makeRow('Spent %',  '#ef4444', spVals)}
+    </tbody>
+  </table></div>`;
 }
 
 // ============================================================
@@ -1344,28 +1356,39 @@ function renderFTESubTable() {
   const src = FTE[scSection] || FTE.Overall;
   const fmtD = iso => { const d = new Date(iso+'T00:00:00'); return (d.getMonth()+1)+'/'+d.getDate()+'/'+String(d.getFullYear()).slice(2); };
   const fmt1 = v => (v && v > 0) ? v.toFixed(1) : '—';
-  let rows = '';
+
+  let hdr = '<th style="position:sticky;left:0;background:var(--surface);z-index:2;padding:3px 10px;white-space:nowrap;color:var(--muted);font-weight:600;border-right:1px solid var(--border)">Metric</th>';
   for (let i = lo; i <= hi; i++) {
-    const isActive = (i === selectedWeekIdx);
-    const bg = isActive ? 'background:rgba(96,165,250,0.1);font-weight:600' : (i%2===0?'background:rgba(255,255,255,0.015)':'');
-    rows += `<tr style="${bg}">
-      <td style="padding:2px 8px;white-space:nowrap;color:${isActive?'#60a5fa':'var(--muted)'}">${fmtD(ALL_DATES[i])}</td>
-      <td style="padding:2px 8px;text-align:right;color:#60a5fa">${fmt1(src.bl[i])}</td>
-      <td style="padding:2px 8px;text-align:right;color:#ef4444">${i<=selectedWeekIdx?fmt1(src.spent[i]):'—'}</td>
-      <td style="padding:2px 8px;text-align:right;color:#22c55e">${i<=selectedWeekIdx?fmt1(src.earned[i]):'—'}</td>
-      <td style="padding:2px 8px;text-align:right;color:rgba(251,146,60,0.85)">${fmt1(src.fc[i])}</td>
-    </tr>`;
+    const isActive = i === selectedWeekIdx;
+    hdr += `<th style="padding:3px 8px;text-align:right;white-space:nowrap;min-width:55px;${isActive?'background:rgba(96,165,250,0.12);color:#60a5fa;':'color:var(--muted);'}">${fmtD(ALL_DATES[i])}</th>`;
   }
-  el.innerHTML = `<table style="width:100%;font-size:10px;border-collapse:collapse">
-    <thead><tr style="background:rgba(255,255,255,0.05);position:sticky;top:0">
-      <th style="padding:3px 8px;text-align:left;color:var(--muted);font-weight:600">Week</th>
-      <th style="padding:3px 8px;text-align:right;color:#60a5fa;font-weight:600">BL FTE</th>
-      <th style="padding:3px 8px;text-align:right;color:#ef4444;font-weight:600">Actual FTE</th>
-      <th style="padding:3px 8px;text-align:right;color:#22c55e;font-weight:600">Earned FTE</th>
-      <th style="padding:3px 8px;text-align:right;color:rgba(251,146,60,0.85);font-weight:600">FC FTE</th>
-    </tr></thead>
-    <tbody>${rows}</tbody>
-  </table>`;
+
+  const makeRow = (label, color, vals) => {
+    let cells = `<td style="position:sticky;left:0;background:var(--surface);z-index:2;padding:3px 10px;white-space:nowrap;color:${color};font-weight:600;border-right:1px solid var(--border)">${label}</td>`;
+    for (let i = lo; i <= hi; i++) {
+      const isActive = i === selectedWeekIdx;
+      cells += `<td style="padding:3px 8px;text-align:right;color:${color};${isActive?'background:rgba(96,165,250,0.08);font-weight:700;':''}">${vals[i] ?? '—'}</td>`;
+    }
+    return `<tr>${cells}</tr>`;
+  };
+
+  const blV = {}, spV = {}, erV = {}, fcV = {};
+  for (let i = lo; i <= hi; i++) {
+    blV[i] = fmt1(src.bl[i]);
+    spV[i] = i <= selectedWeekIdx ? fmt1(src.spent[i])  : '—';
+    erV[i] = i <= selectedWeekIdx ? fmt1(src.earned[i]) : '—';
+    fcV[i] = fmt1(src.fc[i]);
+  }
+
+  el.innerHTML = `<div style="overflow-x:auto;margin-top:8px"><table style="font-size:10px;border-collapse:collapse;width:max-content;min-width:100%">
+    <thead><tr style="background:rgba(255,255,255,0.05)">${hdr}</tr></thead>
+    <tbody>
+      ${makeRow('BL FTE',     '#60a5fa', blV)}
+      ${makeRow('Actual FTE', '#ef4444', spV)}
+      ${makeRow('Earned FTE', '#22c55e', erV)}
+      ${makeRow('FC FTE',     'rgba(251,146,60,0.85)', fcV)}
+    </tbody>
+  </table></div>`;
 }
 updateFTE();
 
