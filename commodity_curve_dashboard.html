@@ -417,6 +417,15 @@
           <input type="range" id="fteMax" min="0" max="97" value="97" oninput="updateFTE();document.getElementById('fteRangeLabel').textContent=ALL_DATES[Math.min(+document.getElementById('fteMin').value,+document.getElementById('fteMax').value)].slice(0,7)+' → '+ALL_DATES[Math.max(+document.getElementById('fteMin').value,+document.getElementById('fteMax').value)].slice(0,7)">
         </div>
       </div>
+      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;flex-wrap:wrap">
+        <span class="filter-label" style="white-space:nowrap;padding-top:4px">Activity Overlay:</span>
+        <select id="fteCostSelect" multiple size="4" style="min-width:300px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px;font-size:11px;cursor:pointer" onchange="updateFTEActivities()"></select>
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <button onclick="Array.from(document.getElementById('fteCostSelect').options).forEach(o=>o.selected=true);updateFTEActivities()" style="padding:2px 8px;font-size:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:4px;color:var(--muted);cursor:pointer">All</button>
+          <button onclick="Array.from(document.getElementById('fteCostSelect').options).forEach(o=>o.selected=false);updateFTEActivities()" style="padding:2px 8px;font-size:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:4px;color:var(--muted);cursor:pointer">None</button>
+        </div>
+        <span style="font-size:10px;color:var(--muted);padding-top:4px">Ctrl/⌘+click for multiple · bars shown at current week</span>
+      </div>
       <div class="legend">
         <div class="legend-item"><div class="legend-dot" style="background:#60a5fa"></div>BL FTE</div>
         <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Actual FTE</div>
@@ -425,30 +434,6 @@
       </div>
       <div class="chart-wrap" style="height:250px"><canvas id="fteChart"></canvas></div>
     </div>
-  </div>
-
-  <!-- FTE Cost Code Drill-Down -->
-  <div class="chart-card" style="margin-top:16px" id="fteDrillCard">
-    <div class="chart-title">Cost Code FTE Breakdown — Current Week
-      <span id="fteDrillSubtitle" style="font-size:11px;color:var(--muted);margin-left:6px"></span>
-    </div>
-    <div class="filters" style="margin-bottom:10px">
-      <span class="filter-label">Cost Codes:</span>
-      <select id="fteDrillSelect" multiple size="5" style="min-width:300px;height:auto;max-height:120px" onchange="updateFTEDrilldown()">
-      </select>
-      <div style="display:flex;flex-direction:column;gap:4px;margin-left:4px">
-        <button onclick="Array.from(document.getElementById('fteDrillSelect').options).forEach(o=>o.selected=true);updateFTEDrilldown()" style="padding:3px 10px;font-size:11px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:4px;color:var(--muted);cursor:pointer">All</button>
-        <button onclick="Array.from(document.getElementById('fteDrillSelect').options).forEach(o=>o.selected=false);updateFTEDrilldown()" style="padding:3px 10px;font-size:11px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:4px;color:var(--muted);cursor:pointer">Clear</button>
-      </div>
-      <span style="font-size:11px;color:var(--muted);margin-left:16px">Ctrl/⌘+click to multi-select</span>
-    </div>
-    <div class="legend" style="margin-bottom:6px">
-      <div class="legend-item"><div class="legend-dot" style="background:#60a5fa"></div>CW BL FTE</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>CW Actual FTE</div>
-      <div class="legend-item"><div class="legend-dot" style="background:rgba(96,165,250,0.35)"></div>PW BL FTE</div>
-      <div class="legend-item"><div class="legend-dot" style="background:rgba(239,68,68,0.35)"></div>PW Actual FTE</div>
-    </div>
-    <div class="chart-wrap" style="height:280px"><canvas id="fteDrillChart"></canvas></div>
   </div>
 
   <!-- Weekly Manpower Table -->
@@ -626,6 +611,10 @@
       </div>
 
     </div>
+  </div>
+
+  <div id="pfSectionNote" style="display:none;background:rgba(251,146,60,0.08);border:1px solid rgba(251,146,60,0.25);border-radius:6px;padding:8px 16px;font-size:11px;color:#fb923c;margin-bottom:14px">
+    ⚠ Section view — Indirect &amp; Direct PF breakdown not available per section. Charts show combined Job Total PF for this section; Indirect/Direct tiles reflect project-wide values.
   </div>
 
   <!-- PF Summary Tiles -->
@@ -1014,7 +1003,7 @@ function setSCSection(sec, btn) {
   updateSCurve();   // calls updateStatsTile() internally
   updateFTE();
   renderManpower();
-  buildFTEDrillSelect();
+  buildFTECostFilter();
 }
 
 
@@ -1187,38 +1176,17 @@ function updateFTE() {
   // update track fill
   paintSliderTrack('fteMin','fteMax','fteSliderTrack', lo, hi, ALL_DATES.length - 1);
   fteChart.update('none');
+  updateFTEActivities();
 }
 updateFTE();
 
 // ============================================================
-// FTE COST CODE DRILL-DOWN
+// FTE ACTIVITY OVERLAY
 // ============================================================
-const fteDrillCtx = document.getElementById('fteDrillChart').getContext('2d');
-const fteDrillChart = new Chart(fteDrillCtx, {
-  type: 'bar',
-  data: { labels: [], datasets: [
-    { label:'CW BL FTE',     data:[], backgroundColor:'rgba(96,165,250,0.75)',  borderRadius:3 },
-    { label:'CW Actual FTE', data:[], backgroundColor:'rgba(239,68,68,0.75)',   borderRadius:3 },
-    { label:'PW BL FTE',     data:[], backgroundColor:'rgba(96,165,250,0.3)',   borderRadius:3 },
-    { label:'PW Actual FTE', data:[], backgroundColor:'rgba(239,68,68,0.3)',    borderRadius:3 },
-  ]},
-  options: {
-    responsive:true, maintainAspectRatio:false,
-    interaction:{ mode:'index', intersect:false },
-    plugins:{ legend:{display:false},
-      tooltip:{ backgroundColor:'#1e2235', borderColor:'#2a2d45', borderWidth:1,
-        callbacks:{ label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y != null ? ctx.parsed.y.toFixed(1) : '—'}` }
-      }
-    },
-    scales:{
-      x:{ grid:{color:'rgba(255,255,255,0.05)'}, ticks:{maxRotation:35, font:{size:10}} },
-      y:{ grid:{color:'rgba(255,255,255,0.05)'}, min:0 }
-    }
-  }
-});
+const ACT_OVERLAY_COLORS = ['#f472b6','#34d399','#fbbf24','#a78bfa','#38bdf8','#fb7185','#4ade80','#facc15','#c084fc','#22d3ee','#f97316','#06b6d4'];
 
-function buildFTEDrillSelect() {
-  const sel = document.getElementById('fteDrillSelect');
+function buildFTECostFilter() {
+  const sel = document.getElementById('fteCostSelect');
   sel.innerHTML = '';
   const rows = MANPOWER.filter(r => scSection === 'Overall' || r.section === scSection);
   rows.forEach(r => {
@@ -1227,24 +1195,65 @@ function buildFTEDrillSelect() {
     opt.textContent = r.activity;
     sel.appendChild(opt);
   });
-  document.getElementById('fteDrillSubtitle').textContent = '(' + (scSection === 'Overall' ? 'All Sections' : scSection) + ')';
-  // Default: select first 10
-  Array.from(sel.options).slice(0, 10).forEach(o => o.selected = true);
-  updateFTEDrilldown();
+  // Clear any existing activity overlays
+  fteChart.data.datasets = fteChart.data.datasets.filter(d => !d._isActivity);
+  fteChart.update('none');
 }
 
-function updateFTEDrilldown() {
-  const sel = document.getElementById('fteDrillSelect');
+function updateFTEActivities() {
+  // Remove old activity datasets
+  fteChart.data.datasets = fteChart.data.datasets.filter(d => !d._isActivity);
+
+  const sel = document.getElementById('fteCostSelect');
   const selected = Array.from(sel.selectedOptions).map(o => o.value);
-  const rows = MANPOWER.filter(r => selected.includes(r.activity));
-  // Shorten label to last segment after last '-'
-  const shorten = s => { const p = s.split('-'); return p[p.length-1].trim() || s; };
-  fteDrillChart.data.labels           = rows.map(r => shorten(r.activity));
-  fteDrillChart.data.datasets[0].data = rows.map(r => r.cw_bl_fte  || 0);
-  fteDrillChart.data.datasets[1].data = rows.map(r => r.cw_act_fte || 0);
-  fteDrillChart.data.datasets[2].data = rows.map(r => r.pw_bl_fte  || 0);
-  fteDrillChart.data.datasets[3].data = rows.map(r => r.pw_act_fte || 0);
-  fteDrillChart.update('none');
+  if (selected.length === 0) { fteChart.update('none'); return; }
+
+  const fMin = +document.getElementById('fteMin').value;
+  const fMax = +document.getElementById('fteMax').value;
+  const lo = Math.min(fMin, fMax);
+  const hi = Math.max(fMin, fMax);
+  const n = hi - lo + 1;
+  const cwPos = selectedWeekIdx - lo;
+  const pwPos = (selectedWeekIdx - 1) - lo;
+
+  selected.forEach((actName, idx) => {
+    const row = MANPOWER.find(r => r.activity === actName);
+    if (!row) return;
+    const color = ACT_OVERLAY_COLORS[idx % ACT_OVERLAY_COLORS.length];
+
+    const cwActData = new Array(n).fill(null);
+    const cwBlData  = new Array(n).fill(null);
+    const pwActData = new Array(n).fill(null);
+    if (cwPos >= 0 && cwPos < n) { cwActData[cwPos] = row.cw_act_fte || 0; cwBlData[cwPos] = row.cw_bl_fte || 0; }
+    if (pwPos >= 0 && pwPos < n)  pwActData[pwPos] = row.pw_act_fte || 0;
+
+    const shortName = (() => { const p = actName.split('-'); return p[p.length-1].trim() || actName; })();
+
+    fteChart.data.datasets.push({
+      label: shortName + ' (Act)',
+      type: 'bar',
+      data: cwActData,
+      backgroundColor: color + 'bb',
+      borderColor: color,
+      borderWidth: 1,
+      borderRadius: 4,
+      _isActivity: true,
+      order: -1,
+    });
+    fteChart.data.datasets.push({
+      label: shortName + ' (BL)',
+      type: 'bar',
+      data: cwBlData,
+      backgroundColor: color + '44',
+      borderColor: color + '88',
+      borderWidth: 1,
+      borderRadius: 4,
+      _isActivity: true,
+      order: -1,
+    });
+  });
+
+  fteChart.update('none');
 }
 
 // ============================================================
@@ -1520,6 +1529,22 @@ function _fmtPFDate(isoStr) {
   return (d.getMonth()+1) + '/' + d.getDate() + '/' + String(d.getFullYear()).slice(2);
 }
 
+function computeSectionPFSeries(section, lo, hi) {
+  // Compute inc and cumu PF from STATS_BY_DATE for a given section
+  const labels = [], inc = [], cumu = [];
+  for (let i = lo; i <= hi; i++) {
+    const date = ALL_DATES[i];
+    const now  = ((STATS_BY_DATE[date] || {})[section] || {});
+    const prev = i > 0 ? ((STATS_BY_DATE[ALL_DATES[i-1]] || {})[section] || {}) : {};
+    labels.push(_fmtPFDate(date));
+    cumu.push(now.cumu_pf != null ? now.cumu_pf : null);
+    const ed = (now.earned || 0) - (prev.earned || 0);
+    const sd = (now.spent  || 0) - (prev.spent  || 0);
+    inc.push(sd > 0 ? ed / sd : null);
+  }
+  return { labels, inc, cumu };
+}
+
 function makePFChart(canvasId) {
   const ctx = document.getElementById(canvasId).getContext('2d');
   return new Chart(ctx, {
@@ -1527,7 +1552,7 @@ function makePFChart(canvasId) {
     data: { labels: [], datasets: [
       { label:'Incremental PF', data:[], borderColor:'#ef4444', backgroundColor:'rgba(239,68,68,0.15)',
         fill:false, tension:0.3, borderWidth:2, pointRadius:3, pointHoverRadius:6,
-        spanGaps:false, order:2 },
+        spanGaps:true, order:2 },
       { label:'Cumulative PF', data:[], borderColor:'#60a5fa', backgroundColor:'rgba(96,165,250,0.15)',
         fill:false, tension:0.3, borderWidth:2.5, pointRadius:3, pointHoverRadius:6,
         spanGaps:false, order:1 }
@@ -1589,55 +1614,104 @@ function updatePFSlider() {
 }
 
 function updatePFCharts() {
-  const charts = [
-    { chart: pfIndirectChart, key: 'indirect' },
-    { chart: pfDirectChart,   key: 'direct' },
-    { chart: pfOverallChart,  key: 'overall' },
-  ];
   const capIdx = Math.min(selectedWeekIdx, pfRangeMax);
   const lo = Math.min(pfRangeMin, capIdx);
-  const hi = capIdx + 1;
-  const labels = ALL_DATES.slice(lo, hi).map(_fmtPFDate);
-  charts.forEach(({chart, key}) => {
-    const inc  = (PF_SERIES[key].inc  || []).slice(lo, hi).map((v,i) => v != null ? v : null);
-    const cumu = (PF_SERIES[key].cumu || []).slice(lo, hi).map((v,i) => v != null ? v : null);
-    chart.data.labels           = labels;
-    chart.data.datasets[0].data = inc;
-    chart.data.datasets[1].data = cumu;
-    chart.update();
-  });
+  const hi = capIdx;
+  const pfNote = document.getElementById('pfSectionNote');
+
+  if (pfSection === 'Overall') {
+    pfNote.style.display = 'none';
+    const charts = [
+      { chart: pfIndirectChart, key: 'indirect' },
+      { chart: pfDirectChart,   key: 'direct' },
+      { chart: pfOverallChart,  key: 'overall' },
+    ];
+    const labels = ALL_DATES.slice(lo, hi + 1).map(_fmtPFDate);
+    charts.forEach(({ chart, key }) => {
+      chart.data.labels           = labels;
+      chart.data.datasets[0].data = (PF_SERIES[key].inc  || []).slice(lo, hi + 1);
+      chart.data.datasets[1].data = (PF_SERIES[key].cumu || []).slice(lo, hi + 1);
+      chart.update();
+    });
+  } else {
+    pfNote.style.display = '';
+    const { labels, inc, cumu } = computeSectionPFSeries(pfSection, lo, hi);
+    [pfIndirectChart, pfDirectChart, pfOverallChart].forEach(chart => {
+      chart.data.labels           = labels;
+      chart.data.datasets[0].data = inc;
+      chart.data.datasets[1].data = cumu;
+      chart.update();
+    });
+  }
 }
 
 // PF Summary tiles
 function updatePFTiles() {
   const idx = selectedWeekIdx;
-  const tiles = [
-    { label:'Indirect PF',   key:'indirect', color:'#a78bfa', desc:'NP-WHC: contributes to spent only' },
-    { label:'Direct PF',     key:'direct',   color:'#22c55e', desc:'PD-WHC: earned ÷ spent' },
-    { label:'Job Total PF',  key:'overall',  color:'#fb923c', desc:'PD earned ÷ all WHC spent' },
-  ];
-  document.getElementById('pfSummaryTiles').innerHTML = tiles.map(t => {
-    const val = PF_SERIES[t.key].cumu[idx];
-    const wkval = PF_SERIES[t.key].inc[idx];
-    const dispVal = val != null ? val.toFixed(3) : '—';
-    const dispWk  = wkval != null ? wkval.toFixed(3) : '—';
-    const pfColor = val == null ? '#94a3b8' : val >= 1 ? '#22c55e' : val >= 0.85 ? '#f59e0b' : '#ef4444';
-    return `<div style="flex:1;min-width:200px;background:linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:14px 18px;position:relative;overflow:hidden">
-      <div style="position:absolute;top:0;left:0;width:3px;height:100%;background:${t.color}"></div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">${t.label}</div>
-      <div style="display:flex;gap:24px;align-items:flex-end">
-        <div>
-          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">CUMULATIVE</div>
-          <div style="font-size:32px;font-weight:700;color:${pfColor};line-height:1">${dispVal}</div>
+  const pfNote = document.getElementById('pfSectionNote');
+
+  if (pfSection === 'Overall') {
+    pfNote.style.display = 'none';
+    const tiles = [
+      { label:'Indirect PF',  key:'indirect', color:'#a78bfa', desc:'NP-WHC: contributes to spent only' },
+      { label:'Direct PF',    key:'direct',   color:'#22c55e', desc:'PD-WHC: earned ÷ spent' },
+      { label:'Job Total PF', key:'overall',  color:'#fb923c', desc:'PD earned ÷ all WHC spent' },
+    ];
+    document.getElementById('pfSummaryTiles').innerHTML = tiles.map(t => {
+      const val    = PF_SERIES[t.key].cumu[idx];
+      const wkval  = PF_SERIES[t.key].inc[idx];
+      const dispVal = val != null ? val.toFixed(3) : '—';
+      const dispWk  = wkval != null ? wkval.toFixed(3) : '—';
+      const pfColor = val == null ? '#94a3b8' : val >= 1 ? '#22c55e' : val >= 0.85 ? '#f59e0b' : '#ef4444';
+      return `<div style="flex:1;min-width:200px;background:linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:14px 18px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:0;left:0;width:3px;height:100%;background:${t.color}"></div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">${t.label}</div>
+        <div style="display:flex;gap:24px;align-items:flex-end">
+          <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">CUMULATIVE</div>
+            <div style="font-size:32px;font-weight:700;color:${pfColor};line-height:1">${dispVal}</div></div>
+          <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">WEEKLY</div>
+            <div style="font-size:18px;font-weight:600;color:${t.color};line-height:1">${dispWk}</div></div>
         </div>
-        <div>
-          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">WEEKLY</div>
-          <div style="font-size:18px;font-weight:600;color:${t.color};line-height:1">${dispWk}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:6px">${t.desc}</div>
+      </div>`;
+    }).join('');
+  } else {
+    pfNote.style.display = '';
+    const date  = ALL_DATES[idx];
+    const now   = ((STATS_BY_DATE[date] || {})[pfSection] || {});
+    const prev  = idx > 0 ? ((STATS_BY_DATE[ALL_DATES[idx-1]] || {})[pfSection] || {}) : {};
+    const jtVal = now.cumu_pf != null ? now.cumu_pf : null;
+    const ed = (now.earned || 0) - (prev.earned || 0);
+    const sd = (now.spent  || 0) - (prev.spent  || 0);
+    const jtInc = sd > 0 ? ed / sd : null;
+    const jtColor = jtVal == null ? '#94a3b8' : jtVal >= 1 ? '#22c55e' : jtVal >= 0.85 ? '#f59e0b' : '#ef4444';
+    const indirectVal = PF_SERIES.indirect.cumu[idx];
+    const directVal   = PF_SERIES.direct.cumu[idx];
+    document.getElementById('pfSummaryTiles').innerHTML = `
+      <div style="flex:1;min-width:200px;background:linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:14px 18px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:0;left:0;width:3px;height:100%;background:#fb923c"></div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">Job Total PF — ${pfSection}</div>
+        <div style="display:flex;gap:24px;align-items:flex-end">
+          <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">CUMULATIVE</div>
+            <div style="font-size:32px;font-weight:700;color:${jtColor};line-height:1">${jtVal != null ? jtVal.toFixed(3) : '—'}</div></div>
+          <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">WEEKLY</div>
+            <div style="font-size:18px;font-weight:600;color:#fb923c;line-height:1">${jtInc != null ? jtInc.toFixed(3) : '—'}</div></div>
         </div>
+        <div style="font-size:10px;color:var(--muted);margin-top:6px">PD earned ÷ all WHC spent (${pfSection})</div>
       </div>
-      <div style="font-size:10px;color:var(--muted);margin-top:6px">${t.desc}</div>
-    </div>`;
-  }).join('');
+      <div style="flex:1;min-width:200px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:14px 18px;position:relative;overflow:hidden;opacity:0.55">
+        <div style="position:absolute;top:0;left:0;width:3px;height:100%;background:#a78bfa"></div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em">Indirect PF</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:2px">Section breakdown N/A</div>
+        <div style="font-size:11px;color:#a78bfa">Project-wide: ${indirectVal != null ? indirectVal.toFixed(3) : '—'}</div>
+      </div>
+      <div style="flex:1;min-width:200px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:14px 18px;position:relative;overflow:hidden;opacity:0.55">
+        <div style="position:absolute;top:0;left:0;width:3px;height:100%;background:#22c55e"></div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em">Direct PF</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:2px">Section breakdown N/A</div>
+        <div style="font-size:11px;color:#22c55e">Project-wide: ${directVal != null ? directVal.toFixed(3) : '—'}</div>
+      </div>`;
+  }
 }
 
 // PF Table
@@ -1762,7 +1836,7 @@ renderPFTable();
 initPFSort();
 document.getElementById('pfRangeLabel').textContent = _fmtPFDate(ALL_DATES[0]) + ' → ' + _fmtPFDate(ALL_DATES[SC_CURRENT_IDX]);
 paintSliderTrack('pfRangeMinEl','pfRangeMaxEl','pfSliderTrack', 0, SC_CURRENT_IDX, ALL_DATES.length - 1);
-buildFTEDrillSelect();
+buildFTECostFilter();
 </script>
 </body>
 </html>
