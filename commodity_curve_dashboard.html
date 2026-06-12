@@ -417,14 +417,21 @@
           <input type="range" id="fteMax" min="0" max="97" value="97" oninput="updateFTE();document.getElementById('fteRangeLabel').textContent=ALL_DATES[Math.min(+document.getElementById('fteMin').value,+document.getElementById('fteMax').value)].slice(0,7)+' → '+ALL_DATES[Math.max(+document.getElementById('fteMin').value,+document.getElementById('fteMax').value)].slice(0,7)">
         </div>
       </div>
-      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;flex-wrap:wrap">
-        <span class="filter-label" style="white-space:nowrap;padding-top:4px">Activity Overlay:</span>
-        <select id="fteCostSelect" multiple size="4" style="min-width:300px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px;font-size:11px;cursor:pointer" onchange="updateFTEActivities()"></select>
-        <div style="display:flex;flex-direction:column;gap:3px">
-          <button onclick="Array.from(document.getElementById('fteCostSelect').options).forEach(o=>o.selected=true);updateFTEActivities()" style="padding:2px 8px;font-size:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:4px;color:var(--muted);cursor:pointer">All</button>
-          <button onclick="Array.from(document.getElementById('fteCostSelect').options).forEach(o=>o.selected=false);updateFTEActivities()" style="padding:2px 8px;font-size:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:4px;color:var(--muted);cursor:pointer">None</button>
+      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;flex-wrap:wrap;position:relative">
+        <span class="filter-label" style="white-space:nowrap;padding-top:7px">Cost Code Filter:</span>
+        <div style="position:relative" id="fteCostDropWrap">
+          <button onclick="toggleFTEDrop(event)" id="fteCostBtn" style="background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:8px;min-width:200px;justify-content:space-between">
+            <span id="fteCostBtnLabel">No filter — all activities</span><span style="color:var(--muted);font-size:10px">▼</span>
+          </button>
+          <div id="fteCostDropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:300;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px;min-width:300px;max-height:280px;overflow-y:auto;box-shadow:0 8px 28px rgba(0,0,0,0.5)">
+            <div style="display:flex;justify-content:space-between;padding:0 4px 8px;border-bottom:1px solid var(--border);margin-bottom:6px">
+              <button onclick="selectAllFTECodes(true)" style="font-size:11px;background:none;border:none;color:var(--accent);cursor:pointer;padding:0">Select All</button>
+              <button onclick="selectAllFTECodes(false)" style="font-size:11px;background:none;border:none;color:var(--muted);cursor:pointer;padding:0">Clear</button>
+            </div>
+            <div id="fteCostCheckboxes" style="display:flex;flex-direction:column;gap:1px"></div>
+          </div>
         </div>
-        <span style="font-size:10px;color:var(--muted);padding-top:4px">Ctrl/⌘+click for multiple · bars shown at current week</span>
+        <span id="fteModeLabel" style="font-size:10px;color:var(--muted);padding-top:7px"></span>
       </div>
       <div class="legend">
         <div class="legend-item"><div class="legend-dot" style="background:#60a5fa"></div>BL FTE</div>
@@ -1176,85 +1183,86 @@ function updateFTE() {
   // update track fill
   paintSliderTrack('fteMin','fteMax','fteSliderTrack', lo, hi, ALL_DATES.length - 1);
   fteChart.update('none');
-  updateFTEActivities();
+  _applyFTEActivityFilter();
 }
 updateFTE();
 
 // ============================================================
-// FTE ACTIVITY OVERLAY
+// FTE COST CODE FILTER (checkbox dropdown)
 // ============================================================
-const ACT_OVERLAY_COLORS = ['#f472b6','#34d399','#fbbf24','#a78bfa','#38bdf8','#fb7185','#4ade80','#facc15','#c084fc','#22d3ee','#f97316','#06b6d4'];
+function toggleFTEDrop(e) {
+  e.stopPropagation();
+  const dd = document.getElementById('fteCostDropdown');
+  dd.style.display = dd.style.display === 'none' ? '' : 'none';
+}
+document.addEventListener('click', function(e) {
+  const wrap = document.getElementById('fteCostDropWrap');
+  if (wrap && !wrap.contains(e.target)) {
+    const dd = document.getElementById('fteCostDropdown');
+    if (dd) dd.style.display = 'none';
+  }
+});
 
 function buildFTECostFilter() {
-  const sel = document.getElementById('fteCostSelect');
-  sel.innerHTML = '';
+  const container = document.getElementById('fteCostCheckboxes');
+  container.innerHTML = '';
   const rows = MANPOWER.filter(r => scSection === 'Overall' || r.section === scSection);
   rows.forEach(r => {
-    const opt = document.createElement('option');
-    opt.value = r.activity;
-    opt.textContent = r.activity;
-    sel.appendChild(opt);
+    const lbl = document.createElement('label');
+    lbl.style.cssText = 'display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:4px;cursor:pointer;font-size:12px;transition:background .1s';
+    lbl.onmouseover = () => lbl.style.background = 'rgba(255,255,255,0.05)';
+    lbl.onmouseout  = () => lbl.style.background = '';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.value = r.activity;
+    cb.style.cursor = 'pointer';
+    cb.addEventListener('change', onFTECostChange);
+    lbl.appendChild(cb);
+    lbl.appendChild(document.createTextNode(r.activity));
+    container.appendChild(lbl);
   });
-  // Clear any existing activity overlays
-  fteChart.data.datasets = fteChart.data.datasets.filter(d => !d._isActivity);
+  _updateFTECostBtnLabel();
+  updateFTE(); // reset chart
+}
+
+function selectAllFTECodes(checked) {
+  document.querySelectorAll('#fteCostCheckboxes input[type=checkbox]').forEach(cb => cb.checked = checked);
+  onFTECostChange();
+}
+
+function onFTECostChange() {
+  _updateFTECostBtnLabel();
+  updateFTE();
+}
+
+function _updateFTECostBtnLabel() {
+  const all  = document.querySelectorAll('#fteCostCheckboxes input[type=checkbox]');
+  const chkd = document.querySelectorAll('#fteCostCheckboxes input[type=checkbox]:checked');
+  const lbl  = document.getElementById('fteCostBtnLabel');
+  if (!lbl) return;
+  if (chkd.length === 0) lbl.textContent = 'No filter — all activities';
+  else lbl.textContent = chkd.length + ' of ' + all.length + ' selected';
+}
+
+function _applyFTEActivityFilter() {
+  const checked = Array.from(document.querySelectorAll('#fteCostCheckboxes input[type=checkbox]:checked')).map(cb => cb.value);
+  const modeEl  = document.getElementById('fteModeLabel');
+  if (checked.length === 0) {
+    if (modeEl) modeEl.textContent = '';
+    return; // show normal time series set by updateFTE
+  }
+  // Filter mode — replace chart data with per-activity breakdown (CW & PW snapshot)
+  const rows = MANPOWER.filter(r => checked.includes(r.activity));
+  const short = s => { const p = s.split('-'); return p[p.length-1].trim() || s; };
+  fteChart.data.labels = rows.map(r => short(r.activity));
+  fteChart.data.datasets[0].data = rows.map(r => r.cw_bl_fte  || 0); // BL FTE
+  fteChart.data.datasets[1].data = rows.map(r => r.cw_act_fte || 0); // Actual FTE
+  fteChart.data.datasets[2].data = rows.map(r => r.pw_act_fte || 0); // Earned → PW Actual
+  fteChart.data.datasets[3].data = [];                                 // hide forecast
+  if (modeEl) modeEl.textContent = '— showing activity breakdown (CW Actual · CW BL · PW Actual)';
   fteChart.update('none');
 }
 
-function updateFTEActivities() {
-  // Remove old activity datasets
-  fteChart.data.datasets = fteChart.data.datasets.filter(d => !d._isActivity);
-
-  const sel = document.getElementById('fteCostSelect');
-  const selected = Array.from(sel.selectedOptions).map(o => o.value);
-  if (selected.length === 0) { fteChart.update('none'); return; }
-
-  const fMin = +document.getElementById('fteMin').value;
-  const fMax = +document.getElementById('fteMax').value;
-  const lo = Math.min(fMin, fMax);
-  const hi = Math.max(fMin, fMax);
-  const n = hi - lo + 1;
-  const cwPos = selectedWeekIdx - lo;
-  const pwPos = (selectedWeekIdx - 1) - lo;
-
-  selected.forEach((actName, idx) => {
-    const row = MANPOWER.find(r => r.activity === actName);
-    if (!row) return;
-    const color = ACT_OVERLAY_COLORS[idx % ACT_OVERLAY_COLORS.length];
-
-    const cwActData = new Array(n).fill(null);
-    const cwBlData  = new Array(n).fill(null);
-    const pwActData = new Array(n).fill(null);
-    if (cwPos >= 0 && cwPos < n) { cwActData[cwPos] = row.cw_act_fte || 0; cwBlData[cwPos] = row.cw_bl_fte || 0; }
-    if (pwPos >= 0 && pwPos < n)  pwActData[pwPos] = row.pw_act_fte || 0;
-
-    const shortName = (() => { const p = actName.split('-'); return p[p.length-1].trim() || actName; })();
-
-    fteChart.data.datasets.push({
-      label: shortName + ' (Act)',
-      type: 'bar',
-      data: cwActData,
-      backgroundColor: color + 'bb',
-      borderColor: color,
-      borderWidth: 1,
-      borderRadius: 4,
-      _isActivity: true,
-      order: -1,
-    });
-    fteChart.data.datasets.push({
-      label: shortName + ' (BL)',
-      type: 'bar',
-      data: cwBlData,
-      backgroundColor: color + '44',
-      borderColor: color + '88',
-      borderWidth: 1,
-      borderRadius: 4,
-      _isActivity: true,
-      order: -1,
-    });
-  });
-
-  fteChart.update('none');
-}
 
 // ============================================================
 // MANPOWER TABLE
