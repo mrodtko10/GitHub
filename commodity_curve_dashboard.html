@@ -380,18 +380,6 @@
           <input type="range" id="dateMax" min="0" max="97" value="97" oninput="updateSCurve()">
         </div>
       </div>
-      <!-- % Range Slider -->
-      <div class="slider-group">
-        <div class="slider-label">
-          <span>% Range</span>
-          <span id="pctRangeLabel" class="slider-val"></span>
-        </div>
-        <div class="dual-slider" id="pctSliderTrack">
-          <input type="range" id="pctMin" min="0" max="100" value="0" oninput="updateSCurve()">
-          <input type="range" id="pctMax" min="0" max="100" value="100" oninput="updateSCurve()">
-        </div>
-      </div>
-
       <!-- Legend -->
       <div class="legend">
         <div class="legend-item"><div class="legend-dot" style="background:var(--bl-color)"></div>BL Planned</div>
@@ -400,9 +388,27 @@
         <div class="legend-item"><div class="legend-dot" style="background:#fb923c;border-top:2px dashed #fb923c;height:0"></div>Forecast</div>
       </div>
 
-      <div class="chart-wrap" style="height:280px;position:relative">
-      <canvas id="scurveChart"></canvas>
-    </div>
+      <!-- Chart + vertical Y-axis slider side by side -->
+      <div style="display:flex;gap:8px;align-items:stretch">
+        <div class="chart-wrap" style="height:340px;position:relative;flex:1">
+          <canvas id="scurveChart"></canvas>
+        </div>
+        <!-- Vertical % Range slider -->
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0;min-width:36px">
+          <span style="font-size:9px;color:#94a3b8;white-space:nowrap" id="pctMaxLabel">100%</span>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;width:36px">
+            <input type="range" id="pctMax" min="0" max="100" value="100"
+              orient="vertical"
+              style="writing-mode:vertical-lr;direction:rtl;width:28px;height:100%;cursor:pointer;accent-color:#3b82f6"
+              oninput="updateSCurve()">
+            <input type="range" id="pctMin" min="0" max="100" value="0"
+              orient="vertical"
+              style="writing-mode:vertical-lr;direction:rtl;width:28px;height:100%;cursor:pointer;accent-color:#3b82f6;position:absolute;top:0"
+              oninput="updateSCurve()">
+          </div>
+          <span style="font-size:9px;color:#94a3b8" id="pctMinLabel">0%</span>
+        </div>
+      </div>
       <div id="scSubTable" style="margin-top:8px;overflow-x:auto;max-height:130px;overflow-y:auto"></div>
     </div>
 
@@ -978,9 +984,11 @@ function updateSliderLabels() {
   const { dMin, dMax, pMin, pMax } = getSliderVals();
   document.getElementById('dateRangeLabel').textContent =
     ALL_DATES[dMin].slice(0,7) + ' → ' + ALL_DATES[dMax].slice(0,7);
-  document.getElementById('pctRangeLabel').textContent = pMin + '% → ' + pMax + '%';
+  const pctMaxLbl = document.getElementById('pctMaxLabel');
+  const pctMinLbl = document.getElementById('pctMinLabel');
+  if (pctMaxLbl) pctMaxLbl.textContent = pMax + '%';
+  if (pctMinLbl) pctMinLbl.textContent = pMin + '%';
   paintSliderTrack('dateMin','dateMax','dateSliderTrack', dMin, dMax, 97);
-  paintSliderTrack('pctMin','pctMax','pctSliderTrack',   pMin, pMax, 100);
 }
 
 // ============================================================
