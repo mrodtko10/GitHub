@@ -347,8 +347,8 @@
             </div>
             <div class="tabs" style="margin-bottom:0">
               <button class="tab" data-sc-interval onclick="setSCInterval(1,this)">1 Wk</button>
-              <button class="tab active" data-sc-interval onclick="setSCInterval(2,this)">2 Wk</button>
-              <button class="tab" data-sc-interval onclick="setSCInterval(4,this)">4 Wk</button>
+              <button class="tab" data-sc-interval onclick="setSCInterval(2,this)">2 Wk</button>
+              <button class="tab active" data-sc-interval onclick="setSCInterval(4,this)">4 Wk</button>
             </div>
             <div id="scInlineStats" style="display:flex;flex-direction:column;gap:1px;padding:4px 12px;background:#1e293b;border-radius:6px;border:1px solid #334155">
               <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
@@ -908,7 +908,7 @@ const ACTIVITIES = [{"activity":"0-4000-01-Civil Mob","whc_sub":"WHC","category"
 // STATE
 // ============================================================
 let scSection    = 'Overall';
-let scIntervalWeeks = 2;
+let scIntervalWeeks = 4;
 let showPF       = true;
 let hiddenDS     = {};
 let selectedWeekIdx = SC_CURRENT_IDX;  // changes with week selector
@@ -1099,9 +1099,9 @@ const scChart = new Chart(scCtx, {
     },
     scales:{
       x:{ grid:{color:gridColor},
+           afterBuildTicks(axis){ axis.ticks = axis.ticks.filter((_,i)=> i % scIntervalWeeks === 0); },
            ticks:{maxRotation:30, autoSkip:false,
-                  callback:function(val,idx){
-                    if (idx % scIntervalWeeks !== 0) return '';
+                  callback:function(val){
                     const iso = this.getLabelForValue(val);
                     if (!iso) return '';
                     const d = new Date(iso+'T00:00:00');
