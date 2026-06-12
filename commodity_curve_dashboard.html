@@ -393,20 +393,26 @@
         <div class="chart-wrap" style="height:340px;position:relative;flex:1">
           <canvas id="scurveChart"></canvas>
         </div>
-        <!-- Vertical % Range slider -->
-        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px 0;min-width:34px">
-          <span style="font-size:9px;color:#94a3b8;white-space:nowrap" id="pctMaxLabel">100%</span>
-          <div style="position:relative;width:28px;height:200px">
-            <input type="range" id="pctMax" min="0" max="100" value="100"
-              orient="vertical"
-              style="writing-mode:vertical-lr;direction:rtl;width:28px;height:200px;cursor:pointer;accent-color:#3b82f6"
-              oninput="updateSCurve()">
-            <input type="range" id="pctMin" min="0" max="100" value="0"
-              orient="vertical"
-              style="writing-mode:vertical-lr;direction:rtl;width:28px;height:200px;cursor:pointer;accent-color:#3b82f6;position:absolute;top:0;left:0"
-              oninput="updateSCurve()">
+        <!-- Vertical % Range slider (Max + Min side by side) -->
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px 0;min-width:52px">
+          <div style="display:flex;gap:2px;align-items:flex-start">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+              <span style="font-size:8px;color:#94a3b8">Max</span>
+              <span style="font-size:9px;color:#60a5fa;font-weight:600" id="pctMaxLabel">100%</span>
+              <input type="range" id="pctMax" min="0" max="100" value="100"
+                orient="vertical"
+                style="writing-mode:vertical-lr;direction:rtl;width:20px;height:200px;cursor:pointer;accent-color:#3b82f6"
+                oninput="updateSCurve()">
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+              <span style="font-size:8px;color:#94a3b8">Min</span>
+              <span style="font-size:9px;color:#60a5fa;font-weight:600" id="pctMinLabel">0%</span>
+              <input type="range" id="pctMin" min="0" max="100" value="0"
+                orient="vertical"
+                style="writing-mode:vertical-lr;direction:rtl;width:20px;height:200px;cursor:pointer;accent-color:#3b82f6"
+                oninput="updateSCurve()">
+            </div>
           </div>
-          <span style="font-size:9px;color:#94a3b8" id="pctMinLabel">0%</span>
         </div>
       </div>
       <div id="scSubTable" style="margin-top:8px;overflow-x:auto;max-height:130px;overflow-y:auto"></div>
