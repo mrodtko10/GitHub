@@ -682,12 +682,17 @@
     </div>
     <div class="filters" style="margin-bottom:10px;align-items:center;gap:6px">
       <span class="filter-label" style="white-space:nowrap">Column filter:</span>
-      <select id="pfColFilter" onchange="renderPFTable()" style="flex:0 0 auto;min-width:150px">
+      <select id="pfColFilter" onchange="renderPFTable()" style="flex:0 0 auto;min-width:160px">
         <option value="">— none —</option>
-        <option value="bl_pct">BL %</option>
-        <option value="ea_pct">Earned %</option>
-        <option value="pct_var">Earned vs BL Var</option>
-        <option value="ea_week">Weekly Earned (hrs)</option>
+        <option value="wk_earned">Wkly Earned Hrs</option>
+        <option value="wk_spent">Wkly Spent Hrs</option>
+        <option value="wk_pf">Wkly PF</option>
+        <option value="cum_earned">Cumu Earned Hrs</option>
+        <option value="cum_spent">Cumu Spent Hrs</option>
+        <option value="cum_pf">Cumu PF</option>
+        <option value="rem_hours">Rem Hours</option>
+        <option value="rem_weeks">Rem Weeks</option>
+        <option value="goal_pf">Goal PF</option>
       </select>
       <select id="pfOpFilter" onchange="renderPFTable()" style="flex:0 0 auto;width:60px">
         <option value=">=">≥</option>
@@ -704,14 +709,17 @@
         <thead>
           <tr>
             <th data-pf-col="activity">Activity <span class="sort-icon">⇅</span></th>
-            <th data-pf-col="whc_sub">WHC/Sub <span class="sort-icon">⇅</span></th>
             <th data-pf-col="category">Category <span class="sort-icon">⇅</span></th>
             <th data-pf-col="section">Section <span class="sort-icon">⇅</span></th>
-            <th data-pf-col="bl_pct" style="text-align:right">BL % <span class="sort-icon">⇅</span></th>
-            <th data-pf-col="ea_pct" style="text-align:right">Earned % <span class="sort-icon">⇅</span></th>
-            <th data-pf-col="pct_var" style="text-align:right">Earned vs BL Var <span class="sort-icon">⇅</span></th>
-            <th data-pf-col="ea_week" style="text-align:right">Wkly Earned (hrs) <span class="sort-icon">⇅</span></th>
-            <th style="text-align:center">PF Role</th>
+            <th data-pf-col="wk_earned" style="text-align:right">Wkly Earned Hrs <span class="sort-icon">⇅</span></th>
+            <th data-pf-col="wk_spent"  style="text-align:right">Wkly Spent Hrs <span class="sort-icon">⇅</span></th>
+            <th data-pf-col="wk_pf"     style="text-align:right">Wkly PF <span class="sort-icon">⇅</span></th>
+            <th data-pf-col="cum_earned" style="text-align:right">Cumu Earned Hrs <span class="sort-icon">⇅</span></th>
+            <th data-pf-col="cum_spent"  style="text-align:right">Cumu Spent Hrs <span class="sort-icon">⇅</span></th>
+            <th data-pf-col="cum_pf"    style="text-align:right">Cumu PF <span class="sort-icon">⇅</span></th>
+            <th data-pf-col="rem_hours" style="text-align:right">Rem Hours <span class="sort-icon">⇅</span></th>
+            <th data-pf-col="rem_weeks" style="text-align:right">Rem Weeks <span class="sort-icon">⇅</span></th>
+            <th data-pf-col="goal_pf"   style="text-align:right">Goal PF <span class="sort-icon">⇅</span></th>
           </tr>
         </thead>
         <tbody id="pfTableBody"></tbody>
@@ -1752,9 +1760,8 @@ function updatePFSlider() {
 }
 
 function updatePFCharts() {
-  const capIdx = Math.min(selectedWeekIdx, pfRangeMax);
-  const lo = Math.min(pfRangeMin, capIdx);
-  const hi = capIdx;
+  const lo = pfRangeMin;
+  const hi = pfRangeMax;
   const pfNote = document.getElementById('pfSectionNote');
 
   if (pfSection === 'Overall') {
@@ -1784,76 +1791,87 @@ function updatePFCharts() {
 }
 
 // PF Summary tiles
+function _pfCatStats(category, section, idx) {
+  // Aggregate earned/spent FTE by category+section from FTE_BY_ACTIVITY
+  let cumE = 0, cumS = 0, wkE = 0, wkS = 0, totBL = 0;
+  ACTIVITIES.forEach(a => {
+    if (category && a.category !== category) return;
+    if (section && section !== 'Overall' && a.section !== section) return;
+    const fte = FTE_BY_ACTIVITY.activities[a.activity];
+    if (!fte) return;
+    for (let i = 0; i <= idx; i++) { cumE += fte.earned[i]||0; cumS += fte.spent[i]||0; }
+    wkE += fte.earned[idx]||0; wkS += fte.spent[idx]||0;
+    for (let i = 0; i < fte.bl.length; i++) totBL += fte.bl[i]||0;
+  });
+  return {
+    cumPF:  cumS  > 0 ? cumE  / cumS  : null,
+    wkPF:   wkS   > 0 ? wkE   / wkS   : null,
+    wkFTE:  MANPOWER.filter(r => (!category || r.category === category) && (section === 'Overall' || !section || r.section === section))
+               .reduce((s,r) => s + (r.cw_act_fte||0), 0),
+  };
+}
+
 function updatePFTiles() {
   const idx = selectedWeekIdx;
-  const pfNote = document.getElementById('pfSectionNote');
+  const sect = pfSection === 'Overall' ? null : pfSection;
 
-  if (pfSection === 'Overall') {
-    pfNote.style.display = 'none';
-    const tiles = [
-      { label:'Indirect PF',  key:'indirect', color:'#a78bfa', desc:'NP-WHC: contributes to spent only' },
-      { label:'Direct PF',    key:'direct',   color:'#22c55e', desc:'PD-WHC: earned ÷ spent' },
-      { label:'Job Total PF', key:'overall',  color:'#fb923c', desc:'PD earned ÷ all WHC spent' },
-    ];
-    document.getElementById('pfSummaryTiles').innerHTML = tiles.map(t => {
-      const val    = PF_SERIES[t.key].cumu[idx];
-      const wkval  = PF_SERIES[t.key].inc[idx];
-      const dispVal = val != null ? val.toFixed(3) : '—';
-      const dispWk  = wkval != null ? wkval.toFixed(3) : '—';
-      const pfColor = val == null ? '#94a3b8' : val >= 1 ? '#22c55e' : val >= 0.85 ? '#f59e0b' : '#ef4444';
-      return `<div style="flex:1;min-width:200px;background:linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:14px 18px;position:relative;overflow:hidden">
-        <div style="position:absolute;top:0;left:0;width:3px;height:100%;background:${t.color}"></div>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">${t.label}</div>
-        <div style="display:flex;gap:24px;align-items:flex-end">
-          <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">CUMULATIVE</div>
-            <div style="font-size:32px;font-weight:700;color:${pfColor};line-height:1">${dispVal}</div></div>
-          <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">WEEKLY</div>
-            <div style="font-size:18px;font-weight:600;color:${t.color};line-height:1">${dispWk}</div></div>
-        </div>
-        <div style="font-size:10px;color:var(--muted);margin-top:6px">${t.desc}</div>
-      </div>`;
-    }).join('');
-  } else {
-    pfNote.style.display = '';
-    const date  = ALL_DATES[idx];
-    const now   = ((STATS_BY_DATE[date] || {})[pfSection] || {});
-    const prev  = idx > 0 ? ((STATS_BY_DATE[ALL_DATES[idx-1]] || {})[pfSection] || {}) : {};
-    const jtVal = now.cumu_pf != null ? now.cumu_pf : null;
-    const ed = (now.earned || 0) - (prev.earned || 0);
-    const sd = (now.spent  || 0) - (prev.spent  || 0);
-    const jtInc = sd > 0 ? ed / sd : null;
-    const jtColor = jtVal == null ? '#94a3b8' : jtVal >= 1 ? '#22c55e' : jtVal >= 0.85 ? '#f59e0b' : '#ef4444';
-    const indirectVal = PF_SERIES.indirect.cumu[idx];
-    const directVal   = PF_SERIES.direct.cumu[idx];
-    document.getElementById('pfSummaryTiles').innerHTML = `
-      <div style="flex:1;min-width:200px;background:linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:14px 18px;position:relative;overflow:hidden">
-        <div style="position:absolute;top:0;left:0;width:3px;height:100%;background:#fb923c"></div>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">Job Total PF — ${pfSection}</div>
-        <div style="display:flex;gap:24px;align-items:flex-end">
-          <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">CUMULATIVE</div>
-            <div style="font-size:32px;font-weight:700;color:${jtColor};line-height:1">${jtVal != null ? jtVal.toFixed(3) : '—'}</div></div>
-          <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">WEEKLY</div>
-            <div style="font-size:18px;font-weight:600;color:#fb923c;line-height:1">${jtInc != null ? jtInc.toFixed(3) : '—'}</div></div>
-        </div>
-        <div style="font-size:10px;color:var(--muted);margin-top:6px">PD earned ÷ all WHC spent (${pfSection})</div>
+  const _tile = (label, color, desc, cumuPF, wkPF, wkFTE) => {
+    const pfColor = cumuPF == null ? '#94a3b8' : cumuPF >= 1 ? '#22c55e' : cumuPF >= 0.85 ? '#f59e0b' : '#ef4444';
+    return `<div style="flex:1;min-width:200px;background:linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:14px 18px;position:relative;overflow:hidden">
+      <div style="position:absolute;top:0;left:0;width:3px;height:100%;background:${color}"></div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">${label}</div>
+      <div style="display:flex;gap:20px;align-items:flex-end;flex-wrap:wrap">
+        <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">CUMU PF</div>
+          <div style="font-size:30px;font-weight:700;color:${pfColor};line-height:1">${cumuPF != null ? cumuPF.toFixed(3) : '—'}</div></div>
+        <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">WEEKLY PF</div>
+          <div style="font-size:18px;font-weight:600;color:${color};line-height:1">${wkPF != null ? wkPF.toFixed(3) : '—'}</div></div>
+        <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">WK FTE</div>
+          <div style="font-size:18px;font-weight:600;color:var(--text);line-height:1">${wkFTE.toFixed(1)}</div></div>
       </div>
-      <div style="flex:1;min-width:200px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:14px 18px;position:relative;overflow:hidden;opacity:0.55">
-        <div style="position:absolute;top:0;left:0;width:3px;height:100%;background:#a78bfa"></div>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em">Indirect PF</div>
-        <div style="font-size:13px;color:var(--muted);margin-bottom:2px">Section breakdown N/A</div>
-        <div style="font-size:11px;color:#a78bfa">Project-wide: ${indirectVal != null ? indirectVal.toFixed(3) : '—'}</div>
-      </div>
-      <div style="flex:1;min-width:200px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:14px 18px;position:relative;overflow:hidden;opacity:0.55">
-        <div style="position:absolute;top:0;left:0;width:3px;height:100%;background:#22c55e"></div>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em">Direct PF</div>
-        <div style="font-size:13px;color:var(--muted);margin-bottom:2px">Section breakdown N/A</div>
-        <div style="font-size:11px;color:#22c55e">Project-wide: ${directVal != null ? directVal.toFixed(3) : '—'}</div>
-      </div>`;
-  }
+      <div style="font-size:10px;color:var(--muted);margin-top:6px">${desc}</div>
+    </div>`;
+  };
+
+  const np  = _pfCatStats('NP-WHC', pfSection, idx);
+  const pd  = _pfCatStats('PD-WHC', pfSection, idx);
+  const tot = _pfCatStats(null,     pfSection, idx);
+
+  document.getElementById('pfSummaryTiles').innerHTML =
+    _tile('Non-Productive (NP-WHC)', '#a78bfa',
+      'Indirect — contributes to spent only' + (pfSection !== 'Overall' ? ' · ' + pfSection : ''),
+      np.cumPF, np.wkPF, np.wkFTE) +
+    _tile('Productive (PD-WHC)', '#22c55e',
+      'Direct — earned ÷ spent' + (pfSection !== 'Overall' ? ' · ' + pfSection : ''),
+      pd.cumPF, pd.wkPF, pd.wkFTE) +
+    _tile('Total', '#fb923c',
+      'All WHC — PD earned ÷ all WHC spent' + (pfSection !== 'Overall' ? ' · ' + pfSection : ''),
+      tot.cumPF, tot.wkPF, tot.wkFTE);
 }
 
 // PF Table
 let pfSortCol = null, pfSortDir = 0;
+
+function _getPFRowStats(actName, idx) {
+  const fte = FTE_BY_ACTIVITY.activities[actName];
+  if (!fte) return {};
+  let cumE = 0, cumS = 0, totBL = 0;
+  for (let i = 0; i <= idx; i++) { cumE += fte.earned[i]||0; cumS += fte.spent[i]||0; }
+  for (let i = 0; i < fte.bl.length; i++) totBL += fte.bl[i]||0;
+  const wkE = (fte.earned[idx]||0) * 60;
+  const wkS = (fte.spent[idx] ||0) * 60;
+  cumE *= 60; cumS *= 60; totBL *= 60;
+  const wkFTE  = fte.spent[idx] || fte.bl[idx] || 0;
+  const remHrs = Math.max(totBL - cumE, 0);
+  return {
+    wk_earned: wkE, wk_spent: wkS,
+    wk_pf:     wkS > 0 ? wkE / wkS : null,
+    cum_earned: cumE, cum_spent: cumS,
+    cum_pf:    cumS > 0 ? cumE / cumS : null,
+    rem_hours: remHrs,
+    rem_weeks: (wkFTE * 60) > 0 ? remHrs / (wkFTE * 60) : null,
+    goal_pf:   (totBL - cumS) > 0 ? (totBL - cumE) / (totBL - cumS) : null,
+  };
+}
 
 function updatePFTableTiles() {
   const pd = ACTIVITIES.filter(a => a.category === 'PD-WHC');
@@ -1884,61 +1902,76 @@ function renderPFTable() {
   const colF   = document.getElementById('pfColFilter').value;
   const op     = document.getElementById('pfOpFilter').value;
   const colVal = parseFloat(document.getElementById('pfColVal').value);
-  const getColV = (a, col) => {
-    if (col === 'pct_var') return (a.ea_pct||0)-(a.bl_pct||0);
-    return a[col]||0;
-  };
-  const passesCol = (a) => {
-    if (!colF || isNaN(colVal)) return true;
-    const v = getColV(a, colF);
-    if (op==='>=') return v>=colVal; if (op==='<=') return v<=colVal;
-    if (op==='>') return v>colVal;   if (op==='<') return v<colVal;
-    if (op==='=') return Math.abs(v-colVal)<0.001;
-    return true;
-  };
+
   let rows = ACTIVITIES.filter(a =>
     (!sec  || a.section === sec) &&
     (!type || a.category === type) &&
-    (!q    || (a.activity||'').toLowerCase().includes(q)) &&
-    passesCol(a)
+    (!q    || (a.activity||'').toLowerCase().includes(q))
   );
   if (pfSection !== 'Overall') rows = rows.filter(r => r.section === pfSection);
-  if (pfSortCol && pfSortDir !== 0) {
-    rows.sort((a,b) => {
-      let av, bv;
-      if (pfSortCol==='pct_var'){av=(a.ea_pct||0)-(a.bl_pct||0);bv=(b.ea_pct||0)-(b.bl_pct||0);}
-      else{av=a[pfSortCol]??'';bv=b[pfSortCol]??'';}
-      const cmp = typeof av==='number'?av-bv:String(av).localeCompare(String(bv));
-      return pfSortDir*cmp;
+
+  const idx = selectedWeekIdx;
+  rows = rows.map(a => ({ ...a, _s: _getPFRowStats(a.activity, idx) || {} }));
+
+  // Apply column filter
+  if (colF && !isNaN(colVal)) {
+    rows = rows.filter(a => {
+      const v = a._s[colF] ?? 0;
+      if (op==='>=') return v>=colVal; if (op==='<=') return v<=colVal;
+      if (op==='>') return v>colVal;   if (op==='<') return v<colVal;
+      if (op==='=') return Math.abs(v-colVal)<0.001;
+      return true;
     });
   }
+
+  const getSortVal = (a, col) => {
+    const s = a._s;
+    if (['wk_earned','wk_spent','wk_pf','cum_earned','cum_spent','cum_pf','rem_hours','rem_weeks','goal_pf'].includes(col))
+      return s[col] ?? -Infinity;
+    return a[col] ?? '';
+  };
+
+  if (pfSortCol && pfSortDir !== 0) {
+    rows.sort((a,b) => {
+      const av = getSortVal(a, pfSortCol), bv = getSortVal(b, pfSortCol);
+      const cmp = typeof av==='number' ? av-bv : String(av).localeCompare(String(bv));
+      return pfSortDir * cmp;
+    });
+  }
+
   document.getElementById('pfCount').textContent = `${rows.length} of ${ACTIVITIES.length}`;
-  const pctBar = (pct,color) => `<div class="pct-bar-wrap"><span style="color:${color};min-width:36px;display:inline-block">${pct.toFixed(1)}%</span><div class="pct-bar"><div class="pct-fill" style="width:${Math.min(pct,100)}%;background:${color}"></div></div></div>`;
+
+  const fmt1 = v => v > 0 ? v.toFixed(1) : '—';
+  const fmtPF = (v, isGoal) => {
+    if (v == null) return '—';
+    const color = v >= 1 ? '#22c55e' : v >= 0.85 ? '#f59e0b' : '#ef4444';
+    const highlight = isGoal && v > 1.05 ? ';font-weight:700' : '';
+    return `<span style="color:${color}${highlight}">${v.toFixed(3)}</span>`;
+  };
+
   const html = rows.map(a => {
-    const catClass = a.category==='PD-WHC'?'cat-PD':a.category==='NP-WHC'?'cat-NP':'cat-PS';
-    const blColor  = a.bl_pct>=80?'#22c55e':a.bl_pct>=40?'#f59e0b':'#ef4444';
-    const eaColor  = a.ea_pct>=80?'#22c55e':a.ea_pct>=40?'#f59e0b':'#ef4444';
-    const pctVar   = (a.ea_pct||0)-(a.bl_pct||0);
-    const varColor = pctVar>=0?'#22c55e':pctVar>=-10?'#f59e0b':'#ef4444';
-    const varStr   = (pctVar>0?'+':'')+pctVar.toFixed(1)+'%';
-    let pfRoleHtml;
-    if (a.category==='PD-WHC') pfRoleHtml = `<span style="background:rgba(34,197,94,0.15);color:#22c55e;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600">Direct</span>`;
-    else if (a.category==='NP-WHC') pfRoleHtml = `<span style="background:rgba(167,139,250,0.15);color:#a78bfa;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600">Indirect</span>`;
-    else pfRoleHtml = `<span style="background:rgba(148,163,184,0.15);color:#94a3b8;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600">Sub</span>`;
+    const s = a._s;
+    let catBadge;
+    if (a.category==='PD-WHC') catBadge = `<span class="cat-badge cat-PD">Direct</span>`;
+    else if (a.category==='NP-WHC') catBadge = `<span class="cat-badge cat-NP">Indirect</span>`;
+    else catBadge = `<span class="cat-badge cat-PS">Sub</span>`;
     return `<tr>
       <td>${a.activity}</td>
-      <td>${a.whc_sub}</td>
-      <td><span class="cat-badge ${catClass}">${a.category}</span></td>
+      <td>${catBadge}</td>
       <td>${a.section}</td>
-      <td>${pctBar(a.bl_pct, blColor)}</td>
-      <td>${pctBar(a.ea_pct, eaColor)}</td>
-      <td style="text-align:right"><span style="color:${varColor};font-weight:600">${varStr}</span></td>
-      <td style="text-align:right">${a.ea_week>0?a.ea_week.toFixed(1):'—'}</td>
-      <td style="text-align:center">${pfRoleHtml}</td>
+      <td style="text-align:right">${fmt1(s.wk_earned)}</td>
+      <td style="text-align:right">${fmt1(s.wk_spent)}</td>
+      <td style="text-align:right">${fmtPF(s.wk_pf, false)}</td>
+      <td style="text-align:right">${fmt1(s.cum_earned)}</td>
+      <td style="text-align:right">${fmt1(s.cum_spent)}</td>
+      <td style="text-align:right">${fmtPF(s.cum_pf, false)}</td>
+      <td style="text-align:right">${fmt1(s.rem_hours)}</td>
+      <td style="text-align:right">${s.rem_weeks != null ? s.rem_weeks.toFixed(1) : '—'}</td>
+      <td style="text-align:right">${fmtPF(s.goal_pf, true)}</td>
     </tr>`;
   }).join('');
   document.getElementById('pfTableBody').innerHTML = html ||
-    '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px">No results</td></tr>';
+    '<tr><td colspan="12" style="text-align:center;color:var(--muted);padding:20px">No results</td></tr>';
 }
 
 function initPFSort() {
