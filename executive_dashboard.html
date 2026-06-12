@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <style>
 :root{--bg:#0d1117;--surface:#161b22;--surface2:#21262d;--border:#30363d;--accent:#1f6feb;--accent2:#58a6ff;--green:#3fb950;--red:#f85149;--yellow:#d29922;--text:#e6edf3;--muted:#8b949e;}
+body.light-mode{--bg:#f6f8fa;--surface:#ffffff;--surface2:#f0f2f5;--border:#d0d7de;--accent:#0969da;--accent2:#0969da;--green:#1a7f37;--red:#cf222e;--yellow:#9a6700;--text:#1f2328;--muted:#656d76;}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;}
 nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;position:sticky;top:0;z-index:200;}
@@ -17,6 +18,8 @@ nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24
 .tab-btn:hover{color:var(--text);}
 .tab-btn.active{color:var(--accent2);border-bottom-color:var(--accent2);}
 .nav-right{margin-left:auto;font-size:11px;color:var(--muted);white-space:nowrap;}
+.theme-btn{background:none;border:1px solid var(--border);color:var(--muted);font-size:13px;padding:5px 10px;border-radius:6px;cursor:pointer;transition:all .15s;margin-left:12px;white-space:nowrap;}
+.theme-btn:hover{border-color:var(--accent2);color:var(--accent2);}
 
 /* FILTER BAR */
 .filter-bar{background:var(--surface2);border-bottom:1px solid var(--border);padding:8px 24px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;position:sticky;top:54px;z-index:190;}
@@ -133,6 +136,7 @@ input.fs{width:90px;}
   <button class="tab-btn" onclick="showTab('cashflow',this)">Cash &amp; Billing</button>
   <button class="tab-btn" onclick="showTab('wip',this)">Preliminary WIP</button>
   <div class="nav-right" id="navRight"></div>
+  <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">☀ Light</button>
 </nav>
 
 <div class="filter-bar">
@@ -494,6 +498,14 @@ Chart.defaults.plugins.datalabels={clip:false,clamp:false};
 // STATE
 // ============================================================
 let charts={}, activeTab='overview';
+
+function toggleTheme(){
+  const light = document.body.classList.toggle('light-mode');
+  document.getElementById('themeBtn').textContent = light ? '🌙 Dark' : '☀ Light';
+  // Re-render active tab so Chart.js picks up new CSS variable colors
+  const active = document.querySelector('.tab-content.active');
+  if(active) renderTab(active.id.replace('tab-',''));
+}
 
 const ALL_MONTHS = [...new Set(ALL_DATA.map(p=>p.month))].sort();
 
