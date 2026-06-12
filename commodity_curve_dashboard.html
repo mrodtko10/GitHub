@@ -1244,23 +1244,64 @@ function _updateFTECostBtnLabel() {
   else lbl.textContent = chkd.length + ' of ' + all.length + ' selected';
 }
 
+const _FTE_ACT_COLORS = ['#60a5fa','#f472b6','#34d399','#fbbf24','#a78bfa','#fb7185','#4ade80','#facc15','#c084fc','#22d3ee','#f97316','#06b6d4'];
+
 function _applyFTEActivityFilter() {
+  // Remove any previously injected activity datasets
+  fteChart.data.datasets = fteChart.data.datasets.filter(d => !d._isActivity);
+
   const checked = Array.from(document.querySelectorAll('#fteCostCheckboxes input[type=checkbox]:checked')).map(cb => cb.value);
   const modeEl  = document.getElementById('fteModeLabel');
+
   if (checked.length === 0) {
+    // Restore base datasets visibility and time-series data (already set by updateFTE)
+    fteChart.data.datasets.forEach(d => { d.hidden = false; });
     if (modeEl) modeEl.textContent = '';
-    return; // show normal time series set by updateFTE
+    fteChart.update('none');
+    return;
   }
-  // Filter mode — replace chart data with per-activity breakdown (CW & PW snapshot)
+
+  // Hide the base time-series datasets
+  fteChart.data.datasets.forEach(d => { d.hidden = true; });
+
   const rows = MANPOWER.filter(r => checked.includes(r.activity));
   const short = s => { const p = s.split('-'); return p[p.length-1].trim() || s; };
-  fteChart.data.labels = rows.map(r => short(r.activity));
-  fteChart.data.datasets[0].data = rows.map(r => r.cw_bl_fte  || 0); // BL FTE
-  fteChart.data.datasets[1].data = rows.map(r => r.cw_act_fte || 0); // Actual FTE
-  fteChart.data.datasets[2].data = rows.map(r => r.pw_act_fte || 0); // Earned → PW Actual
-  fteChart.data.datasets[3].data = [];                                 // hide forecast
-  if (modeEl) modeEl.textContent = '— showing activity breakdown (CW Actual · CW BL · PW Actual)';
-  fteChart.update('none');
+
+  // X-axis: two points — Previous Week and Current Week (using actual dates)
+  const prevDate = selectedWeekIdx > 0 ? ALL_DATES[selectedWeekIdx - 1] : ALL_DATES[0];
+  const currDate = ALL_DATES[selectedWeekIdx];
+  const fmtD = iso => { const d = new Date(iso + 'T00:00:00'); return (d.getMonth()+1) + '/' + d.getDate() + '/' + String(d.getFullYear()).slice(2); };
+  fteChart.data.labels = ['PW  ' + fmtD(prevDate), 'CW  ' + fmtD(currDate)];
+
+  rows.forEach((r, idx) => {
+    const color = _FTE_ACT_COLORS[idx % _FTE_ACT_COLORS.length];
+    const name  = short(r.activity);
+    // Actual FTE — solid line with filled points
+    fteChart.data.datasets.push({
+      label: name + ' Actual',
+      type: 'line',
+      data: [r.pw_act_fte || 0, r.cw_act_fte || 0],
+      borderColor: color,
+      backgroundColor: color + '22',
+      fill: false, tension: 0.1, borderWidth: 2.5,
+      pointRadius: 5, pointHoverRadius: 7,
+      _isActivity: true,
+    });
+    // BL FTE — dashed line
+    fteChart.data.datasets.push({
+      label: name + ' BL',
+      type: 'line',
+      data: [r.pw_bl_fte || 0, r.cw_bl_fte || 0],
+      borderColor: color,
+      backgroundColor: 'transparent',
+      borderDash: [5, 4], fill: false, tension: 0.1, borderWidth: 1.5,
+      pointRadius: 3, pointHoverRadius: 5,
+      _isActivity: true,
+    });
+  });
+
+  if (modeEl) modeEl.textContent = '— ' + rows.length + ' cost code' + (rows.length > 1 ? 's' : '') + ' · solid = Actual · dashed = BL · PW → CW';
+  fteChart.update();
 }
 
 
