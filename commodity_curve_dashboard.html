@@ -1264,13 +1264,14 @@ function toggleDonut() {
     donutCard.style.display = 'none';
     grid.style.gridTemplateColumns = '1fr';
     btn.textContent = '⊞ Show PD Chart';
+    requestAnimationFrame(() => requestAnimationFrame(() => scChart.resize()));
   } else {
     donutCard.style.display = '';
-    grid.style.gridTemplateColumns = '';
+    grid.style.gridTemplateColumns = '2fr 1fr';
     btn.textContent = '⊟ Hide PD Chart';
+    // Wait for grid to relayout before telling Chart.js to shrink the canvas
+    setTimeout(() => scChart.resize(), 80);
   }
-  // Let the browser relayout, then tell Chart.js to fill the new container size
-  requestAnimationFrame(() => requestAnimationFrame(() => scChart.resize()));
 }
 
 // ============================================================
