@@ -160,6 +160,10 @@
 
   .sort-icon { font-size:10px; opacity:0.5; margin-left:3px; }
   th:hover .sort-icon { opacity:1; }
+  #mpTable td, #mpTable th { padding: 8px 10px; font-size:12px; }
+  #actTable td, #actTable th { padding: 7px 9px; font-size:12px; }
+  #mpTable tbody tr:hover { background: rgba(255,255,255,0.04) !important; }
+  #actTable tbody tr:hover { background: rgba(255,255,255,0.04); }
 
   /* S-Curve Controls */
   .sc-controls { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 14px; align-items: flex-start; }
@@ -274,10 +278,11 @@
   </div>
 
   <!-- S-Curve + Section Breakdown -->
-  <div class="charts-grid">
+  <div class="charts-grid" id="scDonutGrid">
     <div class="chart-card">
       <div class="chart-title">S-Curve – % Complete Over Time
         <span id="scurveSubtitle">(Overall)</span>
+        <button id="donutCollapseBtn" onclick="toggleDonut()" style="float:right;padding:2px 10px;font-size:11px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:4px;color:var(--muted);cursor:pointer;margin-top:1px" title="Toggle donut panel">⊞ Hide PD Chart</button>
       </div>
 
       <!-- Controls Row -->
@@ -383,6 +388,26 @@
     </div>
   </div>
 
+  <script>
+  let donutCollapsed = false;
+  function toggleDonut() {
+    donutCollapsed = !donutCollapsed;
+    const grid = document.getElementById('scDonutGrid');
+    const donutCard = grid.children[1];
+    const btn = document.getElementById('donutCollapseBtn');
+    if (donutCollapsed) {
+      donutCard.style.display = 'none';
+      grid.style.gridTemplateColumns = '1fr';
+      btn.textContent = '⊟ Show PD Chart';
+    } else {
+      donutCard.style.display = '';
+      grid.style.gridTemplateColumns = '';
+      btn.textContent = '⊞ Hide PD Chart';
+    }
+    setTimeout(() => scChart.resize(), 50);
+  }
+  </script>
+
   <!-- FTE Chart -->
   <div class="charts-grid" style="grid-template-columns: 1fr;">
     <div class="chart-card">
@@ -434,24 +459,46 @@
         <option value="WHC">WHC</option>
         <option value="Sub">Sub</option>
       </select>
-      <span class="filter-label">CW Actual FTE ≥</span>
-      <input type="number" id="mpCwActMin" placeholder="0" min="0" step="0.1" style="width:65px" oninput="renderManpower()">
       <span class="filter-label">Search:</span>
       <input type="text" id="mpSearch" placeholder="Activity…" oninput="renderManpower()">
       <span id="mpCount" style="font-size:11px;color:var(--muted);margin-left:auto"></span>
     </div>
-    <div class="table-wrap">
+    <div class="filters" style="margin-top:6px;align-items:center;gap:6px">
+      <span class="filter-label" style="white-space:nowrap">Column filter:</span>
+      <select id="mpColFilter" onchange="renderManpower()" style="flex:0 0 auto;min-width:150px">
+        <option value="">— none —</option>
+        <option value="pw_bl_fte">PW BL FTE</option>
+        <option value="pw_act_fte">PW Actual FTE</option>
+        <option value="cw_bl_fte">CW BL FTE</option>
+        <option value="cw_act_fte">CW Actual FTE</option>
+      </select>
+      <select id="mpOpFilter" onchange="renderManpower()" style="flex:0 0 auto;width:60px">
+        <option value=">=">≥</option>
+        <option value="<=">≤</option>
+        <option value=">">></option>
+        <option value="<"><</option>
+        <option value="=">=</option>
+      </select>
+      <input type="number" id="mpColVal" placeholder="value" step="any" style="width:80px" oninput="renderManpower()">
+      <button onclick="document.getElementById('mpColFilter').value='';document.getElementById('mpColVal').value='';renderManpower()" style="padding:3px 8px;font-size:11px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:4px;color:var(--muted);cursor:pointer">Clear</button>
+    </div>
+    <div class="table-wrap" style="margin-top:10px">
       <table id="mpTable">
         <thead>
+          <tr>
+            <th colspan="4" style="border-bottom:none;padding-bottom:2px"></th>
+            <th colspan="2" style="text-align:center;font-size:10px;color:var(--muted);border-bottom:1px solid rgba(59,130,246,0.3);padding-bottom:2px;letter-spacing:.05em">PREVIOUS WEEK</th>
+            <th colspan="2" style="text-align:center;font-size:10px;color:var(--muted);border-bottom:1px solid rgba(34,197,94,0.3);padding-bottom:2px;letter-spacing:.05em">CURRENT WEEK</th>
+          </tr>
           <tr>
             <th data-mp-col="activity">Activity <span class="sort-icon">⇅</span></th>
             <th data-mp-col="whc_sub">WHC/Sub <span class="sort-icon">⇅</span></th>
             <th data-mp-col="category">Category <span class="sort-icon">⇅</span></th>
             <th data-mp-col="section">Section <span class="sort-icon">⇅</span></th>
-            <th data-mp-col="pw_bl_fte" style="text-align:right">PW BL FTE <span class="sort-icon">⇅</span></th>
-            <th data-mp-col="pw_act_fte" style="text-align:right">PW Actual FTE <span class="sort-icon">⇅</span></th>
-            <th data-mp-col="cw_bl_fte" style="text-align:right">CW BL FTE <span class="sort-icon">⇅</span></th>
-            <th data-mp-col="cw_act_fte" style="text-align:right">CW Actual FTE <span class="sort-icon">⇅</span></th>
+            <th data-mp-col="pw_bl_fte" style="text-align:right;border-left:1px solid rgba(59,130,246,0.2)">BL FTE <span class="sort-icon">⇅</span></th>
+            <th data-mp-col="pw_act_fte" style="text-align:right">Actual FTE <span class="sort-icon">⇅</span></th>
+            <th data-mp-col="cw_bl_fte" style="text-align:right;border-left:1px solid rgba(34,197,94,0.2)">BL FTE <span class="sort-icon">⇅</span></th>
+            <th data-mp-col="cw_act_fte" style="text-align:right">Actual FTE <span class="sort-icon">⇅</span></th>
           </tr>
         </thead>
         <tbody id="mpTableBody"></tbody>
@@ -484,14 +531,27 @@
       </select>
       <span class="filter-label">Search:</span>
       <input type="text" id="actSearch" placeholder="Activity name…" oninput="filterActivities()">
-      <br style="flex-basis:100%">
-      <span class="filter-label">Weekly Earned ≥</span>
-      <input type="number" id="actEaWeekMin" placeholder="0" min="0" step="1" style="width:65px" oninput="filterActivities()">
-      <span class="filter-label">BL % ≥</span>
-      <input type="number" id="actBlPctMin" placeholder="0" min="0" max="100" step="1" style="width:55px" oninput="filterActivities()">
-      <span class="filter-label">Earned % ≥</span>
-      <input type="number" id="actEaPctMin" placeholder="0" min="0" max="100" step="1" style="width:55px" oninput="filterActivities()">
       <span id="actCount" style="font-size:11px;color:var(--muted);margin-left:auto"></span>
+    </div>
+    <div class="filters" style="margin-top:6px;align-items:center;gap:6px">
+      <span class="filter-label" style="white-space:nowrap">Column filter:</span>
+      <select id="actColFilter" onchange="filterActivities()" style="flex:0 0 auto;min-width:160px">
+        <option value="">— none —</option>
+        <option value="fin_var">Finish Var (days)</option>
+        <option value="bl_pct">BL % Complete</option>
+        <option value="ea_pct">Earned %</option>
+        <option value="pct_var">Earned % vs BL % Var</option>
+        <option value="ea_week_pct">Weekly Earned %</option>
+      </select>
+      <select id="actOpFilter" onchange="filterActivities()" style="flex:0 0 auto;width:60px">
+        <option value=">=">≥</option>
+        <option value="<=">≤</option>
+        <option value=">">></option>
+        <option value="<"><</option>
+        <option value="=">=</option>
+      </select>
+      <input type="number" id="actColVal" placeholder="value" step="any" style="width:80px" oninput="filterActivities()">
+      <button onclick="document.getElementById('actColFilter').value='';document.getElementById('actColVal').value='';filterActivities()" style="padding:3px 8px;font-size:11px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:4px;color:var(--muted);cursor:pointer">Clear</button>
     </div>
     <div class="table-wrap">
       <table id="actTable">
@@ -506,8 +566,8 @@
             <th data-act-col="fin_var" style="text-align:right">Finish Var (d) <span class="sort-icon">⇅</span></th>
             <th data-act-col="bl_pct">BL % Complete <span class="sort-icon">⇅</span></th>
             <th data-act-col="ea_pct">Earned % <span class="sort-icon">⇅</span></th>
-            <th data-act-col="bl_act_var" style="text-align:right">BL vs Actual Var (hrs) <span class="sort-icon">⇅</span></th>
-            <th data-act-col="ea_week" style="text-align:right">Weekly Earned (hrs) <span class="sort-icon">⇅</span></th>
+            <th data-act-col="pct_var" style="text-align:right">Earned % vs BL % Var <span class="sort-icon">⇅</span></th>
+            <th data-act-col="ea_week_pct" style="text-align:right">Weekly Earned % <span class="sort-icon">⇅</span></th>
           </tr>
         </thead>
         <tbody id="actTableBody"></tbody>
@@ -937,9 +997,7 @@ const fteMaxIdx = FTE.Overall.bl.reduce((acc,v,i) => v>0 ? i : acc, 0);
 const fteChart = new Chart(fteCtx, {
   type: 'bar',
   data: { labels: [], datasets: [
-    { label:'BL FTE', type:'line', data:[],
-       backgroundColor:'rgba(59,130,246,0.2)', borderColor:'#3b82f6',
-       borderWidth:1.5, fill:true, tension:0.3, pointRadius:2, pointHoverRadius:5, order:1 },
+    { label:'BL FTE', data:[], backgroundColor:'rgba(59,130,246,0.35)', borderRadius:3, order:3 },
     { label:'Actual FTE', data:[],
        backgroundColor:'rgba(239,68,68,0.7)', borderRadius:3, order:2 },
     { label:'Earned FTE', data:[],
@@ -991,50 +1049,86 @@ updateFTE();
 let mpSortCol = null, mpSortDir = 0;
 function renderManpower() {
   const sum = (arr, k) => arr.reduce((s,r) => s + (r[k]||0), 0);
-  const fmtN = v => v ? v.toFixed(1) : '—';
+  const fmtN = v => (v && v > 0) ? v.toFixed(1) : '—';
 
-  // Summary tiles — always from full unfiltered MANPOWER
+  // Summary tiles — always unfiltered totals
   const np_rows  = MANPOWER.filter(r => r.category && r.category.startsWith('NP'));
   const pd_rows  = MANPOWER.filter(r => r.category && r.category.startsWith('PD-W'));
   const sub_rows = MANPOWER.filter(r => r.whc_sub === 'Sub');
   const whc_rows = [...np_rows, ...pd_rows];
-  const tileData = [
-    {label:'WHC NP',      color:'#3b82f6', pw_act:sum(np_rows,'pw_act_fte'),  cw_bl:sum(np_rows,'cw_bl_fte'),  cw_act:sum(np_rows,'cw_act_fte')},
-    {label:'WHC PD',      color:'#a78bfa', pw_act:sum(pd_rows,'pw_act_fte'),  cw_bl:sum(pd_rows,'cw_bl_fte'),  cw_act:sum(pd_rows,'cw_act_fte')},
-    {label:'Sub',         color:'#34d399', pw_act:sum(sub_rows,'pw_act_fte'), cw_bl:sum(sub_rows,'cw_bl_fte'), cw_act:sum(sub_rows,'cw_act_fte')},
-    {label:'WHC Total',   color:'#f59e0b', pw_act:sum(whc_rows,'pw_act_fte'), cw_bl:sum(whc_rows,'cw_bl_fte'), cw_act:sum(whc_rows,'cw_act_fte')},
+  // CW Earned from FTE section-level data (section total)
+  const cwEarnedTotal = (FTE[scSection] || FTE.Overall).earned[SC_CURRENT_IDX] || 0;
+
+  const tileGroups = [
+    {label:'WHC NP',    color:'#3b82f6', rows: np_rows},
+    {label:'WHC PD',    color:'#a78bfa', rows: pd_rows},
+    {label:'Sub',       color:'#34d399', rows: sub_rows},
+    {label:'WHC Total', color:'#f59e0b', rows: whc_rows, cwEarned: cwEarnedTotal},
   ];
-  document.getElementById('mpSummaryTiles').innerHTML = tileData.map(t => `
-    <div style="flex:1;min-width:140px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:10px 14px">
-      <div style="font-size:11px;color:var(--muted);margin-bottom:4px">${t.label}</div>
-      <div style="display:flex;gap:16px;align-items:flex-end">
+
+  document.getElementById('mpSummaryTiles').innerHTML = tileGroups.map(t => {
+    const pw_bl  = sum(t.rows,'pw_bl_fte');
+    const pw_act = sum(t.rows,'pw_act_fte');
+    const cw_bl  = sum(t.rows,'cw_bl_fte');
+    const cw_act = sum(t.rows,'cw_act_fte');
+    const utilPW = pw_bl > 0 ? Math.round(pw_act/pw_bl*100) : null;
+    const utilCW = cw_bl > 0 ? Math.round(cw_act/cw_bl*100) : null;
+    const cwEarnedHtml = t.cwEarned !== undefined ? `
+        <div style="border-left:1px solid rgba(255,255,255,0.08);padding-left:14px;margin-left:4px">
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">CW Earned</div>
+          <div style="font-size:22px;font-weight:700;color:#22c55e;line-height:1">${fmtN(t.cwEarned)}</div>
+        </div>` : '';
+    return `<div style="flex:1;min-width:200px;background:linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:14px 16px;position:relative;overflow:hidden">
+      <div style="position:absolute;top:0;left:0;width:3px;height:100%;background:${t.color};border-radius:3px 0 0 3px"></div>
+      <div style="font-size:12px;font-weight:600;color:${t.color};margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">${t.label}</div>
+      <div style="display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap">
         <div>
-          <div style="font-size:9px;color:var(--muted);margin-bottom:1px">PW ACTUAL</div>
-          <div style="font-size:20px;font-weight:700;color:#ef4444;line-height:1">${fmtN(t.pw_act)}</div>
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">PW BL</div>
+          <div style="font-size:18px;font-weight:700;color:${t.color};line-height:1">${fmtN(pw_bl)}</div>
         </div>
         <div>
-          <div style="font-size:9px;color:var(--muted);margin-bottom:1px">CW BL</div>
-          <div style="font-size:16px;font-weight:600;color:${t.color};line-height:1">${fmtN(t.cw_bl)}</div>
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">PW Actual</div>
+          <div style="font-size:22px;font-weight:700;color:#ef4444;line-height:1">${fmtN(pw_act)}</div>
+          ${utilPW !== null ? `<div style="font-size:10px;color:${utilPW>=100?'#22c55e':'#f59e0b'};margin-top:1px">${utilPW}% of BL</div>` : ''}
+        </div>
+        <div style="border-left:1px solid rgba(255,255,255,0.08);padding-left:14px;margin-left:4px">
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">CW BL</div>
+          <div style="font-size:18px;font-weight:700;color:${t.color};line-height:1">${fmtN(cw_bl)}</div>
         </div>
         <div>
-          <div style="font-size:9px;color:var(--muted);margin-bottom:1px">CW ACTUAL</div>
-          <div style="font-size:16px;font-weight:600;color:#ef4444;line-height:1">${fmtN(t.cw_act)}</div>
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">CW Actual</div>
+          <div style="font-size:22px;font-weight:700;color:#ef4444;line-height:1">${fmtN(cw_act)}</div>
+          ${utilCW !== null ? `<div style="font-size:10px;color:${utilCW>=100?'#22c55e':'#f59e0b'};margin-top:1px">${utilCW}% of BL</div>` : ''}
         </div>
+        ${cwEarnedHtml}
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 
   // Apply filters
-  const sec    = document.getElementById('mpSectionFilter').value;
-  const cat    = document.getElementById('mpCatFilter').value;
-  const whc    = document.getElementById('mpWhcFilter').value;
-  const cwMin  = parseFloat(document.getElementById('mpCwActMin').value) || 0;
-  const q      = document.getElementById('mpSearch').value.toLowerCase();
+  const sec   = document.getElementById('mpSectionFilter').value;
+  const cat   = document.getElementById('mpCatFilter').value;
+  const whc   = document.getElementById('mpWhcFilter').value;
+  const q     = document.getElementById('mpSearch').value.toLowerCase();
+  const mpColF = document.getElementById('mpColFilter').value;
+  const mpOp   = document.getElementById('mpOpFilter').value;
+  const mpVal  = parseFloat(document.getElementById('mpColVal').value);
+  const passesMpCol = (r) => {
+    if (!mpColF || isNaN(mpVal)) return true;
+    const v = r[mpColF] || 0;
+    if (mpOp === '>=') return v >= mpVal;
+    if (mpOp === '<=') return v <= mpVal;
+    if (mpOp === '>') return v > mpVal;
+    if (mpOp === '<') return v < mpVal;
+    if (mpOp === '=') return Math.abs(v - mpVal) < 0.001;
+    return true;
+  };
   let sorted = MANPOWER.filter(r =>
-    (!sec  || r.section === sec) &&
-    (!cat  || r.category === cat) &&
-    (!whc  || r.whc_sub === whc) &&
-    (!cwMin || (r.cw_act_fte || 0) >= cwMin) &&
-    (!q    || (r.activity||'').toLowerCase().includes(q))
+    (!sec || r.section === sec) &&
+    (!cat || r.category === cat) &&
+    (!whc || r.whc_sub === whc) &&
+    (!q   || (r.activity||'').toLowerCase().includes(q)) &&
+    passesMpCol(r)
   );
   document.getElementById('mpCount').textContent = `${sorted.length} of ${MANPOWER.length}`;
 
@@ -1047,16 +1141,22 @@ function renderManpower() {
   }
 
   const html = sorted.map(r => {
+    const isActive = (r.cw_act_fte || 0) > 0;
     const catClass = r.category.startsWith('NP') ? 'cat-NP' : r.category.startsWith('PD-S') ? 'cat-PS' : 'cat-PD';
-    return `<tr>
-      <td>${r.activity}</td>
+    const rowStyle = isActive
+      ? 'background:rgba(34,197,94,0.07);border-left:3px solid rgba(34,197,94,0.6);'
+      : 'opacity:0.65;border-left:3px solid transparent;';
+    const cwActStyle = isActive ? 'text-align:right;color:#22c55e;font-weight:700;font-size:14px' : 'text-align:right;color:var(--muted)';
+    const pwActStyle = (r.pw_act_fte||0) > 0 ? 'text-align:right;color:#ef4444;font-weight:600' : 'text-align:right;color:var(--muted)';
+    return `<tr style="${rowStyle}">
+      <td style="font-weight:${isActive?'600':'400'}">${r.activity}</td>
       <td>${r.whc_sub}</td>
       <td><span class="cat-badge ${catClass}">${r.category}</span></td>
       <td>${r.section}</td>
-      <td style="text-align:right">${fmtN(r.pw_bl_fte)}</td>
-      <td style="text-align:right">${fmtN(r.pw_act_fte)}</td>
-      <td style="text-align:right">${fmtN(r.cw_bl_fte)}</td>
-      <td style="text-align:right">${fmtN(r.cw_act_fte)}</td>
+      <td style="text-align:right;border-left:1px solid rgba(59,130,246,0.1);color:var(--muted)">${fmtN(r.pw_bl_fte)}</td>
+      <td style="${pwActStyle}">${fmtN(r.pw_act_fte)}</td>
+      <td style="text-align:right;border-left:1px solid rgba(34,197,94,0.1);color:var(--muted)">${fmtN(r.cw_bl_fte)}</td>
+      <td style="${cwActStyle}">${fmtN(r.cw_act_fte)}</td>
     </tr>`;
   }).join('');
   document.getElementById('mpTableBody').innerHTML = html ||
@@ -1089,33 +1189,55 @@ function filterActivities() {
   const cat       = document.getElementById('catFilter').value;
   const whc       = document.getElementById('actWhcFilter').value;
   const q         = document.getElementById('actSearch').value.toLowerCase();
-  const eaWkMin   = parseFloat(document.getElementById('actEaWeekMin').value) || 0;
-  const blPctMin  = parseFloat(document.getElementById('actBlPctMin').value)  || 0;
-  const eaPctMin  = parseFloat(document.getElementById('actEaPctMin').value)  || 0;
+  const actColF = document.getElementById('actColFilter').value;
+  const actOp   = document.getElementById('actOpFilter').value;
+  const actVal  = parseFloat(document.getElementById('actColVal').value);
+  const getActColVal = (a, col) => {
+    if (col === 'pct_var') return (a.ea_pct||0) - (a.bl_pct||0);
+    if (col === 'ea_week_pct') return a.ea_week || 0;
+    return a[col] || 0;
+  };
+  const passesColFilter = (a) => {
+    if (!actColF || isNaN(actVal)) return true;
+    const v = getActColVal(a, actColF);
+    if (actOp === '>=') return v >= actVal;
+    if (actOp === '<=') return v <= actVal;
+    if (actOp === '>') return v > actVal;
+    if (actOp === '<') return v < actVal;
+    if (actOp === '=') return Math.abs(v - actVal) < 0.001;
+    return true;
+  };
   let filtered = ACTIVITIES.filter(a =>
-    (!sec      || a.section === sec) &&
-    (!cat      || a.category === cat) &&
-    (!whc      || a.whc_sub === whc) &&
-    (!q        || (a.activity||'').toLowerCase().includes(q)) &&
-    (a.ea_week  || 0) >= eaWkMin &&
-    (a.bl_pct   || 0) >= blPctMin &&
-    (a.ea_pct   || 0) >= eaPctMin
+    (!sec  || a.section === sec) &&
+    (!cat  || a.category === cat) &&
+    (!whc  || a.whc_sub === whc) &&
+    (!q    || (a.activity||'').toLowerCase().includes(q)) &&
+    passesColFilter(a)
   );
   if (actSortCol && actSortDir !== 0) {
     filtered.sort((a,b) => {
-      const av = a[actSortCol] ?? ''; const bv = b[actSortCol] ?? '';
+      let av, bv;
+      if (actSortCol === 'pct_var') { av = (a.ea_pct||0)-(a.bl_pct||0); bv = (b.ea_pct||0)-(b.bl_pct||0); }
+      else if (actSortCol === 'ea_week_pct') { av = a.ea_week||0; bv = b.ea_week||0; }
+      else { av = a[actSortCol] ?? ''; bv = b[actSortCol] ?? ''; }
       const cmp = typeof av === 'number' ? av - bv : String(av).localeCompare(String(bv));
       return actSortDir * cmp;
     });
   }
   document.getElementById('actCount').textContent = `${filtered.length} of ${ACTIVITIES.length} activities`;
   const pctBar = (pct, color) => `<div class="pct-bar-wrap"><span style="color:${color};min-width:36px;display:inline-block">${pct.toFixed(1)}%</span><div class="pct-bar"><div class="pct-fill" style="width:${Math.min(pct,100)}%;background:${color}"></div></div></div>`;
+  const EARNABLE_BL_TOTAL = Object.values(PD_DONUT[ALL_DATES[0]]).reduce((s,v)=>s+(v.bl||0),0) || 474640;
   const fmtVar = v => v === null || v === undefined ? '—' : (v > 0 ? `<span style="color:#ef4444">+${v}</span>` : v < 0 ? `<span style="color:#22c55e">${v}</span>` : '0');
-  const fmtHrs = v => v ? v.toFixed(1) : '—';
   let html = filtered.map(a => {
     const blColor  = a.bl_pct >= 80 ? '#22c55e' : a.bl_pct >= 40 ? '#f59e0b' : '#ef4444';
     const eaColor  = a.ea_pct >= 80 ? '#22c55e' : a.ea_pct >= 40 ? '#f59e0b' : '#ef4444';
     const catClass = a.category.startsWith('NP') ? 'cat-NP' : a.category.startsWith('PD-S') ? 'cat-PS' : 'cat-PD';
+    // Earned% vs BL% variance — negative = behind (red), positive = ahead (green)
+    const pctVar = (a.ea_pct || 0) - (a.bl_pct || 0);
+    const pctVarColor = pctVar >= 0 ? '#22c55e' : pctVar >= -10 ? '#f59e0b' : '#ef4444';
+    const pctVarStr = pctVar === 0 ? '0.0%' : (pctVar > 0 ? '+' : '') + pctVar.toFixed(1) + '%';
+    // Weekly earned as % of total earnable BL
+    const eaWkPct = EARNABLE_BL_TOTAL > 0 ? (a.ea_week || 0) / EARNABLE_BL_TOTAL * 100 : 0;
     return `<tr>
       <td>${a.activity}</td>
       <td>${a.whc_sub}</td>
@@ -1126,8 +1248,8 @@ function filterActivities() {
       <td style="text-align:right">${fmtVar(a.fin_var)}</td>
       <td>${pctBar(a.bl_pct, blColor)}</td>
       <td>${pctBar(a.ea_pct, eaColor)}</td>
-      <td style="text-align:right">${fmtVar(a.bl_act_var)}</td>
-      <td style="text-align:right">${fmtHrs(a.ea_week)}</td>
+      <td style="text-align:right"><span style="color:${pctVarColor};font-weight:600">${pctVarStr}</span></td>
+      <td style="text-align:right">${eaWkPct > 0 ? eaWkPct.toFixed(3) + '%' : '—'}</td>
     </tr>`;
   }).join('');
   document.getElementById('actTableBody').innerHTML = html ||
