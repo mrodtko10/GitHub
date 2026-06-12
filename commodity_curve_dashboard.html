@@ -29,7 +29,7 @@
   header {
     background: var(--surface);
     border-bottom: 1px solid var(--border);
-    padding: 16px 24px;
+    padding: 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -220,33 +220,35 @@
 </head>
 <body>
 
-<header>
-  <div>
-    <h1>Hillsboro 25-4002 <span class="badge">Project Status Report</span></h1>
-  </div>
-  <div class="meta" style="display:flex;align-items:center;gap:8px">
-    <span style="color:var(--muted)">Week Ending:</span>
-    <select id="headerWeekSelector" onchange="onHeaderWeekChange()" style="background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:3px 8px;font-size:13px;font-weight:700;cursor:pointer"></select>
+<header style="flex-direction:column;padding:0;gap:0">
+  <div style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:10px 24px;box-sizing:border-box">
+    <div style="display:flex;align-items:center;gap:20px">
+      <h1 style="margin:0">Hillsboro 25-4002 <span class="badge">Project Status Report</span></h1>
+      <div style="display:flex;gap:4px">
+        <button id="hdrTab-dashboard" class="page-tab active" onclick="showPage('dashboard',this)" style="padding:5px 14px;font-size:12px">📊 Dashboard</button>
+        <button id="hdrTab-pf" class="page-tab" onclick="showPage('pf',this)" style="padding:5px 14px;font-size:12px">⚡ PF Analysis</button>
+      </div>
+    </div>
+    <div class="meta" style="display:flex;align-items:center;gap:8px">
+      <span style="color:var(--muted)">Week Ending:</span>
+      <select id="headerWeekSelector" onchange="onHeaderWeekChange()" style="background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:3px 8px;font-size:13px;font-weight:700;cursor:pointer"></select>
+    </div>
   </div>
 </header>
 
 <!-- Sticky PF tiles — shown only when PF tab active -->
-<div id="pfStickyBar" style="display:none;position:sticky;top:56px;z-index:90;background:var(--bg);border-bottom:1px solid var(--border);padding:8px 20px">
+<div id="pfStickyBar" style="display:none;position:sticky;top:50px;z-index:90;background:var(--bg);border-bottom:1px solid var(--border);padding:8px 20px">
   <div id="pfStickyTiles" style="display:flex;gap:10px"></div>
 </div>
 
 <div class="container">
 
-  <!-- Page tabs -->
-  <div class="page-tabs">
-    <button class="page-tab active" onclick="showPage('dashboard',this)">📊 Dashboard</button>
-    <button class="page-tab" onclick="showPage('pf',this)">⚡ PF Analysis</button>
-  </div>
-
   <div id="page-dashboard" class="page-section active">
 
+  <!-- Sticky Dashboard sub-header: dates + KPIs -->
+  <div id="dashStickyBar" style="position:sticky;top:50px;z-index:89;background:var(--bg);border-bottom:1px solid var(--border);padding:8px 0 10px">
   <!-- Key Dates -->
-  <div class="dates-bar">
+  <div class="dates-bar" style="margin-bottom:8px">
     <div class="label">Key Dates</div>
     <div class="date-item"><div class="dot" style="background:#a78bfa"></div>Substation MC: <strong>Jul 02, 2027</strong></div>
     <div class="date-item"><div class="dot" style="background:#3b82f6"></div>Guaranteed MC: <strong>Aug 05, 2027</strong></div>
@@ -297,7 +299,13 @@
       <div class="kpi-value" style="color:var(--earned-color)" id="kpi-fte-earn">—</div>
       <div class="kpi-sub">Productivity equivalent</div>
     </div>
+    <div class="kpi-card" style="--accent-bar:#a78bfa">
+      <div class="kpi-label">Cumulative PF</div>
+      <div class="kpi-value" id="kpi-cumu-pf">—</div>
+      <div class="kpi-sub" id="kpi-cumu-pf-sub">PD Earned ÷ all WHC Spent</div>
+    </div>
   </div>
+  </div><!-- end dashStickyBar -->
 
   <!-- S-Curve + Section Breakdown -->
   <div class="charts-grid" id="scDonutGrid">
@@ -372,24 +380,24 @@
         <div class="legend-item"><div class="legend-dot" style="background:#fb923c;border-top:2px dashed #fb923c;height:0"></div>Forecast</div>
       </div>
 
-      <div class="chart-wrap" style="height:300px;position:relative">
+      <div class="chart-wrap" style="height:280px;position:relative">
       <canvas id="scurveChart"></canvas>
       <div id="scStatsTile" style="
         position:absolute;top:10px;right:14px;
         background:rgba(15,17,23,0.82);border:1px solid rgba(59,130,246,0.35);
         border-radius:8px;padding:10px 14px;backdrop-filter:blur(4px);
-        display:grid;grid-template-columns:1fr 1fr;gap:4px 18px;
+        display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px 14px;
         font-size:11px;pointer-events:none;z-index:10;">
         <div style="color:#94a3b8">BL&nbsp;Plan</div>
         <div style="color:#94a3b8">Earned</div>
+        <div style="color:#94a3b8">Spent</div>
         <div id="tile-bl"     style="color:#3b82f6;font-size:16px;font-weight:700"></div>
         <div id="tile-earned" style="color:#22c55e;font-size:16px;font-weight:700"></div>
-        <div style="color:#94a3b8;margin-top:4px">Spent</div>
-        <div style="color:#94a3b8;margin-top:4px">Cum.&nbsp;PF</div>
         <div id="tile-spent"  style="color:#f59e0b;font-size:16px;font-weight:700"></div>
-        <div id="tile-pf"     style="font-size:16px;font-weight:700"></div>
+        <div id="tile-pf" style="display:none"></div>
       </div>
     </div>
+      <div id="scSubTable" style="margin-top:8px;overflow-x:auto;max-height:130px;overflow-y:auto"></div>
     </div>
 
     <div class="chart-card">
@@ -445,6 +453,7 @@
         <div class="legend-item"><div class="legend-dot" style="background:rgba(251,146,60,0.55)"></div>Forecast FTE</div>
       </div>
       <div class="chart-wrap" style="height:250px"><canvas id="fteChart"></canvas></div>
+      <div id="fteSubTable" style="margin-top:8px;overflow-x:auto;max-height:130px;overflow-y:auto"></div>
     </div>
   </div>
 
@@ -687,6 +696,7 @@
       <span class="filter-label" style="white-space:nowrap">Column filter:</span>
       <select id="pfColFilter" onchange="renderPFTable()" style="flex:0 0 auto;min-width:160px">
         <option value="">— none —</option>
+        <option value="pw_pf">Prev Wk PF</option>
         <option value="wk_earned">Wkly Earned Hrs</option>
         <option value="wk_spent">Wkly Spent Hrs</option>
         <option value="wk_pf">Wkly PF</option>
@@ -717,6 +727,7 @@
             <th data-pf-col="section">Section <span class="sort-icon">⇅</span></th>
             <th data-pf-col="wk_earned" style="text-align:right">Wkly Earned Hrs <span class="sort-icon">⇅</span></th>
             <th data-pf-col="wk_spent"  style="text-align:right">Wkly Spent Hrs <span class="sort-icon">⇅</span></th>
+            <th data-pf-col="pw_pf"     style="text-align:right">Prev Wk PF <span class="sort-icon">⇅</span></th>
             <th data-pf-col="wk_pf"     style="text-align:right">Wkly PF <span class="sort-icon">⇅</span></th>
             <th data-pf-col="budget_hrs" style="text-align:right">Budgeted Hrs <span class="sort-icon">⇅</span></th>
             <th data-pf-col="cum_earned" style="text-align:right">Cumu Earned Hrs <span class="sort-icon">⇅</span></th>
@@ -972,6 +983,14 @@ function updateStatsTile() {
     pfEl.textContent = '—';
     pfEl.style.color = '#94a3b8';
   }
+  const cpfEl = document.getElementById('kpi-cumu-pf');
+  if (cpfEl) {
+    cpfEl.textContent = s.cumu_pf != null ? s.cumu_pf.toFixed(3) : '—';
+    cpfEl.style.color = s.cumu_pf == null ? '#94a3b8' : s.cumu_pf >= 1 ? '#22c55e' : '#ef4444';
+    const subEl = document.getElementById('kpi-cumu-pf-sub');
+    if (subEl && scSection !== 'Overall') subEl.textContent = scSection + ' section';
+    else if (subEl) subEl.textContent = 'PD Earned ÷ all WHC Spent';
+  }
 
   // --- Top KPI cards ---
   const cpi = s.spent > 0 ? (s.earned / s.spent) : null;
@@ -1062,10 +1081,7 @@ const scChart = new Chart(scCtx, {
                   callback:function(val){ return this.getLabelForValue(val).slice(0,7); }} },
       y:{ position:'left', grid:{color:gridColor},
            min:0, max:100, ticks:{callback: v=>v+'%'} },
-      yPF:{ position:'right', display:true,
-             grid:{drawOnChartArea:false}, min:0, max:4,
-             ticks:{color:'#a78bfa', callback:v=>v.toFixed(1)},
-             title:{display:true, text:'PF', color:'#a78bfa', font:{size:10}} }
+
     }
   },
   plugins:[currentWeekPlugin]
@@ -1098,6 +1114,35 @@ function updateSCurve() {
   scChart.options.scales.y.max = pMax === 0 ? 1 : pMax;
   scChart.update('none');
   updateStatsTile();
+  renderSCSubTable(dMin, dMax);
+}
+
+function renderSCSubTable(lo, hi) {
+  const el = document.getElementById('scSubTable');
+  if (!el) return;
+  const src = getSCData();
+  const fmtD = iso => { const d = new Date(iso+'T00:00:00'); return (d.getMonth()+1)+'/'+d.getDate()+'/'+String(d.getFullYear()).slice(2); };
+  const fmt1 = v => v != null ? v.toFixed(1)+'%' : '—';
+  let rows = '';
+  for (let i = lo; i <= hi; i++) {
+    const isActive = (i === selectedWeekIdx);
+    const bg = isActive ? 'background:rgba(96,165,250,0.1);font-weight:600' : (i%2===0?'background:rgba(255,255,255,0.015)':'');
+    rows += `<tr style="${bg}">
+      <td style="padding:2px 8px;white-space:nowrap;color:${isActive?'#60a5fa':'var(--muted)'}">${fmtD(ALL_DATES[i])}</td>
+      <td style="padding:2px 8px;text-align:right;color:#3b82f6">${fmt1(src.bl[i])}</td>
+      <td style="padding:2px 8px;text-align:right;color:#22c55e">${i<=selectedWeekIdx?fmt1(src.earned[i]):'—'}</td>
+      <td style="padding:2px 8px;text-align:right;color:#ef4444">${i<=selectedWeekIdx?fmt1(src.spent[i]):'—'}</td>
+    </tr>`;
+  }
+  el.innerHTML = `<table style="width:100%;font-size:10px;border-collapse:collapse">
+    <thead><tr style="background:rgba(255,255,255,0.05);position:sticky;top:0">
+      <th style="padding:3px 8px;text-align:left;color:var(--muted);font-weight:600">Week</th>
+      <th style="padding:3px 8px;text-align:right;color:#3b82f6;font-weight:600">BL %</th>
+      <th style="padding:3px 8px;text-align:right;color:#22c55e;font-weight:600">Earned %</th>
+      <th style="padding:3px 8px;text-align:right;color:#ef4444;font-weight:600">Spent %</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
 }
 
 // ============================================================
@@ -1288,6 +1333,39 @@ function updateFTE() {
   paintSliderTrack('fteMin','fteMax','fteSliderTrack', lo, hi, ALL_DATES.length - 1);
   fteChart.update('none');
   _applyFTEActivityFilter();
+  renderFTESubTable();
+}
+
+function renderFTESubTable() {
+  const el = document.getElementById('fteSubTable');
+  if (!el) return;
+  const lo = +document.getElementById('fteMin').value;
+  const hi = +document.getElementById('fteMax').value;
+  const src = FTE[scSection] || FTE.Overall;
+  const fmtD = iso => { const d = new Date(iso+'T00:00:00'); return (d.getMonth()+1)+'/'+d.getDate()+'/'+String(d.getFullYear()).slice(2); };
+  const fmt1 = v => (v && v > 0) ? v.toFixed(1) : '—';
+  let rows = '';
+  for (let i = lo; i <= hi; i++) {
+    const isActive = (i === selectedWeekIdx);
+    const bg = isActive ? 'background:rgba(96,165,250,0.1);font-weight:600' : (i%2===0?'background:rgba(255,255,255,0.015)':'');
+    rows += `<tr style="${bg}">
+      <td style="padding:2px 8px;white-space:nowrap;color:${isActive?'#60a5fa':'var(--muted)'}">${fmtD(ALL_DATES[i])}</td>
+      <td style="padding:2px 8px;text-align:right;color:#60a5fa">${fmt1(src.bl[i])}</td>
+      <td style="padding:2px 8px;text-align:right;color:#ef4444">${i<=selectedWeekIdx?fmt1(src.spent[i]):'—'}</td>
+      <td style="padding:2px 8px;text-align:right;color:#22c55e">${i<=selectedWeekIdx?fmt1(src.earned[i]):'—'}</td>
+      <td style="padding:2px 8px;text-align:right;color:rgba(251,146,60,0.85)">${fmt1(src.fc[i])}</td>
+    </tr>`;
+  }
+  el.innerHTML = `<table style="width:100%;font-size:10px;border-collapse:collapse">
+    <thead><tr style="background:rgba(255,255,255,0.05);position:sticky;top:0">
+      <th style="padding:3px 8px;text-align:left;color:var(--muted);font-weight:600">Week</th>
+      <th style="padding:3px 8px;text-align:right;color:#60a5fa;font-weight:600">BL FTE</th>
+      <th style="padding:3px 8px;text-align:right;color:#ef4444;font-weight:600">Actual FTE</th>
+      <th style="padding:3px 8px;text-align:right;color:#22c55e;font-weight:600">Earned FTE</th>
+      <th style="padding:3px 8px;text-align:right;color:rgba(251,146,60,0.85);font-weight:600">FC FTE</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
 }
 updateFTE();
 
@@ -1642,8 +1720,14 @@ function showPage(name, btn) {
   document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.page-tab').forEach(b => b.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
+  // Sync both old in-page tabs and header tabs
+  ['hdrTab-dashboard','hdrTab-pf'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('active', id === 'hdrTab-' + name);
+  });
   btn.classList.add('active');
   document.getElementById('pfStickyBar').style.display = (name === 'pf') ? '' : 'none';
+  document.getElementById('dashStickyBar').style.display = (name === 'dashboard') ? '' : 'none';
 }
 
 // ============================================================
@@ -1884,6 +1968,7 @@ function _getPFRowStats(actName, idx) {
   const remHrs = Math.max(totBL - cumE, 0);
   return {
     wk_earned: wkE, wk_spent: wkS,
+    pw_pf:     null, // filled below
     wk_pf:     wkS > 0 ? wkE / wkS : null,
     budget_hrs: totBL,
     cum_earned: cumE, cum_spent: cumS,
@@ -1912,7 +1997,13 @@ function renderPFTable() {
   if (pfSection !== 'Overall') rows = rows.filter(r => r.section === pfSection);
 
   const idx = selectedWeekIdx;
-  rows = rows.map(a => ({ ...a, _s: _getPFRowStats(a.activity, idx) || {} }));
+  const prevIdx = idx > 0 ? idx - 1 : 0;
+  rows = rows.map(a => {
+    const s = _getPFRowStats(a.activity, idx) || {};
+    const sp = _getPFRowStats(a.activity, prevIdx) || {};
+    s.pw_pf = sp.wk_pf;
+    return { ...a, _s: s };
+  });
 
   // Apply column filter
   if (colF && !isNaN(colVal)) {
@@ -1927,7 +2018,7 @@ function renderPFTable() {
 
   const getSortVal = (a, col) => {
     const s = a._s;
-    if (['wk_earned','wk_spent','wk_pf','budget_hrs','cum_earned','cum_spent','cum_pf','rem_hours','rem_weeks','goal_pf'].includes(col))
+    if (['wk_earned','wk_spent','pw_pf','wk_pf','budget_hrs','cum_earned','cum_spent','cum_pf','rem_hours','rem_weeks','goal_pf'].includes(col))
       return s[col] ?? -Infinity;
     return a[col] ?? '';
   };
@@ -1950,6 +2041,22 @@ function renderPFTable() {
     const highlight = isGoal && v > 1.05 ? ';font-weight:700' : '';
     return `<span style="color:${color}${highlight}">${v.toFixed(3)}</span>`;
   };
+  const fmtPFRag = (v, prev, overall) => {
+    if (v == null) return '—';
+    const color = v >= 1 ? '#22c55e' : v >= 0.85 ? '#f59e0b' : '#ef4444';
+    // Arrow: compare to previous value (trend) and flag vs 1.0
+    let arrow = '';
+    if (prev != null) {
+      const diff = v - prev;
+      if (Math.abs(diff) >= 0.005) arrow = diff > 0
+        ? `<span style="color:#22c55e;font-size:9px;margin-left:3px">▲</span>`
+        : `<span style="color:#ef4444;font-size:9px;margin-left:3px">▼</span>`;
+    }
+    // Small dot indicator relative to 1.0 (overall job PF target)
+    const dot = overall != null
+      ? `<span style="font-size:7px;margin-left:2px;opacity:0.7">${overall>=1?'●':'○'}</span>` : '';
+    return `<span style="color:${color}">${v.toFixed(3)}${arrow}${dot}</span>`;
+  };
 
   const html = rows.map(a => {
     const s = a._s;
@@ -1965,18 +2072,19 @@ function renderPFTable() {
       <td>${a.section}</td>
       <td style="text-align:right">${fmt1(s.wk_earned)}</td>
       <td style="text-align:right">${fmt1(s.wk_spent)}</td>
-      <td style="text-align:right">${fmtPF(s.wk_pf, false, null)}</td>
+      <td style="text-align:right">${fmtPF(s.pw_pf, false, null)}</td>
+      <td style="text-align:right">${fmtPFRag(s.wk_pf, s.pw_pf, s.wk_pf)}</td>
       <td style="text-align:right">${fmt1(s.budget_hrs)}</td>
       <td style="text-align:right">${fmt1(s.cum_earned)}</td>
       <td style="text-align:right">${fmt1(s.cum_spent)}</td>
-      <td style="text-align:right">${fmtPF(s.cum_pf, false, null)}</td>
+      <td style="text-align:right">${fmtPFRag(s.cum_pf, s.pw_pf, s.cum_pf)}</td>
       <td style="text-align:right">${fmt1(s.rem_hours)}</td>
       <td style="text-align:right">${s.rem_weeks != null ? s.rem_weeks.toFixed(1) : '—'}</td>
       <td style="text-align:right">${fmtPF(s.goal_pf, true, s.cum_pf)}</td>
     </tr>`;
   }).join('');
   document.getElementById('pfTableBody').innerHTML = html ||
-    '<tr><td colspan="13" style="text-align:center;color:var(--muted);padding:20px">No results</td></tr>';
+    '<tr><td colspan="14" style="text-align:center;color:var(--muted);padding:20px">No results</td></tr>';
 }
 
 function initPFSort() {
