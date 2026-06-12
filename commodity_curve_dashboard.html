@@ -1826,12 +1826,12 @@ function updatePFTiles() {
     const fmt1 = v => v > 0 ? v.toFixed(1) : '—';
     return `<div style="flex:1;min-width:220px;background:linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px 14px;position:relative;overflow:hidden">
       <div style="position:absolute;top:0;left:0;width:3px;height:100%;background:${color}"></div>
-      <div style="font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">${label}</div>
+      <div style="font-size:11px;font-weight:700;color:${color};margin-bottom:7px;text-transform:uppercase;letter-spacing:.1em;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:5px">${label}</div>
       <div style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap">
         <div><div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:1px">CUMU PF</div>
           <div style="font-size:24px;font-weight:700;color:${pfColor};line-height:1">${s.cumPF != null ? s.cumPF.toFixed(3) : '—'}</div></div>
         <div><div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:1px">WK PF</div>
-          <div style="font-size:15px;font-weight:600;color:${color};line-height:1">${s.wkPF != null ? s.wkPF.toFixed(3) : '—'}</div></div>
+          <div style="font-size:24px;font-weight:700;color:${s.wkPF == null ? '#94a3b8' : s.wkPF >= 1 ? '#22c55e' : '#ef4444'};line-height:1">${s.wkPF != null ? s.wkPF.toFixed(3) : '—'}</div></div>
         <div><div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:1px">WK FTE</div>
           <div style="font-size:15px;font-weight:600;color:var(--text);line-height:1">${s.wkFTE.toFixed(1)}</div></div>
         <div><div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:1px">WK EARNED</div>
@@ -1943,8 +1943,9 @@ function renderPFTable() {
   document.getElementById('pfCount').textContent = `${rows.length} of ${ACTIVITIES.length}`;
 
   const fmt1 = v => v > 0 ? v.toFixed(1) : '—';
-  const fmtPF = (v, isGoal) => {
+  const fmtPF = (v, isGoal, cumPF) => {
     if (v == null) return '—';
+    if (isGoal && (cumPF == null || cumPF >= 1)) return '—';
     const color = v >= 1 ? '#22c55e' : v >= 0.85 ? '#f59e0b' : '#ef4444';
     const highlight = isGoal && v > 1.05 ? ';font-weight:700' : '';
     return `<span style="color:${color}${highlight}">${v.toFixed(3)}</span>`;
@@ -1964,14 +1965,14 @@ function renderPFTable() {
       <td>${a.section}</td>
       <td style="text-align:right">${fmt1(s.wk_earned)}</td>
       <td style="text-align:right">${fmt1(s.wk_spent)}</td>
-      <td style="text-align:right">${fmtPF(s.wk_pf, false)}</td>
+      <td style="text-align:right">${fmtPF(s.wk_pf, false, null)}</td>
       <td style="text-align:right">${fmt1(s.budget_hrs)}</td>
       <td style="text-align:right">${fmt1(s.cum_earned)}</td>
       <td style="text-align:right">${fmt1(s.cum_spent)}</td>
-      <td style="text-align:right">${fmtPF(s.cum_pf, false)}</td>
+      <td style="text-align:right">${fmtPF(s.cum_pf, false, null)}</td>
       <td style="text-align:right">${fmt1(s.rem_hours)}</td>
       <td style="text-align:right">${s.rem_weeks != null ? s.rem_weeks.toFixed(1) : '—'}</td>
-      <td style="text-align:right">${fmtPF(s.goal_pf, true)}</td>
+      <td style="text-align:right">${fmtPF(s.goal_pf, true, s.cum_pf)}</td>
     </tr>`;
   }).join('');
   document.getElementById('pfTableBody').innerHTML = html ||
