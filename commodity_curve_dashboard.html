@@ -230,6 +230,11 @@
   </div>
 </header>
 
+<!-- Sticky PF tiles — shown only when PF tab active -->
+<div id="pfStickyBar" style="display:none;position:sticky;top:56px;z-index:90;background:var(--bg);border-bottom:1px solid var(--border);padding:8px 20px">
+  <div id="pfStickyTiles" style="display:flex;gap:10px"></div>
+</div>
+
 <div class="container">
 
   <!-- Page tabs -->
@@ -624,8 +629,8 @@
     ⚠ Section view — Indirect &amp; Direct PF breakdown not available per section. Charts show combined Job Total PF for this section; Indirect/Direct tiles reflect project-wide values.
   </div>
 
-  <!-- PF Summary Tiles -->
-  <div id="pfSummaryTiles" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px"></div>
+  <!-- PF Summary Tiles (rendered in sticky bar) -->
+  <div id="pfSummaryTiles" style="display:none"></div>
 
   <!-- 3 PF Charts -->
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px">
@@ -658,8 +663,6 @@
   <!-- PF Table -->
   <div class="chart-card">
     <div class="chart-title">PF Activity Detail <span style="font-size:11px;color:var(--muted)">— Direct contributes earned+spent · Indirect contributes spent only · Sub excluded</span></div>
-    <!-- Tiles -->
-    <div id="pfTableTiles" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px"></div>
     <!-- Filters -->
     <div class="filters" style="margin-bottom:8px">
       <span class="filter-label">Section:</span>
@@ -692,6 +695,7 @@
         <option value="cum_pf">Cumu PF</option>
         <option value="rem_hours">Rem Hours</option>
         <option value="rem_weeks">Rem Weeks</option>
+        <option value="budget_hrs">Budgeted Hrs</option>
         <option value="goal_pf">Goal PF</option>
       </select>
       <select id="pfOpFilter" onchange="renderPFTable()" style="flex:0 0 auto;width:60px">
@@ -714,6 +718,7 @@
             <th data-pf-col="wk_earned" style="text-align:right">Wkly Earned Hrs <span class="sort-icon">⇅</span></th>
             <th data-pf-col="wk_spent"  style="text-align:right">Wkly Spent Hrs <span class="sort-icon">⇅</span></th>
             <th data-pf-col="wk_pf"     style="text-align:right">Wkly PF <span class="sort-icon">⇅</span></th>
+            <th data-pf-col="budget_hrs" style="text-align:right">Budgeted Hrs <span class="sort-icon">⇅</span></th>
             <th data-pf-col="cum_earned" style="text-align:right">Cumu Earned Hrs <span class="sort-icon">⇅</span></th>
             <th data-pf-col="cum_spent"  style="text-align:right">Cumu Spent Hrs <span class="sort-icon">⇅</span></th>
             <th data-pf-col="cum_pf"    style="text-align:right">Cumu PF <span class="sort-icon">⇅</span></th>
@@ -1638,6 +1643,7 @@ function showPage(name, btn) {
   document.querySelectorAll('.page-tab').forEach(b => b.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
   btn.classList.add('active');
+  document.getElementById('pfStickyBar').style.display = (name === 'pf') ? '' : 'none';
 }
 
 // ============================================================
@@ -1815,37 +1821,51 @@ function updatePFTiles() {
   const idx = selectedWeekIdx;
   const sect = pfSection === 'Overall' ? null : pfSection;
 
-  const _tile = (label, color, desc, cumuPF, wkPF, wkFTE) => {
-    const pfColor = cumuPF == null ? '#94a3b8' : cumuPF >= 1 ? '#22c55e' : cumuPF >= 0.85 ? '#f59e0b' : '#ef4444';
-    return `<div style="flex:1;min-width:200px;background:linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:14px 18px;position:relative;overflow:hidden">
+  const _tile = (label, color, desc, s) => {
+    const pfColor = s.cumPF == null ? '#94a3b8' : s.cumPF >= 1 ? '#22c55e' : s.cumPF >= 0.85 ? '#f59e0b' : '#ef4444';
+    const fmt1 = v => v > 0 ? v.toFixed(1) : '—';
+    return `<div style="flex:1;min-width:220px;background:linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px 14px;position:relative;overflow:hidden">
       <div style="position:absolute;top:0;left:0;width:3px;height:100%;background:${color}"></div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">${label}</div>
-      <div style="display:flex;gap:20px;align-items:flex-end;flex-wrap:wrap">
-        <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">CUMU PF</div>
-          <div style="font-size:30px;font-weight:700;color:${pfColor};line-height:1">${cumuPF != null ? cumuPF.toFixed(3) : '—'}</div></div>
-        <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">WEEKLY PF</div>
-          <div style="font-size:18px;font-weight:600;color:${color};line-height:1">${wkPF != null ? wkPF.toFixed(3) : '—'}</div></div>
-        <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">WK FTE</div>
-          <div style="font-size:18px;font-weight:600;color:var(--text);line-height:1">${wkFTE.toFixed(1)}</div></div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">${label}</div>
+      <div style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap">
+        <div><div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:1px">CUMU PF</div>
+          <div style="font-size:24px;font-weight:700;color:${pfColor};line-height:1">${s.cumPF != null ? s.cumPF.toFixed(3) : '—'}</div></div>
+        <div><div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:1px">WK PF</div>
+          <div style="font-size:15px;font-weight:600;color:${color};line-height:1">${s.wkPF != null ? s.wkPF.toFixed(3) : '—'}</div></div>
+        <div><div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:1px">WK FTE</div>
+          <div style="font-size:15px;font-weight:600;color:var(--text);line-height:1">${s.wkFTE.toFixed(1)}</div></div>
+        <div><div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:1px">WK EARNED</div>
+          <div style="font-size:15px;font-weight:600;color:#22c55e;line-height:1">${fmt1(s.wkEarned)}</div></div>
+        <div><div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:1px">WK SPENT</div>
+          <div style="font-size:15px;font-weight:600;color:#ef4444;line-height:1">${fmt1(s.wkSpent)}</div></div>
       </div>
-      <div style="font-size:10px;color:var(--muted);margin-top:6px">${desc}</div>
     </div>`;
   };
 
-  const np  = _pfCatStats('NP-WHC', pfSection, idx);
-  const pd  = _pfCatStats('PD-WHC', pfSection, idx);
-  const tot = _pfCatStats(null,     pfSection, idx);
+  // Enrich _pfCatStats with wkEarned/wkSpent
+  const _statsFull = (cat, sect) => {
+    const base = _pfCatStats(cat, sect, idx);
+    let wkE = 0, wkS = 0;
+    ACTIVITIES.forEach(a => {
+      if (cat && a.category !== cat) return;
+      if (sect && sect !== 'Overall' && a.section !== sect) return;
+      const fte = FTE_BY_ACTIVITY.activities[a.activity];
+      if (!fte) return;
+      wkE += (fte.earned[idx]||0) * 60;
+      wkS += (fte.spent[idx] ||0) * 60;
+    });
+    return { ...base, wkEarned: wkE, wkSpent: wkS };
+  };
 
-  document.getElementById('pfSummaryTiles').innerHTML =
-    _tile('Non-Productive (NP-WHC)', '#a78bfa',
-      'Indirect — contributes to spent only' + (pfSection !== 'Overall' ? ' · ' + pfSection : ''),
-      np.cumPF, np.wkPF, np.wkFTE) +
-    _tile('Productive (PD-WHC)', '#22c55e',
-      'Direct — earned ÷ spent' + (pfSection !== 'Overall' ? ' · ' + pfSection : ''),
-      pd.cumPF, pd.wkPF, pd.wkFTE) +
-    _tile('Total', '#fb923c',
-      'All WHC — PD earned ÷ all WHC spent' + (pfSection !== 'Overall' ? ' · ' + pfSection : ''),
-      tot.cumPF, tot.wkPF, tot.wkFTE);
+  const np  = _statsFull('NP-WHC', pfSection);
+  const pd  = _statsFull('PD-WHC', pfSection);
+  const tot = _statsFull(null,     pfSection);
+
+  const html =
+    _tile('Non-Productive (NP-WHC)', '#a78bfa', '', np) +
+    _tile('Productive (PD-WHC)', '#22c55e', '', pd) +
+    _tile('Total', '#fb923c', '', tot);
+  document.getElementById('pfStickyTiles').innerHTML = html;
 }
 
 // PF Table
@@ -1865,6 +1885,7 @@ function _getPFRowStats(actName, idx) {
   return {
     wk_earned: wkE, wk_spent: wkS,
     wk_pf:     wkS > 0 ? wkE / wkS : null,
+    budget_hrs: totBL,
     cum_earned: cumE, cum_spent: cumS,
     cum_pf:    cumS > 0 ? cumE / cumS : null,
     rem_hours: remHrs,
@@ -1873,27 +1894,7 @@ function _getPFRowStats(actName, idx) {
   };
 }
 
-function updatePFTableTiles() {
-  const pd = ACTIVITIES.filter(a => a.category === 'PD-WHC');
-  const np = ACTIVITIES.filter(a => a.category === 'NP-WHC');
-  const sub= ACTIVITIES.filter(a => a.category === 'PD-SUB');
-  const avg = (arr, key) => arr.length ? (arr.reduce((s,r)=>(s+(r[key]||0)),0)/arr.length) : 0;
-  const tiles = [
-    { label:'Direct (PD-WHC)', color:'#22c55e', count:pd.length, avgEa: avg(pd,'ea_pct'), avgBl: avg(pd,'bl_pct'), desc:'Contributes earned + spent to PF' },
-    { label:'Indirect (NP-WHC)', color:'#a78bfa', count:np.length, avgEa: avg(np,'ea_pct'), avgBl: avg(np,'bl_pct'), desc:'Contributes spent only' },
-    { label:'Sub (Excluded)', color:'#94a3b8', count:sub.length, avgEa: avg(sub,'ea_pct'), avgBl: avg(sub,'bl_pct'), desc:'Excluded from PF calculation' },
-  ];
-  document.getElementById('pfTableTiles').innerHTML = tiles.map(t => `
-    <div style="flex:1;min-width:180px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:12px 16px;border-left:3px solid ${t.color}">
-      <div style="font-size:11px;color:${t.color};font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">${t.label}</div>
-      <div style="display:flex;gap:20px">
-        <div><div style="font-size:9px;color:var(--muted);margin-bottom:1px">ACTIVITIES</div><div style="font-size:22px;font-weight:700;color:var(--text)">${t.count}</div></div>
-        <div><div style="font-size:9px;color:var(--muted);margin-bottom:1px">AVG BL%</div><div style="font-size:16px;font-weight:600;color:#3b82f6">${t.avgBl.toFixed(1)}%</div></div>
-        <div><div style="font-size:9px;color:var(--muted);margin-bottom:1px">AVG EARNED%</div><div style="font-size:16px;font-weight:600;color:#22c55e">${t.avgEa.toFixed(1)}%</div></div>
-      </div>
-      <div style="font-size:10px;color:var(--muted);margin-top:6px">${t.desc}</div>
-    </div>`).join('');
-}
+function updatePFTableTiles() { /* removed — tiles now in sticky header */ }
 
 function renderPFTable() {
   const sec    = document.getElementById('pfSectionFilter').value;
@@ -1926,7 +1927,7 @@ function renderPFTable() {
 
   const getSortVal = (a, col) => {
     const s = a._s;
-    if (['wk_earned','wk_spent','wk_pf','cum_earned','cum_spent','cum_pf','rem_hours','rem_weeks','goal_pf'].includes(col))
+    if (['wk_earned','wk_spent','wk_pf','budget_hrs','cum_earned','cum_spent','cum_pf','rem_hours','rem_weeks','goal_pf'].includes(col))
       return s[col] ?? -Infinity;
     return a[col] ?? '';
   };
@@ -1955,13 +1956,16 @@ function renderPFTable() {
     if (a.category==='PD-WHC') catBadge = `<span class="cat-badge cat-PD">Direct</span>`;
     else if (a.category==='NP-WHC') catBadge = `<span class="cat-badge cat-NP">Indirect</span>`;
     else catBadge = `<span class="cat-badge cat-PS">Sub</span>`;
-    return `<tr>
-      <td>${a.activity}</td>
+    const isActive = (s.wk_earned > 0 || s.wk_spent > 0);
+    const rowStyle = isActive ? ' style="background:rgba(96,165,250,0.07);border-left:2px solid #60a5fa"' : '';
+    return `<tr${rowStyle}>
+      <td>${a.activity}${isActive ? ' <span style="font-size:9px;background:rgba(96,165,250,0.2);color:#60a5fa;padding:1px 5px;border-radius:3px;vertical-align:middle">ACTIVE</span>' : ''}</td>
       <td>${catBadge}</td>
       <td>${a.section}</td>
       <td style="text-align:right">${fmt1(s.wk_earned)}</td>
       <td style="text-align:right">${fmt1(s.wk_spent)}</td>
       <td style="text-align:right">${fmtPF(s.wk_pf, false)}</td>
+      <td style="text-align:right">${fmt1(s.budget_hrs)}</td>
       <td style="text-align:right">${fmt1(s.cum_earned)}</td>
       <td style="text-align:right">${fmt1(s.cum_spent)}</td>
       <td style="text-align:right">${fmtPF(s.cum_pf, false)}</td>
@@ -1971,7 +1975,7 @@ function renderPFTable() {
     </tr>`;
   }).join('');
   document.getElementById('pfTableBody').innerHTML = html ||
-    '<tr><td colspan="12" style="text-align:center;color:var(--muted);padding:20px">No results</td></tr>';
+    '<tr><td colspan="13" style="text-align:center;color:var(--muted);padding:20px">No results</td></tr>';
 }
 
 function initPFSort() {
