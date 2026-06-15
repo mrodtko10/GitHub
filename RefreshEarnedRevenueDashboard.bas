@@ -15,9 +15,13 @@ Option Explicit
 '      Developer > Macros > RefreshEarnedRevenueDashboard.
 '
 ' HOW IT WORKS:
-'   - The HTML file path is read from the Charts sheet, cell B4.
-'     Update B4 if you move the dashboard file.
-'   - If B4 is empty or the file is missing you will be prompted to browse.
+'   - Charts sheet cell B2 = dashboard file name  (e.g. Earned_Revenue_Dashboard 20260614.html)
+'   - Charts sheet cell B4 = full file path       (e.g. C:\Users\...\Earned_Revenue_Dashboard 20260614.html)
+'   - The macro reads B4 as the primary path. If B4 holds only a folder it
+'     will append the filename from B2 automatically.
+'   - Update B4 (and B2 if the filename changes) whenever you move the file.
+'   - If the path is wrong or missing you will be prompted to browse; B4 is
+'     updated automatically so the next run works without a prompt.
 '   - Column mapping on the Dashboard sheet (row 4 = headers, row 5+ = data):
 '       A  Project Number     D  Total Contract Value
 '       B  Client             E  Earned to Date
@@ -30,8 +34,9 @@ Public Sub RefreshEarnedRevenueDashboard()
 
     Const DATA_SHEET    As String = "Dashboard"
     Const CHARTS_SHEET  As String = "Charts"
-    Const PATH_ROW      As Long   = 4    ' Row in Charts sheet that holds the file path
-    Const PATH_COL      As Long   = 2    ' Column B
+    Const FNAME_ROW     As Long   = 2    ' B2 = dashboard file name
+    Const PATH_ROW      As Long   = 4    ' B4 = full file path
+    Const PATH_COL      As Long   = 2    ' Column B (both cells)
     Const HEADER_ROW    As Long   = 4    ' Row 4 = column headers on Dashboard sheet
     Const DATA_ROW      As Long   = 5    ' First data row
     Const FIRST_MO_COL  As Long   = 10   ' Column J  = Jan 2026
@@ -56,10 +61,21 @@ Public Sub RefreshEarnedRevenueDashboard()
     End If
 
     '--- Locate HTML dashboard file ------------------------------------------
-    Dim htmlPath As String
-    htmlPath = Trim(CStr(wsCharts.Cells(PATH_ROW, PATH_COL).Value))
+    '    B2 = file name,  B4 = full path
+    Dim htmlFileName As String
+    Dim htmlPath     As String
+    htmlFileName = Trim(CStr(wsCharts.Cells(FNAME_ROW, PATH_COL).Value))  ' B2
+    htmlPath     = Trim(CStr(wsCharts.Cells(PATH_ROW,  PATH_COL).Value))  ' B4
+
+    ' If B4 looks like a folder (no .html extension), combine with B2 filename
+    If htmlPath <> "" And LCase(Right(htmlPath, 5)) <> ".html" Then
+        If Right(htmlPath, 1) <> "\" Then htmlPath = htmlPath & "\"
+        htmlPath = htmlPath & htmlFileName
+    End If
 
     If htmlPath = "" Then
+        MsgBox "Dashboard path not found in Charts sheet cell B4." & vbCrLf & _
+               "Please browse to the HTML file.", vbExclamation, "Path Missing"
         htmlPath = Application.GetOpenFilename( _
             "HTML Files (*.html),*.html", , _
             "Locate the Earned Revenue Dashboard HTML file")
@@ -69,12 +85,16 @@ Public Sub RefreshEarnedRevenueDashboard()
 
     If Dir(htmlPath) = "" Then
         MsgBox "HTML file not found at:" & vbCrLf & htmlPath & vbCrLf & vbCrLf & _
-               "Please browse to the correct file.", vbExclamation, "File Not Found"
+               "Please browse to the correct file." & vbCrLf & _
+               "(Tip: update B4 on the Charts sheet to avoid this prompt)", _
+               vbExclamation, "File Not Found"
         htmlPath = Application.GetOpenFilename( _
             "HTML Files (*.html),*.html", , _
             "Locate the Earned Revenue Dashboard HTML file")
         If CStr(htmlPath) = "False" Then Exit Sub
-        wsCharts.Cells(PATH_ROW, PATH_COL).Value = htmlPath
+        ' Update both B2 (filename) and B4 (full path)
+        wsCharts.Cells(PATH_ROW,  PATH_COL).Value = htmlPath
+        wsCharts.Cells(FNAME_ROW, PATH_COL).Value = Mid(htmlPath, InStrRev(htmlPath, "\") + 1)
     End If
 
     '--- Build months JSON ---------------------------------------------------
