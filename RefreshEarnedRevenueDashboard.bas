@@ -302,31 +302,41 @@ Private Function GetHtmlPath() As String
         Exit Function
     End If
 
-    ' 2. Charts sheet cell B4 (full path)
-    Dim chartsWs As Worksheet
+    ' 2. Check B4 on Dashboard sheet, then Charts sheet
+    Dim sheetNames(1) As String
+    sheetNames(0) = "Dashboard"
+    sheetNames(1) = "Charts"
+
     Dim p As String
-    On Error Resume Next
-    Set chartsWs = ThisWorkbook.Sheets("Charts")
-    On Error GoTo 0
-
-    If Not chartsWs Is Nothing Then
+    Dim fName As String
+    Dim si As Long
+    For si = 0 To 1
+        Dim checkWs As Worksheet
+        Set checkWs = Nothing
         On Error Resume Next
-        p = Trim(CStr(chartsWs.Cells(4, 2).Value))   ' B4
+        Set checkWs = ThisWorkbook.Sheets(sheetNames(si))
         On Error GoTo 0
-        If p <> "" And p <> "0" And LCase(Right(p, 5)) = ".html" Then
-            GetHtmlPath = p
-            Exit Function
+        If Not checkWs Is Nothing Then
+            On Error Resume Next
+            p = Trim(CStr(checkWs.Cells(4, 2).Value))   ' B4 = full path
+            On Error GoTo 0
+            If p <> "" And p <> "0" And LCase(Right(p, 5)) = ".html" Then
+                GetHtmlPath = p
+                Exit Function
+            End If
+            ' Also grab B2 filename as fallback
+            If fName = "" Then
+                On Error Resume Next
+                fName = Trim(CStr(checkWs.Cells(2, 2).Value))   ' B2 = filename
+                On Error GoTo 0
+            End If
         End If
+    Next si
 
-        ' 3. Workbook folder + filename from Charts!B2
-        Dim fName As String
-        On Error Resume Next
-        fName = Trim(CStr(chartsWs.Cells(2, 2).Value))   ' B2
-        On Error GoTo 0
-        If fName <> "" And ThisWorkbook.Path <> "" Then
-            GetHtmlPath = ThisWorkbook.Path & "\" & fName
-            Exit Function
-        End If
+    ' 3. Workbook folder + filename from B2
+    If fName <> "" And ThisWorkbook.Path <> "" Then
+        GetHtmlPath = ThisWorkbook.Path & "\" & fName
+        Exit Function
     End If
 
     ' 4. Last resort: workbook folder + default name
