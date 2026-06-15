@@ -1,126 +1,100 @@
-Attribute VB_Name = "RefreshEarnedRevenueDashboard"
+Attribute VB_Name = "EarnedRevenueDashboard"
 Option Explicit
 
-'=============================================================================
-' RefreshEarnedRevenueDashboard
-'
-' Reads project data from the "Dashboard" sheet and regenerates the const ER
-' data block inside Earned_Revenue_Dashboard_<date>.html.
-'
-' HOW TO INSTALL:
-'   1. In Excel, press Alt+F11 to open the VBA editor.
-'   2. In the Project pane right-click the workbook > Import File > select
-'      this .bas file.  (Or paste the code into a new Module.)
-'   3. Assign the macro to a button on the Charts sheet, or run it via
-'      Developer > Macros > RefreshEarnedRevenueDashboard.
-'
-' HOW IT WORKS:
-'   - Charts sheet cell B2 = dashboard file name  (e.g. Earned_Revenue_Dashboard 20260614.html)
-'   - Charts sheet cell B4 = full file path       (e.g. C:\Users\...\Earned_Revenue_Dashboard 20260614.html)
-'   - The macro reads B4 as the primary path. If B4 holds only a folder it
-'     will append the filename from B2 automatically.
-'   - Update B4 (and B2 if the filename changes) whenever you move the file.
-'   - If the path is wrong or missing you will be prompted to browse; B4 is
-'     updated automatically so the next run works without a prompt.
-'   - Column mapping on the Dashboard sheet (row 4 = headers, row 5+ = data):
-'       A  Project Number     D  Total Contract Value
-'       B  Client             E  Earned to Date
-'       C  Status             F  Backlog
-'       J  Jan 2026 (idx 0)  … through …  BE  Dec 2029 (idx 47)
-'   - Actuals = Jan-Apr 2026 (indices 0-3); all other months = Forecast.
-'=============================================================================
+' ============================================================
+' PASTE YOUR DASHBOARD FILE PATH HERE (include the filename):
+'   Example: "C:\Users\You\Downloads\Earned_Revenue_Dashboard 20260614.html"
+' Leave it as "" to auto-detect from Charts sheet cell B4.
+' ============================================================
+Private Const HTML_PATH_OVERRIDE As String = ""
 
-Public Sub RefreshEarnedRevenueDashboard()
+' ============================================================
+' TWO MACROS TO ASSIGN TO BUTTONS:
+'
+'   RefreshEarnedRevenueDashboard  -> "Refresh & Open Dashboard" button
+'        Reads the "Dashboard" sheet and rewrites the HTML
+'        const ER = {...} block with the latest project data,
+'        then opens the file in your default browser.
+'
+'   OpenEarnedRevenueDashboard     -> optional "Open" button
+'        Opens the HTML file in your default browser only.
+'
+' Path priority:
+'   1. HTML_PATH_OVERRIDE constant above (if set)
+'   2. Charts sheet cell B4
+'   3. Charts sheet cell B2 (filename) appended to workbook folder
+' ============================================================
 
-    Const DATA_SHEET    As String = "Dashboard"
-    Const CHARTS_SHEET  As String = "Charts"
-    Const FNAME_ROW     As Long   = 2    ' row 2 = dashboard file name
-    Const PATH_ROW      As Long   = 4    ' row 4 = full file path
-    Const PATH_COL      As Long   = 2    ' fallback column B if dynamic search fails
-    Const HEADER_ROW    As Long   = 4    ' Row 4 = column headers on Dashboard sheet
-    Const DATA_ROW      As Long   = 5    ' First data row
-    Const FIRST_MO_COL  As Long   = 10   ' Column J  = Jan 2026
-    Const NUM_MONTHS    As Long   = 48   ' Jan 2026 – Dec 2029
-    Const ACTUAL_MOS    As Long   = 4    ' Jan – Apr 2026 are Actual
+' ── REFRESH THEN OPEN (assign this to the "Refresh & Open Dashboard" button) ─
+Sub RefreshAndOpenEarnedRevenueDashboard()
+    RefreshEarnedRevenueDashboard
+    OpenEarnedRevenueDashboard
+End Sub
 
-    '--- Worksheet references ------------------------------------------------
+' ── REFRESH ONLY ─────────────────────────────────────────────────────────────
+Sub RefreshEarnedRevenueDashboard()
+
     Dim wsData   As Worksheet
-    Dim wsCharts As Worksheet
-    On Error Resume Next
-    Set wsData   = ThisWorkbook.Sheets(DATA_SHEET)
-    Set wsCharts = ThisWorkbook.Sheets(CHARTS_SHEET)
-    On Error GoTo 0
+    Dim htmlPath As String
+    Dim html     As String
 
+    ' ── Resolve HTML path ────────────────────────────────────────────────────
+    htmlPath = GetHtmlPath()
+    If htmlPath = "" Then
+        MsgBox "No HTML path found." & vbCrLf & vbCrLf & _
+               "Paste the full path to the dashboard HTML file" & vbCrLf & _
+               "into cell B4 on the Charts sheet.", _
+               vbExclamation, "Path Not Set"
+        Exit Sub
+    End If
+
+    ' ── Safety checks ────────────────────────────────────────────────────────
+    If LCase(Right(Trim(htmlPath), 5)) <> ".html" And _
+       LCase(Right(Trim(htmlPath), 4)) <> ".htm" Then
+        MsgBox "SAFETY STOP – path does not end in .html:" & vbCrLf & htmlPath & vbCrLf & vbCrLf & _
+               "Check that cell B4 on the Charts sheet contains the HTML file path.", _
+               vbCritical, "Wrong File Type"
+        Exit Sub
+    End If
+
+    If LCase(Trim(htmlPath)) = LCase(ThisWorkbook.FullName) Then
+        MsgBox "SAFETY STOP – path points to this workbook!" & vbCrLf & _
+               "Update cell B4 on the Charts sheet with the path to the HTML dashboard.", _
+               vbCritical, "Wrong File"
+        Exit Sub
+    End If
+
+    If Dir(htmlPath) = "" Then
+        MsgBox "HTML file not found at:" & vbCrLf & htmlPath & vbCrLf & vbCrLf & _
+               "Update cell B4 on the Charts sheet with the correct path.", _
+               vbCritical, "File Not Found"
+        Exit Sub
+    End If
+
+    ' ── Find Dashboard sheet ─────────────────────────────────────────────────
+    Set wsData = Nothing
+    Dim ws As Worksheet
+    For Each ws In ThisWorkbook.Sheets
+        If LCase(ws.Name) = "dashboard" Then
+            Set wsData = ws
+            Exit For
+        End If
+    Next ws
     If wsData Is Nothing Then
-        MsgBox "Sheet """ & DATA_SHEET & """ not found.", vbCritical, "Refresh Error"
-        Exit Sub
-    End If
-    If wsCharts Is Nothing Then
-        MsgBox "Sheet """ & CHARTS_SHEET & """ not found.", vbCritical, "Refresh Error"
+        MsgBox "Could not find the 'Dashboard' sheet.", vbCritical
         Exit Sub
     End If
 
-    '--- Locate HTML dashboard file ------------------------------------------
-    '    The path is searched dynamically: scan rows 2 and 4 of the Charts
-    '    sheet across all columns for a cell value that ends in ".html".
-    '    This is robust to merged cells and varying column positions.
-    '    Fallback: look for the cell adjacent to a label containing "path".
-    Dim htmlFileName As String
-    Dim htmlPath     As String
-    Dim pathCell     As Range
+    wsData.Calculate
 
-    ' 1) Scan row 4 (Dashboard Path row) for a .html value
-    Set pathCell = FindHtmlCell(wsCharts, FNAME_ROW, PATH_ROW)
-
-    If Not pathCell Is Nothing Then
-        htmlPath = Trim(CStr(pathCell.Value))
-    End If
-
-    ' 2) If still empty or just a filename, also check row 2 for a full path
-    If LCase(Right(htmlPath, 5)) <> ".html" Or InStr(htmlPath, "\") = 0 Then
-        Dim fnCell As Range
-        Set fnCell = FindHtmlCell(wsCharts, FNAME_ROW, FNAME_ROW)
-        If Not fnCell Is Nothing Then
-            htmlFileName = Trim(CStr(fnCell.Value))
-        End If
-        ' If row 4 value is a folder, append filename from row 2
-        If htmlPath <> "" And LCase(Right(htmlPath, 5)) <> ".html" Then
-            If Right(htmlPath, 1) <> "\" Then htmlPath = htmlPath & "\"
-            htmlPath = htmlPath & htmlFileName
-        ElseIf htmlPath = "" Then
-            htmlPath = htmlFileName  ' may still be just a name, browse will handle it
-        End If
-    End If
-
-    If htmlPath = "" Or Dir(htmlPath) = "" Then
-        Dim msg As String
-        If htmlPath = "" Then
-            msg = "Dashboard path not found on the Charts sheet (rows 2 or 4)." & vbCrLf & _
-                  "Please browse to the HTML file."
-        Else
-            msg = "HTML file not found at:" & vbCrLf & htmlPath & vbCrLf & vbCrLf & _
-                  "Please browse to the correct file." & vbCrLf & _
-                  "(After browsing, the path in row 4 will be updated automatically.)"
-        End If
-        MsgBox msg, vbExclamation, "File Not Found"
-        htmlPath = Application.GetOpenFilename( _
-            "HTML Files (*.html),*.html", , _
-            "Locate the Earned Revenue Dashboard HTML file")
-        If CStr(htmlPath) = "False" Then Exit Sub
-        ' Write the resolved path back into the cell the macro found (or B4 if none found)
-        If Not pathCell Is Nothing Then
-            pathCell.Value = htmlPath
-        Else
-            wsCharts.Cells(PATH_ROW, PATH_COL).Value = htmlPath
-        End If
-    End If
-
-    '--- Build months JSON ---------------------------------------------------
+    ' ── Build months JSON array ───────────────────────────────────────────────
+    ' 48 months: Jan 2026 (col J=10) through Dec 2029 (col BE=57)
+    ' Actuals = Jan-Apr 2026 (indices 0-3); remainder = Forecast
     Dim monthAbbr(11) As String
-    monthAbbr(0)  = "Jan": monthAbbr(1)  = "Feb": monthAbbr(2)  = "Mar"
-    monthAbbr(3)  = "Apr": monthAbbr(4)  = "May": monthAbbr(5)  = "Jun"
-    monthAbbr(6)  = "Jul": monthAbbr(7)  = "Aug": monthAbbr(8)  = "Sep"
-    monthAbbr(9)  = "Oct": monthAbbr(10) = "Nov": monthAbbr(11) = "Dec"
+    monthAbbr(0) = "Jan": monthAbbr(1) = "Feb": monthAbbr(2)  = "Mar"
+    monthAbbr(3) = "Apr": monthAbbr(4) = "May": monthAbbr(5)  = "Jun"
+    monthAbbr(6) = "Jul": monthAbbr(7) = "Aug": monthAbbr(8)  = "Sep"
+    monthAbbr(9) = "Oct": monthAbbr(10) = "Nov": monthAbbr(11) = "Dec"
 
     Dim monthsJSON As String
     Dim mi As Long, yr As Long, mo As Long
@@ -130,241 +104,257 @@ Public Sub RefreshEarnedRevenueDashboard()
         For mo = 0 To 11
             If mi > 0 Then monthsJSON = monthsJSON & ","
             monthsJSON = monthsJSON & _
-                "{""label"":""" & monthAbbr(mo) & " " & CStr(yr) & """" & _
-                ",""type"":""" & IIf(mi < ACTUAL_MOS, "Actual", "Forecast") & """}"
+                "{" & Q("label") & ":" & Q(monthAbbr(mo) & " " & CStr(yr)) & _
+                "," & Q("type")  & ":" & Q(IIf(mi < 4, "Actual", "Forecast")) & "}"
             mi = mi + 1
         Next mo
     Next yr
     monthsJSON = monthsJSON & "]"
 
-    '--- Build projects JSON -------------------------------------------------
+    ' ── Build projects JSON array ─────────────────────────────────────────────
+    ' Dashboard sheet column mapping (row 4 = headers, row 5+ = data):
+    '   A(1)  Project Number    D(4)  Total Contract Value
+    '   B(2)  Client            E(5)  Earned to Date
+    '   C(3)  Status            F(6)  Backlog
+    '   J(10) Jan 2026 (idx 0) … BE(57) Dec 2029 (idx 47)
+
     Dim projectsJSON As String
-    projectsJSON = "["
-    Dim firstProj As Boolean
-    firstProj = True
+    Dim firstRec As Boolean
     Dim projCount As Long
+    projectsJSON = "["
+    firstRec = True
     projCount = 0
 
     Dim lastRow As Long
     lastRow = wsData.Cells(wsData.Rows.Count, 1).End(xlUp).Row
 
     Dim r As Long
-    For r = DATA_ROW To lastRow
+    For r = 5 To lastRow
 
         Dim projCode As String
         projCode = Trim(CStr(wsData.Cells(r, 1).Value))
-        If projCode = "" Then GoTo NextRow
+        If projCode = "" Or projCode = "Project" Then GoTo SkipRow
+
+        Dim projStatus As String
+        projStatus = Trim(CStr(wsData.Cells(r, 3).Value))
+        If projStatus <> "Secured" And projStatus <> "Anticipated" Then GoTo SkipRow
 
         Dim clientName As String
         clientName = Trim(CStr(wsData.Cells(r, 2).Value))
 
-        Dim projStatus As String
-        projStatus = Trim(CStr(wsData.Cells(r, 3).Value))
-        If projStatus <> "Secured" And projStatus <> "Anticipated" Then GoTo NextRow
-
         Dim tcv        As Double
         Dim earnedTD   As Double
         Dim backlogAmt As Double
-        tcv       = SafeDouble(wsData.Cells(r, 4).Value)
-        earnedTD  = SafeDouble(wsData.Cells(r, 5).Value)
-        backlogAmt = SafeDouble(wsData.Cells(r, 6).Value)
+        tcv        = N(wsData.Cells(r, 4))
+        earnedTD   = N(wsData.Cells(r, 5))
+        backlogAmt = N(wsData.Cells(r, 6))
 
-        '--- 48 monthly values (columns J through BE) -----------------------
+        ' Read 48 monthly values (columns J=10 through BE=57)
         Dim monthly(47) As Double
         Dim i As Long
-        For i = 0 To NUM_MONTHS - 1
-            monthly(i) = SafeDouble(wsData.Cells(r, FIRST_MO_COL + i).Value)
+        For i = 0 To 47
+            monthly(i) = N(wsData.Cells(r, 10 + i))
         Next i
 
-        '--- startIdx / endIdx: first and last non-zero forecast month -------
+        ' startIdx / endIdx: first and last non-zero value in forecast range (idx 4+)
         Dim startIdx As Long, endIdx As Long, hasRange As Boolean
         startIdx = -1: endIdx = -1: hasRange = False
-        For i = ACTUAL_MOS To NUM_MONTHS - 1
+        For i = 4 To 47
             If monthly(i) <> 0 Then
                 If Not hasRange Then startIdx = i: hasRange = True
                 endIdx = i
             End If
         Next i
 
-        '--- Monthly array JSON ---------------------------------------------
+        ' Monthly array JSON
         Dim monthlyArr As String
         monthlyArr = "["
-        For i = 0 To NUM_MONTHS - 1
+        For i = 0 To 47
             If i > 0 Then monthlyArr = monthlyArr & ","
-            monthlyArr = monthlyArr & DblToJson(monthly(i))
+            monthlyArr = monthlyArr & J(monthly(i))
         Next i
         monthlyArr = monthlyArr & "]"
 
-        '--- Assemble project object ----------------------------------------
-        Dim startIdxStr As String, endIdxStr As String
-        startIdxStr = IIf(hasRange, CStr(startIdx), "null")
-        endIdxStr   = IIf(hasRange, CStr(endIdx),   "null")
+        ' Assemble project record
+        Dim rec As String
+        rec = "{"
+        rec = rec & Q("code")     & ":" & Q(EscJ(projCode))    & ","
+        rec = rec & Q("client")   & ":" & Q(EscJ(clientName))  & ","
+        rec = rec & Q("status")   & ":" & Q(EscJ(projStatus))  & ","
+        rec = rec & Q("tcv")      & ":" & J(tcv)               & ","
+        rec = rec & Q("earned")   & ":" & J(earnedTD)          & ","
+        rec = rec & Q("backlog")  & ":" & J(backlogAmt)        & ","
+        rec = rec & Q("startIdx") & ":" & IIf(hasRange, CStr(startIdx), "null") & ","
+        rec = rec & Q("endIdx")   & ":" & IIf(hasRange, CStr(endIdx),   "null") & ","
+        rec = rec & Q("monthly")  & ":" & monthlyArr
+        rec = rec & "}"
 
-        Dim projJSON As String
-        projJSON = "{""code"":""" & EscJson(projCode) & """" & _
-                   ",""client"":""" & EscJson(clientName) & """" & _
-                   ",""status"":""" & EscJson(projStatus) & """" & _
-                   ",""tcv"":" & DblToJson(tcv) & _
-                   ",""earned"":" & DblToJson(earnedTD) & _
-                   ",""backlog"":" & DblToJson(backlogAmt) & _
-                   ",""startIdx"":" & startIdxStr & _
-                   ",""endIdx"":" & endIdxStr & _
-                   ",""monthly"":" & monthlyArr & "}"
-
-        If Not firstProj Then projectsJSON = projectsJSON & ","
-        projectsJSON = projectsJSON & projJSON
-        firstProj = False
+        If Not firstRec Then projectsJSON = projectsJSON & ","
+        projectsJSON = projectsJSON & rec
+        firstRec = False
         projCount = projCount + 1
 
-NextRow:
+SkipRow:
     Next r
-
     projectsJSON = projectsJSON & "]"
 
     If projCount = 0 Then
-        MsgBox "No project rows found on the Dashboard sheet (expected data from row " & _
-               DATA_ROW & " down, with Status = Secured or Anticipated).", _
+        MsgBox "No project rows found on the Dashboard sheet." & vbCrLf & _
+               "Expected data from row 5 down with Status = Secured or Anticipated.", _
                vbExclamation, "No Data"
         Exit Sub
     End If
 
-    '--- Assemble full ER JSON -----------------------------------------------
+    ' ── Assemble full ER JSON ─────────────────────────────────────────────────
     Dim erJSON As String
-    erJSON = "{""months"":" & monthsJSON & ",""projects"":" & projectsJSON & "}"
+    erJSON = "{" & Q("months") & ":" & monthsJSON & "," & Q("projects") & ":" & projectsJSON & "}"
 
-    '--- Read HTML file ------------------------------------------------------
-    Dim fNum As Integer
+    ' ── Read HTML file ────────────────────────────────────────────────────────
+    Dim fNum    As Integer
+    Dim oneLine As String
     fNum = FreeFile
-    Dim htmlContent As String
-    Dim lineIn As String
+    html = ""
     Open htmlPath For Input As #fNum
     Do While Not EOF(fNum)
-        Line Input #fNum, lineIn
-        htmlContent = htmlContent & lineIn & Chr(10)
+        Line Input #fNum, oneLine
+        html = html & oneLine & vbLf
     Loop
     Close #fNum
 
-    '--- Locate "const ER = " block in the HTML ------------------------------
-    Dim erStart As Long
-    erStart = InStr(htmlContent, "const ER = ")
-    If erStart = 0 Then
-        MsgBox "Could not find 'const ER = ' in the HTML file." & vbCrLf & _
-               "Make sure you are pointing to the correct dashboard HTML.", _
-               vbCritical, "Parse Error"
+    ' ── Replace const ER = {...} block ───────────────────────────────────────
+    Dim startPos As Long
+    startPos = InStr(html, "const ER = ")
+    If startPos = 0 Then
+        MsgBox "Marker 'const ER = ' not found in the HTML file." & vbCrLf & _
+               "Is this the correct Earned Revenue Dashboard HTML?" & vbCrLf & vbCrLf & htmlPath, _
+               vbCritical, "Marker Not Found"
         Exit Sub
     End If
 
-    '--- Walk braces to find the closing "}" of the ER object ----------------
-    Dim depth As Long, pos As Long, ch As String
+    ' Walk braces to find the closing "}" of the ER object
+    Dim depth As Long, pos As Long
     depth = 0
     Dim objStart As Long
-    objStart = InStr(erStart, htmlContent, "{")
-
-    For pos = objStart To Len(htmlContent)
-        ch = Mid(htmlContent, pos, 1)
-        If ch = "{" Then
-            depth = depth + 1
-        ElseIf ch = "}" Then
+    objStart = InStr(startPos, html, "{")
+    For pos = objStart To Len(html)
+        Dim ch As String
+        ch = Mid(html, pos, 1)
+        If ch = "{" Then depth = depth + 1
+        If ch = "}" Then
             depth = depth - 1
             If depth = 0 Then Exit For
         End If
     Next pos
-    ' pos now points to the closing "}" of the ER JSON object
 
-    '--- Find the trailing ";" (may be on the same line or the next line) ----
-    Dim erEnd As Long
-    erEnd = pos
+    ' Scan forward to include any trailing ";" (may be on same or next line)
+    Dim endPos As Long
+    endPos = pos
     Dim scanPos As Long
     For scanPos = pos + 1 To pos + 20
-        If scanPos > Len(htmlContent) Then Exit For
+        If scanPos > Len(html) Then Exit For
         Dim sc As String
-        sc = Mid(htmlContent, scanPos, 1)
-        If sc = ";" Then
-            erEnd = scanPos
-            Exit For
-        ElseIf sc = Chr(10) Or sc = Chr(13) Or sc = " " Then
-            ' whitespace between "}" and ";" — keep scanning
-        Else
-            Exit For   ' something unexpected; stop here and keep original ";"
-        End If
+        sc = Mid(html, scanPos, 1)
+        If sc = ";" Then endPos = scanPos: Exit For
+        If sc <> vbLf And sc <> Chr(13) And sc <> " " Then Exit For
     Next scanPos
 
-    '--- Write the updated HTML ----------------------------------------------
-    Dim newHtml As String
-    newHtml = Left(htmlContent, erStart - 1) & _
-              "const ER = " & erJSON & ";" & Chr(10) & _
-              Mid(htmlContent, erEnd + 1)
+    html = Left(html, startPos - 1) & _
+           "const ER = " & erJSON & ";" & vbLf & _
+           Mid(html, endPos + 1)
 
+    ' ── Write updated HTML ───────────────────────────────────────────────────
     fNum = FreeFile
     Open htmlPath For Output As #fNum
-    Print #fNum, newHtml;   ' semicolon suppresses extra trailing newline
+    Print #fNum, html;
     Close #fNum
 
-    MsgBox "Dashboard refreshed — " & projCount & " project(s) exported." & vbCrLf & vbCrLf & _
-           htmlPath, vbInformation, "Earned Revenue Dashboard"
-
+    MsgBox "Dashboard refreshed — " & projCount & " project(s) written." & vbCrLf & vbCrLf & _
+           "The browser will open with the latest data.", _
+           vbInformation, "Refresh Complete"
 End Sub
 
-'=============================================================================
-' FindHtmlCell
-' Scans the given sheet row(s) and returns the first cell whose value ends in
-' ".html". Checks the target row first, then the fallback row.
-' Handles merged cells by reading the MergeArea's top-left cell value.
-'=============================================================================
-Private Function FindHtmlCell(ws As Worksheet, _
-                               fallbackRow As Long, _
-                               targetRow As Long) As Range
-    Dim c As Range
-    Dim val As String
-    ' Scan target row across used columns
-    Dim lastCol As Long
-    lastCol = ws.Cells(targetRow, ws.Columns.Count).End(xlToLeft).Column
-    If lastCol < 2 Then lastCol = 20   ' minimum scan width
+' ── OPEN ONLY: launch HTML in default browser ─────────────────────────────────
+Sub OpenEarnedRevenueDashboard()
+    Dim htmlPath As String
+    htmlPath = GetHtmlPath()
 
-    Dim r As Long
-    For r = 1 To 2   ' pass 1 = targetRow, pass 2 = fallbackRow
-        Dim scanRow As Long
-        scanRow = IIf(r = 1, targetRow, fallbackRow)
-        Dim col As Long
-        For col = 1 To lastCol
-            Set c = ws.Cells(scanRow, col)
-            ' If this cell is part of a merge, read from the top-left
-            If c.MergeCells Then Set c = c.MergeArea.Cells(1, 1)
-            val = Trim(CStr(c.Value))
-            If LCase(Right(val, 5)) = ".html" Then
-                Set FindHtmlCell = c
-                Exit Function
-            End If
-        Next col
-    Next r
-    Set FindHtmlCell = Nothing
+    If htmlPath = "" Or Dir(htmlPath) = "" Then
+        MsgBox "HTML file not found." & vbCrLf & _
+               "Make sure cell B4 on the Charts sheet has the correct path.", _
+               vbCritical, "File Not Found"
+        Exit Sub
+    End If
+
+    Dim url As String
+    url = "file:///" & Replace(Replace(htmlPath, "\", "/"), " ", "%20")
+    On Error Resume Next
+    ThisWorkbook.FollowHyperlink Address:=url, NewWindow:=True
+    On Error GoTo 0
+End Sub
+
+' ── Path resolver ─────────────────────────────────────────────────────────────
+' Priority: 1) HTML_PATH_OVERRIDE constant  2) Charts!B4  3) workbook folder + Charts!B2
+Private Function GetHtmlPath() As String
+
+    ' 1. Hardcoded override (set at top of module if needed)
+    If HTML_PATH_OVERRIDE <> "" Then
+        GetHtmlPath = HTML_PATH_OVERRIDE
+        Exit Function
+    End If
+
+    ' 2. Charts sheet cell B4 (full path)
+    Dim chartsWs As Worksheet
+    Dim p As String
+    On Error Resume Next
+    Set chartsWs = ThisWorkbook.Sheets("Charts")
+    On Error GoTo 0
+
+    If Not chartsWs Is Nothing Then
+        On Error Resume Next
+        p = Trim(CStr(chartsWs.Cells(4, 2).Value))   ' B4
+        On Error GoTo 0
+        If p <> "" And p <> "0" And LCase(Right(p, 5)) = ".html" Then
+            GetHtmlPath = p
+            Exit Function
+        End If
+
+        ' 3. Workbook folder + filename from Charts!B2
+        Dim fName As String
+        On Error Resume Next
+        fName = Trim(CStr(chartsWs.Cells(2, 2).Value))   ' B2
+        On Error GoTo 0
+        If fName <> "" And ThisWorkbook.Path <> "" Then
+            GetHtmlPath = ThisWorkbook.Path & "\" & fName
+            Exit Function
+        End If
+    End If
+
+    ' 4. Last resort: workbook folder + default name
+    If ThisWorkbook.Path <> "" Then
+        GetHtmlPath = ThisWorkbook.Path & "\Earned_Revenue_Dashboard.html"
+    End If
 End Function
 
-'=============================================================================
-' SafeDouble  — returns 0 if the cell is empty or non-numeric
-'=============================================================================
-Private Function SafeDouble(v As Variant) As Double
-    If IsNumeric(v) Then SafeDouble = CDbl(v) Else SafeDouble = 0
+' ── Helpers ───────────────────────────────────────────────────────────────────
+Private Function N(cell As Object) As Double
+    If IsNumeric(cell.Value) Then N = CDbl(cell.Value) Else N = 0
 End Function
 
-'=============================================================================
-' DblToJson  — converts a Double to a JSON-safe number string.
-'              Uses Str() so the decimal separator is always "." regardless
-'              of Windows regional settings.
-'=============================================================================
-Private Function DblToJson(d As Double) As String
-    If d = 0 Then DblToJson = "0": Exit Function
-    ' Str() always uses "." as the decimal point (locale-independent)
-    DblToJson = LTrim(Str(d))
+Private Function Q(s As String) As String
+    Q = """" & s & """"
 End Function
 
-'=============================================================================
-' EscJson  — escapes a string for safe embedding in a JSON string literal
-'=============================================================================
-Private Function EscJson(s As String) As String
-    s = Replace(s, "\",  "\\")
-    s = Replace(s, """", "\""")
+' Converts Double to JSON number (dot decimal, no thousand separators)
+Private Function J(v As Double) As String
+    If v = 0 Then J = "0": Exit Function
+    J = Replace(CStr(CDec(v)), ",", ".")
+End Function
+
+' Escapes a string for embedding in a JSON string literal
+Private Function EscJ(s As String) As String
+    s = Replace(s, "\",   "\\")
+    s = Replace(s, """",  "\""")
     s = Replace(s, Chr(13), "")
     s = Replace(s, Chr(10), "\n")
-    EscJson = s
+    EscJ = s
 End Function
