@@ -34,9 +34,9 @@ Public Sub RefreshEarnedRevenueDashboard()
 
     Const DATA_SHEET    As String = "Dashboard"
     Const CHARTS_SHEET  As String = "Charts"
-    Const FNAME_ROW     As Long   = 2    ' B2 = dashboard file name
-    Const PATH_ROW      As Long   = 4    ' B4 = full file path
-    Const PATH_COL      As Long   = 2    ' Column B (both cells)
+    Const FNAME_ROW     As Long   = 2    ' row 2 = dashboard file name
+    Const PATH_ROW      As Long   = 4    ' row 4 = full file path
+    Const PATH_COL      As Long   = 2    ' fallback column B if dynamic search fails
     Const HEADER_ROW    As Long   = 4    ' Row 4 = column headers on Dashboard sheet
     Const DATA_ROW      As Long   = 5    ' First data row
     Const FIRST_MO_COL  As Long   = 10   ' Column J  = Jan 2026
@@ -61,40 +61,58 @@ Public Sub RefreshEarnedRevenueDashboard()
     End If
 
     '--- Locate HTML dashboard file ------------------------------------------
-    '    B2 = file name,  B4 = full path
+    '    The path is searched dynamically: scan rows 2 and 4 of the Charts
+    '    sheet across all columns for a cell value that ends in ".html".
+    '    This is robust to merged cells and varying column positions.
+    '    Fallback: look for the cell adjacent to a label containing "path".
     Dim htmlFileName As String
     Dim htmlPath     As String
-    htmlFileName = Trim(CStr(wsCharts.Cells(FNAME_ROW, PATH_COL).Value))  ' B2
-    htmlPath     = Trim(CStr(wsCharts.Cells(PATH_ROW,  PATH_COL).Value))  ' B4
+    Dim pathCell     As Range
 
-    ' If B4 looks like a folder (no .html extension), combine with B2 filename
-    If htmlPath <> "" And LCase(Right(htmlPath, 5)) <> ".html" Then
-        If Right(htmlPath, 1) <> "\" Then htmlPath = htmlPath & "\"
-        htmlPath = htmlPath & htmlFileName
+    ' 1) Scan row 4 (Dashboard Path row) for a .html value
+    Set pathCell = FindHtmlCell(wsCharts, FNAME_ROW, PATH_ROW)
+
+    If Not pathCell Is Nothing Then
+        htmlPath = Trim(CStr(pathCell.Value))
     End If
 
-    If htmlPath = "" Then
-        MsgBox "Dashboard path not found in Charts sheet cell B4." & vbCrLf & _
-               "Please browse to the HTML file.", vbExclamation, "Path Missing"
+    ' 2) If still empty or just a filename, also check row 2 for a full path
+    If LCase(Right(htmlPath, 5)) <> ".html" Or InStr(htmlPath, "\") = 0 Then
+        Dim fnCell As Range
+        Set fnCell = FindHtmlCell(wsCharts, FNAME_ROW, FNAME_ROW)
+        If Not fnCell Is Nothing Then
+            htmlFileName = Trim(CStr(fnCell.Value))
+        End If
+        ' If row 4 value is a folder, append filename from row 2
+        If htmlPath <> "" And LCase(Right(htmlPath, 5)) <> ".html" Then
+            If Right(htmlPath, 1) <> "\" Then htmlPath = htmlPath & "\"
+            htmlPath = htmlPath & htmlFileName
+        ElseIf htmlPath = "" Then
+            htmlPath = htmlFileName  ' may still be just a name, browse will handle it
+        End If
+    End If
+
+    If htmlPath = "" Or Dir(htmlPath) = "" Then
+        Dim msg As String
+        If htmlPath = "" Then
+            msg = "Dashboard path not found on the Charts sheet (rows 2 or 4)." & vbCrLf & _
+                  "Please browse to the HTML file."
+        Else
+            msg = "HTML file not found at:" & vbCrLf & htmlPath & vbCrLf & vbCrLf & _
+                  "Please browse to the correct file." & vbCrLf & _
+                  "(After browsing, the path in row 4 will be updated automatically.)"
+        End If
+        MsgBox msg, vbExclamation, "File Not Found"
         htmlPath = Application.GetOpenFilename( _
             "HTML Files (*.html),*.html", , _
             "Locate the Earned Revenue Dashboard HTML file")
         If CStr(htmlPath) = "False" Then Exit Sub
-        wsCharts.Cells(PATH_ROW, PATH_COL).Value = htmlPath
-    End If
-
-    If Dir(htmlPath) = "" Then
-        MsgBox "HTML file not found at:" & vbCrLf & htmlPath & vbCrLf & vbCrLf & _
-               "Please browse to the correct file." & vbCrLf & _
-               "(Tip: update B4 on the Charts sheet to avoid this prompt)", _
-               vbExclamation, "File Not Found"
-        htmlPath = Application.GetOpenFilename( _
-            "HTML Files (*.html),*.html", , _
-            "Locate the Earned Revenue Dashboard HTML file")
-        If CStr(htmlPath) = "False" Then Exit Sub
-        ' Update both B2 (filename) and B4 (full path)
-        wsCharts.Cells(PATH_ROW,  PATH_COL).Value = htmlPath
-        wsCharts.Cells(FNAME_ROW, PATH_COL).Value = Mid(htmlPath, InStrRev(htmlPath, "\") + 1)
+        ' Write the resolved path back into the cell the macro found (or B4 if none found)
+        If Not pathCell Is Nothing Then
+            pathCell.Value = htmlPath
+        Else
+            wsCharts.Cells(PATH_ROW, PATH_COL).Value = htmlPath
+        End If
     End If
 
     '--- Build months JSON ---------------------------------------------------
@@ -286,6 +304,41 @@ NextRow:
            htmlPath, vbInformation, "Earned Revenue Dashboard"
 
 End Sub
+
+'=============================================================================
+' FindHtmlCell
+' Scans the given sheet row(s) and returns the first cell whose value ends in
+' ".html". Checks the target row first, then the fallback row.
+' Handles merged cells by reading the MergeArea's top-left cell value.
+'=============================================================================
+Private Function FindHtmlCell(ws As Worksheet, _
+                               fallbackRow As Long, _
+                               targetRow As Long) As Range
+    Dim c As Range
+    Dim val As String
+    ' Scan target row across used columns
+    Dim lastCol As Long
+    lastCol = ws.Cells(targetRow, ws.Columns.Count).End(xlToLeft).Column
+    If lastCol < 2 Then lastCol = 20   ' minimum scan width
+
+    Dim r As Long
+    For r = 1 To 2   ' pass 1 = targetRow, pass 2 = fallbackRow
+        Dim scanRow As Long
+        scanRow = IIf(r = 1, targetRow, fallbackRow)
+        Dim col As Long
+        For col = 1 To lastCol
+            Set c = ws.Cells(scanRow, col)
+            ' If this cell is part of a merge, read from the top-left
+            If c.MergeCells Then Set c = c.MergeArea.Cells(1, 1)
+            val = Trim(CStr(c.Value))
+            If LCase(Right(val, 5)) = ".html" Then
+                Set FindHtmlCell = c
+                Exit Function
+            End If
+        Next col
+    Next r
+    Set FindHtmlCell = Nothing
+End Function
 
 '=============================================================================
 ' SafeDouble  — returns 0 if the cell is empty or non-numeric
