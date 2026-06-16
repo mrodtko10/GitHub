@@ -3,7 +3,7 @@ Option Explicit
 
 ' ============================================================
 ' PASTE YOUR DASHBOARD FILE PATH HERE (include the filename):
-'   Example: "C:\Users\You\Documents\Earned_Revenue_Dashboard.html"
+'   Example: "C:\Users\You\Documents\Earned_Revenue_Dashboard_20260531updated.html"
 ' Leave it as "" to auto-detect from Dashboard sheet cell B4.
 ' ============================================================
 Private Const HTML_PATH_OVERRIDE As String = ""
@@ -12,8 +12,8 @@ Private Const HTML_PATH_OVERRIDE As String = ""
 ' MACROS TO ASSIGN TO BUTTONS:
 '
 '   RefreshWorkloadDashboard  -> "Refresh Data" button
-'        Reads Sheet1 and rewrites the Earned Revenue Dashboard HTML
-'        with the latest ER data. Does NOT open the browser.
+'        Reads "S-Curve Bands" sheet and rewrites the Earned Revenue
+'        Dashboard HTML with the latest ER data. Does NOT open the browser.
 '
 '   OpenWorkloadDashboard     -> "Open Dashboard" button
 '        Opens the HTML file in your default browser.
@@ -23,7 +23,19 @@ Private Const HTML_PATH_OVERRIDE As String = ""
 ' Path priority:
 '   1. HTML_PATH_OVERRIDE constant above (if set)
 '   2. Dashboard sheet cell B4 (full path)
-'   3. Workbook folder + "Earned_Revenue_Dashboard.html"
+'   3. Workbook folder + "Earned_Revenue_Dashboard_20260531updated.html"
+'
+' Sheet: "S-Curve Bands"
+'   Row 3  = Actual / Forecast labels (cols 11-58)
+'   Row 4  = month labels + column headers
+'   Row 5+ = data rows
+'   Col A(1)  = Project Number
+'   Col B(2)  = Client
+'   Col C(3)  = Status
+'   Col D(4)  = Total Contract Value
+'   Col E(5)  = Earned to Date
+'   Col F(6)  = Backlog Amount
+'   Col K(11)-BF(58) = monthly[0..47] earned revenue (48 months, Jan 2026-Dec 2029)
 ' ============================================================
 
 ' ── REFRESH ──────────────────────────────────────────────────────────────────
@@ -50,13 +62,13 @@ Sub RefreshWorkloadDashboard()
     ' ── Safety checks ────────────────────────────────────────────────────────
     If LCase(Right(Trim(htmlPath), 5)) <> ".html" And _
        LCase(Right(Trim(htmlPath), 4)) <> ".htm" Then
-        MsgBox "SAFETY STOP – path does not end in .html:" & vbCrLf & htmlPath, _
+        MsgBox "SAFETY STOP - path does not end in .html:" & vbCrLf & htmlPath, _
                vbCritical, "Wrong File Type"
         Exit Sub
     End If
 
     If LCase(Trim(htmlPath)) = LCase(ThisWorkbook.FullName) Then
-        MsgBox "SAFETY STOP – path points to this workbook!", vbCritical, "Wrong File"
+        MsgBox "SAFETY STOP - path points to this workbook!", vbCritical, "Wrong File"
         Exit Sub
     End If
 
@@ -65,25 +77,25 @@ Sub RefreshWorkloadDashboard()
         Exit Sub
     End If
 
-    ' ── Find Sheet1 ──────────────────────────────────────────────────────────
+    ' ── Find S-Curve Bands sheet ─────────────────────────────────────────────
     Set wsData = Nothing
     Dim ws As Worksheet
     For Each ws In ThisWorkbook.Sheets
-        If LCase(ws.Name) = "sheet1" Then
+        If LCase(ws.Name) = "s-curve bands" Then
             Set wsData = ws
             Exit For
         End If
     Next ws
     If wsData Is Nothing Then
-        MsgBox "Could not find 'Sheet1'.", vbCritical
+        MsgBox "Could not find 'S-Curve Bands' sheet.", vbCritical
         Exit Sub
     End If
 
     wsData.Calculate
 
-    ' ── Build months JSON (row 2 = type, row 3 = label, cols 10-57 = 48 months) ─
-    Const FIRST_MONTH_COL As Long = 10
-    Const LAST_MONTH_COL  As Long = 57
+    ' ── Build months JSON (row 3 = type, row 4 = label, cols 11-58 = 48 months) ─
+    Const FIRST_MONTH_COL As Long = 11
+    Const LAST_MONTH_COL  As Long = 58
     Const NUM_MONTHS      As Long = 48
 
     Dim monthLabels(47) As String
@@ -92,9 +104,9 @@ Sub RefreshWorkloadDashboard()
     For col = FIRST_MONTH_COL To LAST_MONTH_COL
         Dim idx As Long
         idx = col - FIRST_MONTH_COL
-        monthLabels(idx) = Trim(CStr(wsData.Cells(3, col).Value))
+        monthLabels(idx) = Trim(CStr(wsData.Cells(4, col).Value))
         Dim rawType As String
-        rawType = Trim(CStr(wsData.Cells(2, col).Value))
+        rawType = Trim(CStr(wsData.Cells(3, col).Value))
         If InStr(LCase(rawType), "actual") > 0 Then
             monthTypes(idx) = "Actual"
         Else
@@ -115,22 +127,22 @@ Sub RefreshWorkloadDashboard()
     Next mi
     monthsJson = monthsJson & "]"
 
-    ' ── Build projects JSON (rows 4 to 25001) ────────────────────────────────
-    ' Column mapping (Sheet1):
-    '   A(1)  = Project Number (code)
-    '   B(2)  = Client
-    '   C(3)  = Status ("Secured" / "Anticipated" / "Possible")
-    '   D(4)  = Total Contract Value (tcv)
-    '   E(5)  = Earned to Date (earned)
-    '   F(6)  = Backlog Amount (backlog)
-    '   J(10) - BE(57) = monthly[0..47] earned revenue values (48 months)
+    ' ── Build projects JSON (rows 5 to 25004) ────────────────────────────────
+    ' Column mapping (S-Curve Bands):
+    '   A(1)   = Project Number (code)
+    '   B(2)   = Client
+    '   C(3)   = Status ("Secured" / "Anticipated" / "Possible")
+    '   D(4)   = Total Contract Value (tcv)
+    '   E(5)   = Earned to Date (earned)
+    '   F(6)   = Backlog Amount (backlog)
+    '   K(11) - BF(58) = monthly[0..47] earned revenue values (48 months)
 
     Dim projectsJson As String
     projectsJson = "["
     Dim firstRec As Boolean
     firstRec = True
 
-    For i = 4 To 25001
+    For i = 5 To 25004
         Dim projCode As String
         projCode = Trim(CStr(wsData.Cells(i, 1).Value))
 
@@ -314,7 +326,7 @@ Private Function GetHtmlPath() As String
     End If
 
     If ThisWorkbook.Path <> "" Then
-        GetHtmlPath = ThisWorkbook.Path & "\Earned_Revenue_Dashboard.html"
+        GetHtmlPath = ThisWorkbook.Path & "\Earned_Revenue_Dashboard_20260531updated.html"
     End If
 End Function
 
