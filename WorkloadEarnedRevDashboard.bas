@@ -146,16 +146,30 @@ Sub RefreshWorkloadDashboard()
         Dim projCode As String
         projCode = Trim(CStr(wsData.Cells(i, 1).Value))
 
-        ' Skip blank, header-echo, total, placeholder rows
-        If projCode = "" Then GoTo SkipRow
-        If projCode = "Project Number" Then GoTo SkipRow
-        If projCode = "Total" Then GoTo SkipRow
-        If projCode = "New" Or projCode = "0" Then GoTo SkipRow
-
         Dim vClient  As String
         Dim vStatus  As String
         vClient = Trim(CStr(wsData.Cells(i, 2).Value))
         vStatus = Trim(CStr(wsData.Cells(i, 3).Value))
+
+        ' For Possible rows, col A may be blank — use client name as code
+        If projCode = "" Then
+            If vClient <> "" And (vStatus = "Possible" Or vStatus = "Anticipated") Then
+                projCode = vClient
+            Else
+                GoTo SkipRow
+            End If
+        End If
+
+        ' Skip header-echo, total, placeholder rows
+        If projCode = "Project Number" Then GoTo SkipRow
+        If projCode = "Total" Or projCode = "TOTAL" Then GoTo SkipRow
+        If projCode = "New" Or projCode = "0" Then GoTo SkipRow
+        ' Skip secondary table rows (weekly % section starts with same project numbers)
+        If vStatus = "Secured" Or vStatus = "Anticipated" Or vStatus = "Possible" Then
+            ' valid row — continue
+        Else
+            GoTo SkipRow
+        End If
 
         Dim vTcv     As Double
         Dim vEarned  As Double
