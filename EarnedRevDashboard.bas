@@ -22,7 +22,7 @@ Private Const HTML_PATH_OVERRIDE As String = ""
 '
 ' Path priority:
 '   1. HTML_PATH_OVERRIDE constant above (if set)
-'   2. Dashboard sheet cell B3 (full path)
+'   2. Dashboard sheet cell B4 (full path)
 '   3. Workbook folder + "Earned_Revenue_Dashboard.html"
 ' ============================================================
 
@@ -42,7 +42,7 @@ Sub RefreshEarnedRevDashboard()
     If htmlPath = "" Then
         MsgBox "No HTML path found." & vbCrLf & vbCrLf & _
                "Please paste the full path to the dashboard HTML file" & vbCrLf & _
-               "into cell B3 on the Dashboard sheet.", _
+               "into cell B4 on the Dashboard sheet.", _
                vbExclamation, "Path Not Set"
         Exit Sub
     End If
@@ -298,7 +298,7 @@ Sub RefreshAndOpenEarnedRev()
 End Sub
 
 ' ── Path resolver ────────────────────────────────────────────────────────────
-' Priority: 1) HTML_PATH_OVERRIDE, 2) Dashboard!B3, 3) workbook folder
+' Priority: 1) HTML_PATH_OVERRIDE, 2) Dashboard!B4, 3) workbook folder
 Private Function GetHtmlPath() As String
     ' 1. Hardcoded override
     If HTML_PATH_OVERRIDE <> "" Then
@@ -314,7 +314,7 @@ Private Function GetHtmlPath() As String
     On Error GoTo 0
     If Not dashWs Is Nothing Then
         On Error Resume Next
-        p = Trim(CStr(dashWs.Cells(3, 2).Value))
+        p = Trim(CStr(dashWs.Cells(4, 2).Value))
         On Error GoTo 0
         If p <> "" And p <> "0" Then
             GetHtmlPath = p
