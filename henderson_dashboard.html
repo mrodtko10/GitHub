@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Henderson Solar – WHC Energy Services</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:#0f1117;--surface:#1a1d27;--surface2:#22263a;--border:#2e3350;
+  --accent:#4f8ef7;--accent2:#7c5cfc;--green:#22c55e;--red:#ef4444;
+  --yellow:#f59e0b;--teal:#14b8a6;--text:#e2e8f0;--muted:#8892a4;
+  --font:'Inter',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;min-height:100vh}
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.header h1{font-size:18px;font-weight:700;letter-spacing:-.3px}
+.header h1 span{color:var(--accent)}
+.header-meta{font-size:12px;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap}
+.header-meta strong{color:var(--text)}
+
+/* Tab bar */
+.tab-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;gap:4px;overflow-x:auto}
+.tab-btn{padding:12px 18px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-btn.entry-tab{color:var(--teal)}
+.tab-btn.entry-tab.active{color:var(--teal);border-bottom-color:var(--teal)}
+.tab-btn.display-tab{color:var(--muted)}
+.tab-btn.display-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-label-hint{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;opacity:.7;display:block;margin-bottom:2px}
+
+.tab-content{display:none;padding:20px 24px;flex-direction:column;gap:18px}
+.tab-content.active{display:flex}
+
+/* Cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px}
+.card-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px;text-transform:uppercase;letter-spacing:.4px}
+.card.alt{background:var(--surface2)}
+
+/* Forms */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;align-items:end}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+input,select,textarea{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:8px 10px;font-size:13px;font-family:var(--font);outline:none;width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+input[type=checkbox]{width:auto;cursor:pointer;accent-color:var(--accent)}
+
+.btn{border:none;border-radius:6px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s}
+.btn:hover{opacity:.85}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-teal{background:var(--teal);color:#fff}
+.btn-danger{background:var(--red);color:#fff;padding:4px 10px;font-size:11px}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+.btn-print{background:var(--surface2);border:1px solid var(--border);color:var(--text);float:right}
+
+/* Tables */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{background:var(--surface2);color:var(--muted);font-weight:600;text-align:left;padding:9px 12px;white-space:nowrap;border-bottom:1px solid var(--border)}
+td{padding:7px 12px;border-bottom:1px solid var(--border);white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#ffffff08}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+tfoot td{font-weight:700;background:var(--surface2)}
+
+/* Progress bars */
+.pbar-wrap{display:flex;align-items:center;gap:8px;min-width:120px}
+.pbar{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.pbar-fill{height:100%;border-radius:3px;transition:width .3s}
+.pbar-fill.green{background:var(--green)}
+.pbar-fill.yellow{background:var(--yellow)}
+.pbar-fill.red{background:var(--red)}
+.pbar-fill.blue{background:var(--accent)}
+.pbar-pct{font-size:11px;color:var(--muted);width:38px;text-align:right}
+
+/* KPI cards */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 20px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent)}
+.kpi.green::before{background:var(--green)}.kpi.red::before{background:var(--red)}.kpi.yellow::before{background:var(--yellow)}.kpi.teal::before{background:var(--teal)}
+.kpi-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.kpi-value{font-size:22px;font-weight:700}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:4px}
+
+/* Category section */
+.cat-section{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px}
+.cat-header{background:var(--surface2);padding:10px 16px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--accent);display:flex;align-items:center;justify-content:space-between}
+
+/* ROC table */
+.roc-act-table{width:100%;border-collapse:collapse;font-size:12px}
+.roc-act-table th,.roc-act-table td{padding:7px 10px;border-bottom:1px solid var(--border)}
+.roc-act-table th{background:var(--surface2);color:var(--muted);font-weight:600}
+.check-yes{color:var(--green);font-weight:700}
+.check-no{color:var(--muted)}
+
+/* Timesheet dynamic rows */
+.ts-row-table{width:100%;border-collapse:collapse;font-size:12.5px}
+.ts-row-table th{background:var(--surface2);color:var(--muted);font-weight:600;padding:8px 10px;border-bottom:1px solid var(--border)}
+.ts-row-table td{padding:5px 6px;border-bottom:1px solid var(--border)}
+.ts-row-table input,.ts-row-table select{font-size:12px;padding:5px 7px}
+
+/* Section divider */
+.section-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;padding:6px 0 4px}
+
+/* Alert */
+.alert{padding:10px 14px;border-radius:6px;font-size:13px;margin-bottom:8px}
+.alert-success{background:#22c55e20;border:1px solid #22c55e40;color:var(--green)}
+.alert-info{background:#4f8ef720;border:1px solid #4f8ef740;color:var(--accent)}
+
+/* Chart container */
+.chart-wrap{position:relative;height:220px}
+
+/* Print */
+@media print {
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  .tab-bar,.header,.no-print,button,.btn-print,.btn-danger,.btn,.form-grid,.card.entry-card{display:none!important}
+  body{background:#fff!important;color:#000!important}
+  .tab-content{display:flex!important;background:#fff!important}
+  table{border-collapse:collapse}
+  th,td{border:1px solid #ccc!important;color:#000!important;background:#fff!important}
+  th{background:#f0f0f0!important}
+  .pbar-fill{-webkit-print-color-adjust:exact!important}
+  .print-header{display:block!important}
+  .kpi{border:1px solid #ccc!important;background:#f9f9f9!important}
+  .kpi-value,.kpi-label,.kpi-sub{color:#000!important}
+  .cat-header{background:#e8e8e8!important;color:#000!important}
+}
+.print-header{display:none}
+
+/* Rollup table distinct bg */
+.rollup-section{background:var(--surface2);border:1px solid var(--accent);border-radius:10px;padding:0;overflow:hidden}
+.rollup-section .rollup-title{background:var(--accent);color:#fff;padding:10px 16px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+
+@media(max-width:700px){
+  .form-grid{grid-template-columns:1fr}
+  .kpi-grid{grid-template-columns:1fr 1fr}
+  .tab-btn{padding:10px 12px;font-size:12px}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>WHC Energy Services — <span>Henderson Solar</span></h1>
+    <div class="header-meta">
+      <span>Job # <strong>25-4006</strong></span>
+      <span>Owner: <strong>Stellar</strong></span>
+      <span>PM: <strong>Anthony Caronna</strong></span>
+    </div>
+  </div>
+  <div style="font-size:12px;color:var(--muted)" id="lastSaved"></div>
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn entry-tab active" onclick="switchTab('actual')">
+    <span class="tab-label-hint">Entry</span>Actual Progress
+  </button>
+  <button class="tab-btn entry-tab" onclick="switchTab('roc')">
+    <span class="tab-label-hint">Entry</span>ROC
+  </button>
+  <button class="tab-btn entry-tab" onclick="switchTab('timesheet')">
+    <span class="tab-label-hint">Entry</span>Timesheet
+  </button>
+  <button class="tab-btn display-tab" onclick="switchTab('summary')">
+    <span class="tab-label-hint">Report</span>Summary
+  </button>
+  <button class="tab-btn display-tab" onclick="switchTab('internal')">
+    <span class="tab-label-hint">Report</span>Internal Report
+  </button>
+  <button class="tab-btn display-tab" onclick="switchTab('client')">
+    <span class="tab-label-hint">Report</span>Client Report
+  </button>
+</div>
+
+<!-- ========== TAB 1: ACTUAL PROGRESS ========== -->
+<div class="tab-content active" id="tab-actual">
+  <div class="card entry-card">
+    <div class="card-title">Add Production Entry</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" id="ap-date" />
+      </div>
+      <div class="form-group">
+        <label>Cost Code</label>
+        <select id="ap-cc" onchange="apCcChange()"></select>
+      </div>
+      <div class="form-group" id="ap-pcs-group">
+        <label>Location / PCS</label>
+        <select id="ap-pcs"></select>
+      </div>
+      <div class="form-group">
+        <label>Qty Installed Today</label>
+        <input type="number" id="ap-qty" min="0" step="any" />
+      </div>
+      <div class="form-group">
+        <label>Note (optional)</label>
+        <input type="text" id="ap-note" placeholder="Notes..." />
+      </div>
+      <div class="form-group" style="justify-content:flex-end">
+        <button class="btn btn-teal" onclick="apAddEntry()">Add Entry</button>
+      </div>
+    </div>
+    <div id="ap-alert" style="margin-top:10px"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" id="ap-today-title">Today's Entries</div>
+    <div class="table-wrap">
+      <table id="ap-today-table">
+        <thead><tr>
+          <th>CC</th><th>Activity</th><th>Location</th><th class="num">Qty Today</th><th>Note</th><th></th>
+        </tr></thead>
+        <tbody id="ap-today-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="rollup-section">
+    <div class="rollup-title">Total QTY Installed JTD by Cost Code</div>
+    <div class="table-wrap" style="padding:0">
+      <table id="ap-rollup-table">
+        <thead><tr>
+          <th>Cost Code</th><th>Commodity / Activity</th><th>Unit</th><th class="num">Budget Qty</th><th class="num">JTD Installed</th><th>% Complete</th>
+        </tr></thead>
+        <tbody id="ap-rollup-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ========== TAB 2: ROC ========== -->
+<div class="tab-content" id="tab-roc">
+  <div class="alert alert-info">
+    ROC tracks multi-step cost codes (4304, 4305). Mark each activity complete per PCS location. Completed steps translate to earned quantities in Actual Progress.
+  </div>
+
+  <div class="card entry-card">
+    <div class="card-title">Add / Update ROC Entry</div>
+    <div class="form-grid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr))">
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" id="roc-date" />
+      </div>
+      <div class="form-group">
+        <label>Cost Code</label>
+        <select id="roc-cc">
+          <option value="4304">4304 – Racking Layout</option>
+          <option value="4305">4305 – Racking Install</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>PCS Location</label>
+        <select id="roc-pcs"></select>
+      </div>
+    </div>
+    <div style="margin-top:14px">
+      <table class="roc-act-table" style="max-width:420px">
+        <thead><tr><th>Activity</th><th>Weight</th><th>Mark Complete</th></tr></thead>
+        <tbody>
+          <tr><td>Activity 1</td><td>20%</td><td><input type="checkbox" id="roc-a1"></td></tr>
+          <tr><td>Activity 2</td><td>20%</td><td><input type="checkbox" id="roc-a2"></td></tr>
+          <tr><td>Activity 3</td><td>30%</td><td><input type="checkbox" id="roc-a3"></td></tr>
+          <tr><td>Activity 4</td><td>30%</td><td><input type="checkbox" id="roc-a4"></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:10px;align-items:center">
+      <button class="btn btn-teal" onclick="rocSave()">Save ROC Entry</button>
+      <button class="btn btn-ghost no-print" onclick="rocClearForm()">Clear</button>
+    </div>
+    <div id="roc-alert" style="margin-top:10px"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">ROC Summary – All Entries</div>
+    <div class="table-wrap">
+      <table id="roc-table">
+        <thead><tr>
+          <th>CC</th><th>PCS Location</th><th>Act 1</th><th>Act 2</th><th>Act 3</th><th>Act 4</th><th class="num">% Earned</th><th>Date</th><th></th>
+        </tr></thead>
+        <tbody id="roc-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ========== TAB 3: TIMESHEET ========== -->
+<div class="tab-content" id="tab-timesheet">
+  <div class="card entry-card">
+    <div class="card-title">Timesheet Entry</div>
+    <div class="form-grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))">
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" id="ts-date" onchange="tsDateChange()" />
+      </div>
+      <div class="form-group">
+        <label>Week Ending (Sat)</label>
+        <input type="text" id="ts-week-ending" readonly style="color:var(--muted)" />
+      </div>
+    </div>
+    <div style="margin-top:14px;overflow-x:auto">
+      <table class="ts-row-table" id="ts-input-table">
+        <thead><tr>
+          <th>Employee Name</th><th>Employee ID</th><th>Trade</th><th>Cost Code</th><th>Hours</th><th></th>
+        </tr></thead>
+        <tbody id="ts-input-tbody"></tbody>
+      </table>
+    </div>
+    <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <button class="btn btn-ghost" onclick="tsAddRow()">+ Add Row</button>
+      <button class="btn btn-teal" onclick="tsSave()">Save Timesheet</button>
+      <span id="ts-daily-total" style="font-size:13px;color:var(--muted);margin-left:8px"></span>
+    </div>
+    <div id="ts-alert" style="margin-top:10px"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Timesheet Records</div>
+    <div style="margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <label style="font-size:12px;color:var(--muted)">Filter by Date:</label>
+      <select id="ts-filter-date" onchange="renderTimesheetTable()" style="width:auto"></select>
+      <span style="font-size:12px;color:var(--muted)" id="ts-table-total"></span>
+    </div>
+    <div class="table-wrap">
+      <table id="ts-table">
+        <thead><tr>
+          <th>Date</th><th>Employee Name</th><th>ID</th><th>Trade</th><th>Cost Code</th><th class="num">Hours</th><th></th>
+        </tr></thead>
+        <tbody id="ts-tbody"></tbody>
+        <tfoot id="ts-tfoot"></tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ========== TAB 4: SUMMARY ========== -->
+<div class="tab-content" id="tab-summary">
+  <div class="print-header" style="margin-bottom:16px">
+    <h2 style="font-size:18px">Henderson Solar Project – Summary Report</h2>
+    <p style="color:#666;font-size:12px">Job #25-4006 | Owner: Stellar | PM: Anthony Caronna</p>
+  </div>
+
+  <div class="kpi-grid" id="summary-kpis"></div>
+
+  <div style="display:grid;grid-template-columns:1fr 260px;gap:16px;align-items:start" id="summary-chart-row">
+    <div class="card">
+      <div class="card-title">Progress by Category</div>
+      <div id="summary-cat-progress"></div>
+    </div>
+    <div class="card" style="text-align:center">
+      <div class="card-title">Overall Progress</div>
+      <div class="chart-wrap"><canvas id="summary-donut"></canvas></div>
+      <div id="summary-donut-label" style="font-size:22px;font-weight:700;margin-top:8px"></div>
+    </div>
+  </div>
+
+  <div class="card" id="summary-detail-wrap">
+    <div class="card-title">Detail by Cost Code</div>
+    <div id="summary-detail"></div>
+  </div>
+</div>
+
+<!-- ========== TAB 5: INTERNAL REPORT ========== -->
+<div class="tab-content" id="tab-internal">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px" class="no-print">
+    <div style="display:flex;align-items:center;gap:10px">
+      <label style="font-size:12px;color:var(--muted)">Report Date:</label>
+      <input type="date" id="int-date" onchange="renderInternal()" style="width:auto" />
+    </div>
+    <button class="btn btn-print no-print" onclick="window.print()">🖨 Print</button>
+  </div>
+
+  <div class="print-header">
+    <h2 style="font-size:16px">Henderson Solar – Daily Internal Report</h2>
+    <p id="int-print-date" style="color:#666;font-size:12px"></p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Section 1 – Today's Production</div>
+    <div class="table-wrap">
+      <table id="int-prod-table">
+        <thead><tr>
+          <th>CC</th><th>Activity</th><th>Location</th><th class="num">Qty Today</th><th class="num">JTD</th><th class="num">Budget</th><th>% Complete</th>
+        </tr></thead>
+        <tbody id="int-prod-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Section 2 – Today's Manpower</div>
+    <div class="table-wrap">
+      <table id="int-man-table">
+        <thead><tr><th>Employee</th><th>Trade</th><th>Cost Code</th><th class="num">Hours</th></tr></thead>
+        <tbody id="int-man-tbody"></tbody>
+        <tfoot id="int-man-tfoot"></tfoot>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Section 3 – Progress Snapshot (Active CCs)</div>
+    <div id="int-progress"></div>
+  </div>
+</div>
+
+<!-- ========== TAB 6: CLIENT REPORT ========== -->
+<div class="tab-content" id="tab-client">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px" class="no-print">
+    <div style="display:flex;align-items:center;gap:10px">
+      <label style="font-size:12px;color:var(--muted)">Report Date:</label>
+      <input type="date" id="cli-date" onchange="renderClient()" style="width:auto" />
+    </div>
+    <button class="btn btn-print no-print" onclick="window.print()">🖨 Print</button>
+  </div>
+
+  <div class="print-header">
+    <div style="text-align:center;border-bottom:2px solid #333;padding-bottom:12px;margin-bottom:16px">
+      <h1 style="font-size:20px;font-weight:700">WHC Energy Services</h1>
+      <h2 style="font-size:15px;color:#444;font-weight:500">Henderson Solar Project | Job #: 25-4006 | Owner: Stellar</h2>
+      <p id="cli-print-date" style="color:#666;font-size:12px;margin-top:4px"></p>
+    </div>
+  </div>
+
+  <!-- Screen header -->
+  <div class="card" style="background:var(--surface2)" id="cli-header-screen">
+    <div style="font-size:16px;font-weight:700">WHC Energy Services</div>
+    <div style="font-size:13px;color:var(--muted);margin-top:4px">Henderson Solar Project | Job #25-4006 | Owner: Stellar</div>
+    <div style="font-size:12px;color:var(--accent);margin-top:2px" id="cli-date-display"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Section 1 – Production Summary</div>
+    <div id="cli-prod-sections"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Section 2 – Manpower Summary</div>
+    <div id="cli-manpower"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Section 3 – Overall Project Progress</div>
+    <div id="cli-progress"></div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const COST_CODES = [
+  {cc:'4005-01',name:'4005-Civil FOE',unit:'DYS',bid_qty:74,mh_bl:4810,cat:'Civil',np:true},
+  {cc:'4005',name:'4005-FOE',unit:'DYS',bid_qty:200,mh_bl:26000,cat:'PV-OVH',np:true},
+  {cc:'4005-02',name:'4005-Commish FOE',unit:'DYS',bid_qty:90,mh_bl:5400,cat:'PV-CX',np:true},
+  {cc:'4006',name:'4006-Yard and Trailer',unit:'DYS',bid_qty:200,mh_bl:6000,cat:'PV-Mech',np:true},
+  {cc:'4116',name:'4116-Mowing and Grading',unit:'DYS',bid_qty:120,mh_bl:3600,cat:'Civil',np:true},
+  {cc:'4013-02',name:'4013-02 Weather Cont.',unit:'LS',bid_qty:1,mh_bl:0,cat:'PV-OVH',np:true},
+  {cc:'4015',name:'4015-Survey',unit:'DYS',bid_qty:180,mh_bl:2250,cat:'PV-OVH',np:true},
+  {cc:'4031',name:'4031-Hire-In and Orientation',unit:'LS',bid_qty:1,mh_bl:1616,cat:'PV-OVH',np:true},
+  {cc:'4300',name:'4300-Mechanical Receiving',unit:'DYS',bid_qty:75,mh_bl:6000,cat:'PV-Warehouse',np:true},
+  {cc:'4400',name:'4400-Electrical Receiving',unit:'DYS',bid_qty:96,mh_bl:7680,cat:'PV-Warehouse',np:true},
+  {cc:'4115',name:'4115-Clean Up',unit:'DYS',bid_qty:34,mh_bl:4550,cat:'PV-CX',np:true},
+  {cc:'4100',name:'4100-Civil',unit:'LS',bid_qty:192,mh_bl:0,cat:'Civil',np:false,sub:true},
+  {cc:'4108',name:'4108-Fence & Gates',unit:'LF',bid_qty:192,mh_bl:0,cat:'Civil',np:false,sub:true},
+  {cc:'4121',name:'4121-Laydown Yards',unit:'AC',bid_qty:10,mh_bl:0,cat:'Civil',np:false},
+  {cc:'4301',name:'4301-Pile Layout',unit:'EA',bid_qty:18237,mh_bl:1800,cat:'PV-Mech',np:false},
+  {cc:'4302',name:'4302-Pile Installs',unit:'EA',bid_qty:18237,mh_bl:300,cat:'PV-Mech',np:false},
+  {cc:'4303',name:'4303-Pile QAQC',unit:'EA',bid_qty:18237,mh_bl:1920,cat:'PV-QC',np:false},
+  {cc:'4304',name:'4304-Racking Layout',unit:'ROW',bid_qty:1160,mh_bl:3150,cat:'PV-Mech',np:false,roc:true},
+  {cc:'4305',name:'4305-Racking Install',unit:'ROW',bid_qty:1160,mh_bl:16700,cat:'PV-Mech',np:false,roc:true},
+  {cc:'4306',name:'4306-Racking QAQC',unit:'ROW',bid_qty:1160,mh_bl:3280,cat:'PV-QC',np:false},
+  {cc:'4307',name:'4307-Modules Layout',unit:'EA',bid_qty:114884,mh_bl:3600,cat:'PV-Mech',np:false},
+  {cc:'4308',name:'4308-Modules Install',unit:'EA',bid_qty:114884,mh_bl:14000,cat:'PV-Mech',np:false},
+  {cc:'4309',name:'4309-Modules QAQC',unit:'EA',bid_qty:114884,mh_bl:5700,cat:'PV-QC',np:false},
+  {cc:'4320',name:'4320-Mechanical Punch List',unit:'ROW',bid_qty:1160,mh_bl:1200,cat:'PV-CX',np:false},
+  {cc:'4401',name:'4401-DC Trenching & Boring',unit:'LF',bid_qty:4500,mh_bl:650,cat:'PV-Elec',np:false},
+  {cc:'4402',name:'4402-Transitions Pre-Fab',unit:'EA',bid_qty:756,mh_bl:910,cat:'PV-Elec',np:false},
+  {cc:'4403',name:'4403-DC Transitions Install',unit:'EA',bid_qty:676,mh_bl:1750,cat:'PV-Elec',np:false},
+  {cc:'4405',name:'4405-DC Feeder Cable',unit:'LF',bid_qty:115000,mh_bl:1820,cat:'PV-Elec',np:false},
+  {cc:'4407',name:'4407-Module Wiring',unit:'EA',bid_qty:114884,mh_bl:2760,cat:'PV-Elec',np:false},
+  {cc:'4408',name:'4408-String Cable AG',unit:'LF',bid_qty:942270,mh_bl:4410,cat:'PV-Elec',np:false},
+  {cc:'4410',name:'4410-DC Terminations',unit:'EA',bid_qty:1794,mh_bl:600,cat:'PV-Elec',np:false},
+  {cc:'4411',name:'4411-Combiner Box Install',unit:'EA',bid_qty:299,mh_bl:1500,cat:'PV-Elec',np:false},
+  {cc:'4412',name:'4412-CAB System Install',unit:'LF',bid_qty:46000,mh_bl:3900,cat:'PV-Elec',np:false},
+  {cc:'4413',name:'4413-DC Testing',unit:'LF',bid_qty:1448355,mh_bl:2320,cat:'PV-Elec',np:false},
+  {cc:'4416',name:'4416-Trunk Bus System',unit:'LF',bid_qty:391085,mh_bl:5130,cat:'PV-Elec',np:false},
+  {cc:'4420',name:'4420-Electrical DC Punch List',unit:'ROW',bid_qty:1160,mh_bl:560,cat:'PV-CX',np:false},
+  {cc:'4421',name:'4421-DC QAQC',unit:'ROW',bid_qty:0,mh_bl:0,cat:'PV-QC',np:false},
+  {cc:'4500',name:'4500-AC-MV Trenching & Boring',unit:'LF',bid_qty:31667,mh_bl:2500,cat:'PV-Elec',np:false},
+  {cc:'4501',name:'4501-AC-MV Terminations',unit:'EA',bid_qty:143,mh_bl:840,cat:'PV-Elec',np:false},
+  {cc:'4503',name:'4503-AC-MV Cable Tie-In',unit:'LF',bid_qty:92400,mh_bl:950,cat:'PV-Elec',np:false},
+  {cc:'4511',name:'4511-Sectionalizer',unit:'EA',bid_qty:8,mh_bl:560,cat:'PV-Elec',np:false},
+  {cc:'4512',name:'4512-AC Testing',unit:'DYS',bid_qty:90,mh_bl:5400,cat:'PV-Elec',np:false},
+  {cc:'4520',name:'4520-Electrical MV Punch List',unit:'ROW',bid_qty:1160,mh_bl:1800,cat:'PV-CX',np:false},
+  {cc:'4521',name:'4521-AC QAQC',unit:'EA',bid_qty:13,mh_bl:0,cat:'PV-QC',np:false},
+  {cc:'4700',name:'4700-Inv Skid Excavation',unit:'EA',bid_qty:13,mh_bl:1530,cat:'PV-Elec',np:false},
+  {cc:'4701',name:'4701-Inv Skid Conduit',unit:'EA',bid_qty:13,mh_bl:3000,cat:'PV-Elec',np:false},
+  {cc:'4702',name:'4702-Inv Skid Backfill',unit:'EA',bid_qty:13,mh_bl:630,cat:'PV-Elec',np:false},
+  {cc:'4703',name:'4703-Inv Pile Caps',unit:'EA',bid_qty:13,mh_bl:30,cat:'PV-Mech',np:false},
+  {cc:'4704',name:'4704-Inv Skid Setting',unit:'EA',bid_qty:13,mh_bl:120,cat:'PV-Elec',np:false},
+  {cc:'4614',name:'4614-SCADA Met',unit:'EA',bid_qty:0,mh_bl:0,cat:'PV-Elec',np:false},
+  {cc:'4414',name:'4414-Commissioning',unit:'EA',bid_qty:13,mh_bl:6840,cat:'PV-CX',np:false},
+  {cc:'4602',name:'4602-Fiber Terms',unit:'EA',bid_qty:0,mh_bl:0,cat:'PV-CX',np:false},
+  {cc:'4000-01',name:'4000-01-Mobilization',unit:'DAYS',bid_qty:10,mh_bl:200,cat:'Civil',np:false},
+  {cc:'4001-01',name:'4001-01-DeMobilization',unit:'DAYS',bid_qty:11,mh_bl:220,cat:'Civil',np:false},
+];
+
+const PCS_LOCATIONS = ['11A-PCS-10','11A-PCS-11','11A-PCS-13','11B MVJB-01','11B-PCS-01','11B-PCS-05','11B-PCS-06','11B-PCS-07','11B-PCS-08','12A MVJB-01','12A-PCS-02','12A-PCS-03','12A-PCS-04','12A-PCS-09','12A-PCS-12','B-1-A','B-1-B','B-1-C','B-1-D','B-1-E','B-1-F','B-2-A','B-2-B','B-2-C','B-2-D','B-2-E','B-2-F','FOPP','From: PCS-1-1 & To: PCS-1-2','From: PCS-1-2 & To: SEC-1-E','From: PCS-1-3 & To: PCS-1-4','From: PCS-1-4 & To: PCS-1-5','From: PCS-1-5 & To: PCS-1-6','From: PCS-2-1 & To: SEC-2-A','From: PCS-2-2 & To: PCS-2-3','From: PCS-2-3 & To: SEC-2-E','From: PCS-2-4 & To: SEC-2-F','From: PCS-2-5 & To: PCS-2-6','From: SEC-1-A & To: SEC-1-B','From: SEC-1-B & To: SEC-1-C','From: SEC-1-C & To:SEC-1-D','From: SEC-1-D & To: PCS-1-1','From: SEC-1-E & To: PCS-1-3','From: SEC-2-A & To: SEC-2-B','From: SEC-2-B & To: SEC-2-C','From: SEC-2-C & To: SEC-2-D','From: SEC-2-D & To: PCS-2-2','From: SEC-2-E & To: PCS-2-4','From: SEC-2-F  & To: PCS-2-7','From: SEC-2-F & To: PCS-2-5','From: SS & To: PCS-2-1','From: SS & To: SEC-1-A','Met Station','Met Station- PCS 1-5','Met Station- PCS 2-1','Met Station- PCS 2-2','Met Station- PCS 2-7','PCS-1-1','PCS-1-2','PCS-1-3','PCS-1-4','PCS-1-5','PCS-1-6','PCS-2-1','PCS-2-2','PCS-2-3','PCS-2-4','PCS-2-5','PCS-2-6','PCS-2-7','PV','SEC-1-A','SEC-1-B','SEC-1-C','SEC-1-D','SEC-1-E','SEC-2-A','SEC-2-B','SEC-2-C','SEC-2-D','SEC-2-E','SEC-2-F','SS','SUBSTATION','Site','Substation'];
+
+const ROC_PCS = ['11A-PCS-06','11A-PCS-07','11A-PCS-08','11A-PCS-09','11A-PCS-10','11A-PCS-11','11B-PCS-12','11B-PCS-13','12B-PCS-01','12B-PCS-02','12B-PCS-03','12B-PCS-04','12B-PCS-05','12B-PCS-06','12B-PCS-07','12B-PCS-08','12B-PCS-09','12B-PCS-10','12B-PCS-11','12B-PCS-12','12B-PCS-13','PCS-01','PCS-02','PCS-03','PCS-04','PCS-05','PCS-06','PCS-07','PCS-08','PCS-09','PCS-10','PCS-11','PCS-12','PCS-13'];
+
+const TRADES = ['Foreman','Journeyman','Apprentice','Laborer','Operator','Superintendent','QC Inspector','Safety','Engineer','Project Manager','Admin'];
+
+const ROC_WEIGHTS = [0.20, 0.20, 0.30, 0.30];
+const ROC_CCS = ['4304','4305'];
+
+// ============================================================
+// STORAGE HELPERS
+// ============================================================
+function load(key){ try{ return JSON.parse(localStorage.getItem(key))||[]; }catch(e){ return []; } }
+function save(key,data){ localStorage.setItem(key,JSON.stringify(data)); }
+
+function genId(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+
+function getActual(){ return load('hend_actual'); }
+function getRoc(){ return load('hend_roc'); }
+function getTime(){ return load('hend_time'); }
+
+function saveActual(d){ save('hend_actual',d); }
+function saveRoc(d){ save('hend_roc',d); }
+function saveTime(d){ save('hend_time',d); }
+
+function todayStr(){
+  const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+function nextSaturday(dateStr){
+  const d=new Date(dateStr+'T12:00:00');
+  const day=d.getDay(); // 0=Sun
+  const diff=(6-day+7)%7||7;
+  d.setDate(d.getDate()+diff);
+  return d.toISOString().slice(0,10);
+}
+
+function fmtDate(s){
+  if(!s) return '';
+  const [y,m,d]=s.split('-');
+  return m+'/'+d+'/'+y;
+}
+
+function fmt(n,dec=0){ return Number(n).toLocaleString('en-US',{minimumFractionDigits:dec,maximumFractionDigits:dec}); }
+
+function ccInfo(cc){ return COST_CODES.find(c=>c.cc===cc)||null; }
+function ccName(cc){ const c=ccInfo(cc); return c?c.name:cc; }
+
+// ============================================================
+// DERIVED DATA — JTD ROLLUP
+// ============================================================
+// Returns {cc: jtd_qty} from hend_actual
+function jtdByCC(){
+  const actual=getActual();
+  const map={};
+  for(const e of actual){
+    map[e.cc]=(map[e.cc]||0)+Number(e.qty||0);
+  }
+  return map;
+}
+
+// Returns {cc: actual_mh} from timesheet
+function mhByCC(){
+  const ts=getTime();
+  const map={};
+  for(const e of ts){
+    map[e.cc]=(map[e.cc]||0)+Number(e.hours||0);
+  }
+  return map;
+}
+
+// Compute overall % complete (weighted by budget MH among CCs with non-zero mh_bl)
+function overallPct(){
+  const jtd=jtdByCC();
+  let earnedMH=0, totalBudgetMH=0;
+  for(const c of COST_CODES){
+    if(c.mh_bl<=0) continue;
+    const pct=c.bid_qty>0?Math.min((jtd[c.cc]||0)/c.bid_qty,1):0;
+    earnedMH+=pct*c.mh_bl;
+    totalBudgetMH+=c.mh_bl;
+  }
+  return totalBudgetMH>0?(earnedMH/totalBudgetMH)*100:0;
+}
+
+function pbarClass(pct){ if(pct>=75) return 'green'; if(pct>=25) return 'yellow'; return 'red'; }
+
+function makePbar(pct,w=100){
+  const p=Math.min(pct,100);
+  const cls=pbarClass(p);
+  return `<div class="pbar-wrap"><div class="pbar"><div class="pbar-fill ${cls}" style="width:${p}%"></div></div><span class="pbar-pct">${p.toFixed(1)}%</span></div>`;
+}
+
+// ============================================================
+// INIT
+// ============================================================
+let donutChart=null;
+
+window.addEventListener('DOMContentLoaded',()=>{
+  const today=todayStr();
+  document.getElementById('ap-date').value=today;
+  document.getElementById('roc-date').value=today;
+  document.getElementById('ts-date').value=today;
+  document.getElementById('int-date').value=today;
+  document.getElementById('cli-date').value=today;
+
+  buildApCcSelect();
+  buildApPcsSelect();
+  buildRocPcsSelect();
+  apCcChange();
+  tsDateChange();
+  tsAddRow();
+
+  renderActualTab();
+  renderRocTab();
+  renderTimesheetTable();
+  renderSummary();
+  renderInternal();
+  renderClient();
+});
+
+// ============================================================
+// TAB SWITCHING
+// ============================================================
+function switchTab(name){
+  document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el=>el.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  const btns=document.querySelectorAll('.tab-btn');
+  const idx={actual:0,roc:1,timesheet:2,summary:3,internal:4,client:5}[name];
+  if(btns[idx]) btns[idx].classList.add('active');
+
+  if(name==='summary') renderSummary();
+  if(name==='internal') renderInternal();
+  if(name==='client') renderClient();
+  if(name==='actual') renderActualTab();
+  if(name==='roc') renderRocTab();
+}
+
+// ============================================================
+// TAB 1 – ACTUAL PROGRESS
+// ============================================================
+function buildApCcSelect(){
+  const sel=document.getElementById('ap-cc');
+  sel.innerHTML='';
+  for(const c of COST_CODES){
+    if(c.roc) continue; // ROC codes go in ROC tab
+    const o=document.createElement('option');
+    o.value=c.cc;
+    o.textContent=c.cc+' – '+c.name;
+    sel.appendChild(o);
+  }
+}
+
+function buildApPcsSelect(){
+  const sel=document.getElementById('ap-pcs');
+  sel.innerHTML='<option value="">-- Select Location --</option>';
+  for(const loc of PCS_LOCATIONS){
+    const o=document.createElement('option');
+    o.value=loc; o.textContent=loc;
+    sel.appendChild(o);
+  }
+}
+
+function apCcChange(){
+  const cc=document.getElementById('ap-cc').value;
+  const c=ccInfo(cc);
+  const grp=document.getElementById('ap-pcs-group');
+  grp.style.display=(c&&c.np)?'none':'flex';
+}
+
+function apAddEntry(){
+  const date=document.getElementById('ap-date').value;
+  const cc=document.getElementById('ap-cc').value;
+  const c=ccInfo(cc);
+  const pcs=c&&c.np?'':(document.getElementById('ap-pcs').value||'');
+  const qty=parseFloat(document.getElementById('ap-qty').value)||0;
+  const note=document.getElementById('ap-note').value.trim();
+
+  if(!date||!cc){ showAlert('ap-alert','Please fill in Date and Cost Code.','error'); return; }
+  if(qty<=0){ showAlert('ap-alert','Please enter a quantity > 0.','error'); return; }
+
+  const actual=getActual();
+  actual.push({id:genId(),date,cc,pcs,qty,note});
+  saveActual(actual);
+
+  document.getElementById('ap-qty').value='';
+  document.getElementById('ap-note').value='';
+  showAlert('ap-alert','Entry added.','success');
+  renderActualTab();
+  updateLastSaved();
+}
+
+function apDeleteEntry(id){
+  const actual=getActual().filter(e=>e.id!==id);
+  saveActual(actual);
+  renderActualTab();
+  updateLastSaved();
+}
+
+function renderActualTab(){
+  const date=document.getElementById('ap-date').value;
+  document.getElementById('ap-today-title').textContent=`Entries for ${fmtDate(date)||'Selected Date'}`;
+  renderApTodayTable(date);
+  renderApRollup();
+}
+
+function renderApTodayTable(date){
+  const actual=getActual().filter(e=>e.date===date);
+  const tbody=document.getElementById('ap-today-tbody');
+  if(!actual.length){
+    tbody.innerHTML='<tr><td colspan="6" style="color:var(--muted);text-align:center;padding:16px">No entries for this date.</td></tr>';
+    return;
+  }
+  tbody.innerHTML=actual.map(e=>{
+    const c=ccInfo(e.cc);
+    return `<tr>
+      <td><code style="color:var(--accent)">${e.cc}</code></td>
+      <td style="color:var(--muted);font-size:12px">${c?c.name:e.cc}</td>
+      <td>${e.pcs||'–'}</td>
+      <td class="num">${fmt(e.qty,2)}</td>
+      <td style="color:var(--muted)">${e.note||'–'}</td>
+      <td><button class="btn btn-danger no-print" onclick="apDeleteEntry('${e.id}')">Del</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderApRollup(){
+  const jtd=jtdByCC();
+  const activeCCs=Object.keys(jtd);
+  if(!activeCCs.length){
+    document.getElementById('ap-rollup-tbody').innerHTML='<tr><td colspan="6" style="color:var(--muted);text-align:center;padding:16px">No production data entered yet.</td></tr>';
+    return;
+  }
+  // Sort by cc
+  const sorted=[...COST_CODES].filter(c=>jtd[c.cc]);
+  const tbody=document.getElementById('ap-rollup-tbody');
+  tbody.innerHTML=sorted.map(c=>{
+    const qty=jtd[c.cc]||0;
+    const pct=c.bid_qty>0?(qty/c.bid_qty)*100:0;
+    return `<tr>
+      <td><code style="color:var(--accent)">${c.cc}</code></td>
+      <td>${c.name}</td>
+      <td style="color:var(--muted)">${c.unit}</td>
+      <td class="num">${fmt(c.bid_qty)}</td>
+      <td class="num">${fmt(qty,2)}</td>
+      <td>${makePbar(pct)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ============================================================
+// TAB 2 – ROC
+// ============================================================
+function buildRocPcsSelect(){
+  const sel=document.getElementById('roc-pcs');
+  sel.innerHTML='';
+  for(const p of ROC_PCS){
+    const o=document.createElement('option');
+    o.value=p; o.textContent=p;
+    sel.appendChild(o);
+  }
+}
+
+function rocClearForm(){
+  document.getElementById('roc-a1').checked=false;
+  document.getElementById('roc-a2').checked=false;
+  document.getElementById('roc-a3').checked=false;
+  document.getElementById('roc-a4').checked=false;
+}
+
+function rocSave(){
+  const date=document.getElementById('roc-date').value;
+  const cc=document.getElementById('roc-cc').value;
+  const pcs=document.getElementById('roc-pcs').value;
+  const a1=document.getElementById('roc-a1').checked;
+  const a2=document.getElementById('roc-a2').checked;
+  const a3=document.getElementById('roc-a3').checked;
+  const a4=document.getElementById('roc-a4').checked;
+
+  if(!date||!cc||!pcs){ showAlert('roc-alert','Please fill in all fields.','error'); return; }
+
+  const roc=getRoc();
+  // Upsert: one entry per cc+pcs (latest date wins)
+  const idx=roc.findIndex(e=>e.cc===cc&&e.pcs===pcs);
+  const entry={id:genId(),date,cc,pcs,a1,a2,a3,a4};
+  if(idx>=0) roc[idx]={...roc[idx],...entry,id:roc[idx].id};
+  else roc.push(entry);
+  saveRoc(roc);
+
+  showAlert('roc-alert','ROC entry saved.','success');
+  renderRocTab();
+  updateLastSaved();
+}
+
+function rocDelete(id){
+  saveRoc(getRoc().filter(e=>e.id!==id));
+  renderRocTab();
+  updateLastSaved();
+}
+
+function rocEarnedPct(e){
+  let p=0;
+  if(e.a1) p+=20;
+  if(e.a2) p+=20;
+  if(e.a3) p+=30;
+  if(e.a4) p+=30;
+  return p;
+}
+
+function renderRocTab(){
+  const roc=getRoc();
+  const tbody=document.getElementById('roc-tbody');
+  if(!roc.length){
+    tbody.innerHTML='<tr><td colspan="9" style="color:var(--muted);text-align:center;padding:16px">No ROC entries yet.</td></tr>';
+    return;
+  }
+  // Sort by cc then pcs
+  const sorted=[...roc].sort((a,b)=>a.cc.localeCompare(b.cc)||a.pcs.localeCompare(b.pcs));
+  tbody.innerHTML=sorted.map(e=>{
+    const pct=rocEarnedPct(e);
+    const ck=(v)=>v?'<span class="check-yes">✓</span>':'<span class="check-no">—</span>';
+    return `<tr>
+      <td><code style="color:var(--accent)">${e.cc}</code></td>
+      <td>${e.pcs}</td>
+      <td>${ck(e.a1)}</td><td>${ck(e.a2)}</td><td>${ck(e.a3)}</td><td>${ck(e.a4)}</td>
+      <td class="num">${pct}%</td>
+      <td>${fmtDate(e.date)}</td>
+      <td><button class="btn btn-danger no-print" onclick="rocDelete('${e.id}')">Del</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ============================================================
+// TAB 3 – TIMESHEET
+// ============================================================
+function tsDateChange(){
+  const date=document.getElementById('ts-date').value;
+  if(date){
+    document.getElementById('ts-week-ending').value=fmtDate(nextSaturday(date));
+  }
+  renderTsDailyTotal();
+}
+
+function buildCcOptionsStr(){
+  return COST_CODES.map(c=>`<option value="${c.cc}">${c.cc} – ${c.name}</option>`).join('');
+}
+
+function buildTradeOptionsStr(){
+  return TRADES.map(t=>`<option value="${t}">${t}</option>`).join('');
+}
+
+const ccOpts=buildCcOptionsStr();
+const tradeOpts=buildTradeOptionsStr();
+
+function tsAddRow(){
+  const tbody=document.getElementById('ts-input-tbody');
+  const rowId='tsr-'+genId();
+  const tr=document.createElement('tr');
+  tr.id=rowId;
+  tr.innerHTML=`
+    <td><input type="text" placeholder="Name" style="min-width:140px"></td>
+    <td><input type="text" placeholder="ID" style="min-width:80px"></td>
+    <td><select style="min-width:130px"><option value="">-- Trade --</option>${tradeOpts}</select></td>
+    <td><select style="min-width:180px"><option value="">-- CC --</option>${ccOpts}</select></td>
+    <td><input type="number" min="0" step=".5" placeholder="0.0" style="min-width:70px" oninput="renderTsDailyTotal()"></td>
+    <td><button class="btn btn-danger no-print" onclick="document.getElementById('${rowId}').remove();renderTsDailyTotal()">✕</button></td>
+  `;
+  tbody.appendChild(tr);
+}
+
+function renderTsDailyTotal(){
+  const rows=document.querySelectorAll('#ts-input-tbody tr');
+  let total=0;
+  rows.forEach(tr=>{
+    const hrs=parseFloat(tr.querySelectorAll('input')[2]?.value)||0;
+    total+=hrs;
+  });
+  document.getElementById('ts-daily-total').textContent=total>0?`Total: ${fmt(total,1)} hrs`:'';
+}
+
+function tsSave(){
+  const date=document.getElementById('ts-date').value;
+  if(!date){ showAlert('ts-alert','Please select a date.','error'); return; }
+  const rows=document.querySelectorAll('#ts-input-tbody tr');
+  const entries=[];
+  let ok=true;
+  rows.forEach(tr=>{
+    const inputs=tr.querySelectorAll('input');
+    const selects=tr.querySelectorAll('select');
+    const emp_name=inputs[0]?.value.trim();
+    const emp_id=inputs[1]?.value.trim();
+    const trade=selects[0]?.value;
+    const cc=selects[1]?.value;
+    const hours=parseFloat(inputs[2]?.value)||0;
+    if(emp_name||cc||hours){
+      if(!emp_name||!trade||!cc||hours<=0){ ok=false; }
+      else entries.push({id:genId(),date,emp_name,emp_id,trade,cc,hours});
+    }
+  });
+  if(!ok){ showAlert('ts-alert','Complete all fields (Name, Trade, CC, Hours > 0) for each row.','error'); return; }
+  if(!entries.length){ showAlert('ts-alert','No valid rows to save.','error'); return; }
+
+  const ts=getTime();
+  entries.forEach(e=>ts.push(e));
+  saveTime(ts);
+
+  // Clear input rows
+  document.getElementById('ts-input-tbody').innerHTML='';
+  tsAddRow();
+  renderTsDailyTotal();
+  showAlert('ts-alert',`${entries.length} timesheet row(s) saved.`,'success');
+  renderTimesheetTable();
+  populateTsFilterDates();
+  updateLastSaved();
+}
+
+function populateTsFilterDates(){
+  const ts=getTime();
+  const dates=[...new Set(ts.map(e=>e.date))].sort().reverse();
+  const sel=document.getElementById('ts-filter-date');
+  const cur=sel.value;
+  sel.innerHTML='<option value="">All Dates</option>'+dates.map(d=>`<option value="${d}">${fmtDate(d)}</option>`).join('');
+  if(cur) sel.value=cur;
+}
+
+function renderTimesheetTable(){
+  populateTsFilterDates();
+  const filter=document.getElementById('ts-filter-date').value;
+  let ts=getTime();
+  if(filter) ts=ts.filter(e=>e.date===filter);
+  ts.sort((a,b)=>b.date.localeCompare(a.date)||a.emp_name.localeCompare(b.emp_name));
+
+  const tbody=document.getElementById('ts-tbody');
+  const tfoot=document.getElementById('ts-tfoot');
+  if(!ts.length){
+    tbody.innerHTML='<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:16px">No timesheet records.</td></tr>';
+    tfoot.innerHTML='';
+    document.getElementById('ts-table-total').textContent='';
+    return;
+  }
+  let total=0;
+  tbody.innerHTML=ts.map(e=>{
+    total+=Number(e.hours||0);
+    return `<tr>
+      <td>${fmtDate(e.date)}</td>
+      <td>${e.emp_name}</td>
+      <td style="color:var(--muted)">${e.emp_id||'–'}</td>
+      <td>${e.trade}</td>
+      <td><code style="color:var(--accent)">${e.cc}</code></td>
+      <td class="num">${fmt(e.hours,1)}</td>
+      <td><button class="btn btn-danger no-print" onclick="tsDeleteEntry('${e.id}')">Del</button></td>
+    </tr>`;
+  }).join('');
+  tfoot.innerHTML=`<tr><td colspan="5" style="text-align:right;color:var(--muted)">Total Hours:</td><td class="num">${fmt(total,1)}</td><td></td></tr>`;
+  document.getElementById('ts-table-total').textContent=`${ts.length} records | ${fmt(total,1)} hrs`;
+}
+
+function tsDeleteEntry(id){
+  saveTime(getTime().filter(e=>e.id!==id));
+  renderTimesheetTable();
+  updateLastSaved();
+}
+
+// ============================================================
+// TAB 4 – SUMMARY
+// ============================================================
+const CATEGORIES=['Civil','PV-Mech','PV-Elec','PV-QC','PV-CX','PV-OVH','PV-Warehouse'];
+const CAT_COLORS={Civil:'#14b8a6','PV-Mech':'#4f8ef7','PV-Elec':'#f59e0b','PV-QC':'#22c55e','PV-CX':'#7c5cfc','PV-OVH':'#8892a4','PV-Warehouse':'#ef4444'};
+
+function renderSummary(){
+  const jtd=jtdByCC();
+  const mh=mhByCC();
+  const totalBudgetMH=COST_CODES.reduce((s,c)=>s+c.mh_bl,0);
+  const totalActualMH=Object.values(mh).reduce((s,v)=>s+v,0);
+  const ovPct=overallPct();
+
+  // KPI cards
+  document.getElementById('summary-kpis').innerHTML=`
+    <div class="kpi"><div class="kpi-label">Total Budget Hours</div><div class="kpi-value">${fmt(totalBudgetMH)}</div><div class="kpi-sub">MH baseline</div></div>
+    <div class="kpi teal"><div class="kpi-label">Actual Hours JTD</div><div class="kpi-value">${fmt(totalActualMH,1)}</div><div class="kpi-sub">From timesheets</div></div>
+    <div class="kpi green"><div class="kpi-label">Overall % Complete</div><div class="kpi-value">${ovPct.toFixed(1)}%</div><div class="kpi-sub">Weighted by budget MH</div></div>
+    <div class="kpi yellow"><div class="kpi-label">SPI</div><div class="kpi-value">N/A</div><div class="kpi-sub">Planned % not tracked</div></div>
+  `;
+
+  // Donut chart
+  if(donutChart) donutChart.destroy();
+  const ctx=document.getElementById('summary-donut').getContext('2d');
+  donutChart=new Chart(ctx,{
+    type:'doughnut',
+    data:{
+      labels:['Complete','Remaining'],
+      datasets:[{data:[ovPct,Math.max(0,100-ovPct)],backgroundColor:['#22c55e','#2e3350'],borderWidth:0}]
+    },
+    options:{
+      cutout:'72%',
+      plugins:{legend:{display:false},tooltip:{enabled:false}},
+      animation:{duration:600}
+    }
+  });
+  document.getElementById('summary-donut-label').textContent=ovPct.toFixed(1)+'%';
+
+  // Category progress
+  let catHtml='';
+  for(const cat of CATEGORIES){
+    const codes=COST_CODES.filter(c=>c.cat===cat);
+    if(!codes.length) continue;
+    const color=CAT_COLORS[cat]||'var(--accent)';
+    let catEarned=0,catBudget=0;
+    codes.forEach(c=>{
+      if(c.mh_bl>0){
+        const pct=c.bid_qty>0?Math.min((jtd[c.cc]||0)/c.bid_qty,1):0;
+        catEarned+=pct*c.mh_bl;
+        catBudget+=c.mh_bl;
+      }
+    });
+    const catPct=catBudget>0?(catEarned/catBudget)*100:0;
+    catHtml+=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <div style="width:110px;font-size:12px;font-weight:600;color:${color}">${cat}</div>
+      <div class="pbar" style="flex:1"><div class="pbar-fill ${pbarClass(catPct)}" style="width:${Math.min(catPct,100)}%;background:${color}"></div></div>
+      <div style="font-size:12px;width:42px;text-align:right">${catPct.toFixed(1)}%</div>
+    </div>`;
+  }
+  document.getElementById('summary-cat-progress').innerHTML=catHtml;
+
+  // Detail table per category
+  let detailHtml='';
+  for(const cat of CATEGORIES){
+    const codes=COST_CODES.filter(c=>c.cat===cat);
+    if(!codes.length) continue;
+    const color=CAT_COLORS[cat]||'var(--accent)';
+    const rows=codes.map(c=>{
+      const qty=jtd[c.cc]||0;
+      const pct=c.bid_qty>0?(qty/c.bid_qty)*100:0;
+      const earnedMH=c.mh_bl>0&&c.bid_qty>0?(qty/c.bid_qty)*c.mh_bl:0;
+      const actualMH=mh[c.cc]||0;
+      return `<tr>
+        <td><code style="color:var(--accent);font-size:11px">${c.cc}</code></td>
+        <td style="font-size:12px">${c.name}</td>
+        <td class="num">${fmt(c.bid_qty)}</td>
+        <td class="num">${fmt(qty,2)}</td>
+        <td>${makePbar(pct)}</td>
+        <td class="num">${fmt(c.mh_bl)}</td>
+        <td class="num">${fmt(actualMH,1)}</td>
+        <td class="num">${fmt(earnedMH,1)}</td>
+      </tr>`;
+    }).join('');
+    detailHtml+=`<div class="cat-section" style="margin-bottom:12px">
+      <div class="cat-header" style="color:${color}">${cat}</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>CC</th><th>Activity</th><th class="num">Budget Qty</th><th class="num">JTD</th><th>% Complete</th><th class="num">Budget MH</th><th class="num">Actual MH</th><th class="num">Earned MH</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+    </div>`;
+  }
+  document.getElementById('summary-detail').innerHTML=detailHtml;
+}
+
+// ============================================================
+// TAB 5 – INTERNAL REPORT
+// ============================================================
+function renderInternal(){
+  const date=document.getElementById('int-date').value;
+  document.getElementById('int-print-date').textContent='Report Date: '+fmtDate(date);
+
+  const actual=getActual();
+  const ts=getTime();
+  const jtd=jtdByCC();
+
+  // Section 1 – Today's production
+  const todayActual=actual.filter(e=>e.date===date);
+  const tbody1=document.getElementById('int-prod-tbody');
+  if(!todayActual.length){
+    tbody1.innerHTML='<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:12px">No production entries for this date.</td></tr>';
+  } else {
+    tbody1.innerHTML=todayActual.map(e=>{
+      const c=ccInfo(e.cc);
+      const budget=c?c.bid_qty:0;
+      const jTotal=jtd[e.cc]||0;
+      const pct=budget>0?(jTotal/budget)*100:0;
+      return `<tr>
+        <td><code style="color:var(--accent)">${e.cc}</code></td>
+        <td style="font-size:12px">${c?c.name:e.cc}</td>
+        <td>${e.pcs||'–'}</td>
+        <td class="num">${fmt(e.qty,2)}</td>
+        <td class="num">${fmt(jTotal,2)}</td>
+        <td class="num">${fmt(budget)}</td>
+        <td>${makePbar(pct)}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // Section 2 – Manpower
+  const todayTs=ts.filter(e=>e.date===date);
+  const tbody2=document.getElementById('int-man-tbody');
+  const tfoot2=document.getElementById('int-man-tfoot');
+  if(!todayTs.length){
+    tbody2.innerHTML='<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:12px">No timesheet entries for this date.</td></tr>';
+    tfoot2.innerHTML='';
+  } else {
+    let totalHrs=0;
+    tbody2.innerHTML=todayTs.map(e=>{
+      totalHrs+=Number(e.hours||0);
+      return `<tr>
+        <td>${e.emp_name}</td>
+        <td>${e.trade}</td>
+        <td><code style="color:var(--accent)">${e.cc}</code></td>
+        <td class="num">${fmt(e.hours,1)}</td>
+      </tr>`;
+    }).join('');
+    tfoot2.innerHTML=`<tr><td colspan="2">Crew: ${todayTs.length} personnel</td><td>Total Hours:</td><td class="num">${fmt(totalHrs,1)}</td></tr>`;
+  }
+
+  // Section 3 – Progress snapshot (active CCs only)
+  const activeCCs=new Set(actual.map(e=>e.cc));
+  const mh=mhByCC();
+  const jtdAll=jtdByCC();
+  let snapHtml='';
+  for(const cat of CATEGORIES){
+    const codes=COST_CODES.filter(c=>c.cat===cat&&activeCCs.has(c.cc));
+    if(!codes.length) continue;
+    const color=CAT_COLORS[cat]||'var(--accent)';
+    const rows=codes.map(c=>{
+      const qty=jtdAll[c.cc]||0;
+      const pct=c.bid_qty>0?(qty/c.bid_qty)*100:0;
+      return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px">
+        <div style="width:180px;overflow:hidden;text-overflow:ellipsis">${c.name}</div>
+        <div class="pbar" style="flex:1"><div class="pbar-fill ${pbarClass(pct)}" style="width:${Math.min(pct,100)}%"></div></div>
+        <div style="width:50px;text-align:right">${pct.toFixed(1)}%</div>
+        <div style="width:80px;text-align:right;color:var(--muted)">${fmt(qty,0)} / ${fmt(c.bid_qty)}</div>
+      </div>`;
+    }).join('');
+    snapHtml+=`<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:700;color:${color};text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">${cat}</div>${rows}</div>`;
+  }
+  document.getElementById('int-progress').innerHTML=snapHtml||'<span style="color:var(--muted)">No active production data.</span>';
+}
+
+// ============================================================
+// TAB 6 – CLIENT REPORT
+// ============================================================
+const CLI_CAT_MAP={Civil:'Civil',  'PV-Mech':'Mechanical', 'PV-Elec':'Electrical', 'PV-QC':'QC', 'PV-CX':'Commissioning', 'PV-OVH':'Overhead', 'PV-Warehouse':'Warehouse'};
+const CLI_GROUPS=['Civil','PV-Mech','PV-Elec','PV-QC','PV-CX','PV-OVH','PV-Warehouse'];
+
+function renderClient(){
+  const date=document.getElementById('cli-date').value;
+  document.getElementById('cli-print-date').textContent='Report Date: '+fmtDate(date);
+  document.getElementById('cli-date-display').textContent='Report Date: '+fmtDate(date);
+
+  const actual=getActual();
+  const ts=getTime();
+  const jtd=jtdByCC();
+  const todayActual=actual.filter(e=>e.date===date);
+
+  // Section 1 – Production grouped by CLI group
+  let prodHtml='';
+  for(const cat of CLI_GROUPS){
+    const codes=COST_CODES.filter(c=>c.cat===cat);
+    const todayForCat=todayActual.filter(e=>{
+      const ci=ccInfo(e.cc);
+      return ci&&ci.cat===cat;
+    });
+    if(!todayForCat.length) continue;
+    const label=CLI_CAT_MAP[cat]||cat;
+    // Aggregate by CC
+    const ccTotals={};
+    for(const e of todayForCat){
+      ccTotals[e.cc]=(ccTotals[e.cc]||0)+Number(e.qty||0);
+    }
+    const rows=Object.keys(ccTotals).map(cc=>{
+      const c=ccInfo(cc);
+      const qtyToday=ccTotals[cc];
+      const qjtd=jtd[cc]||0;
+      const bqty=c?c.bid_qty:0;
+      const pct=bqty>0?(qjtd/bqty)*100:0;
+      return `<tr>
+        <td>${c?c.name:cc}</td>
+        <td class="num">${fmt(qtyToday,2)}</td>
+        <td class="num">${fmt(qjtd,2)}</td>
+        <td class="num">${fmt(bqty)}</td>
+        <td>${makePbar(pct)}</td>
+      </tr>`;
+    }).join('');
+    prodHtml+=`<div style="margin-bottom:18px">
+      <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:${CAT_COLORS[cat]||'var(--accent)'};margin-bottom:6px">${label}</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Activity</th><th class="num">Qty Today</th><th class="num">JTD</th><th class="num">Budget Qty</th><th>% Complete</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+    </div>`;
+  }
+  document.getElementById('cli-prod-sections').innerHTML=prodHtml||'<span style="color:var(--muted)">No production entries for this date.</span>';
+
+  // Section 2 – Manpower summary
+  const todayTs=ts.filter(e=>e.date===date);
+  let mpHtml='';
+  if(!todayTs.length){
+    mpHtml='<span style="color:var(--muted)">No manpower data for this date.</span>';
+  } else {
+    const byTrade={};
+    let totalHrs=0;
+    for(const e of todayTs){
+      byTrade[e.trade]=(byTrade[e.trade]||0)+Number(e.hours||0);
+      totalHrs+=Number(e.hours||0);
+    }
+    const headcount=todayTs.length;
+    mpHtml=`<div class="kpi-grid" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr));margin-bottom:16px">
+      <div class="kpi teal"><div class="kpi-label">Total Headcount</div><div class="kpi-value">${headcount}</div></div>
+      <div class="kpi"><div class="kpi-label">Total Hours</div><div class="kpi-value">${fmt(totalHrs,1)}</div></div>
+    </div>`;
+    const tradeRows=Object.entries(byTrade).sort((a,b)=>b[1]-a[1]).map(([t,h])=>
+      `<tr><td>${t}</td><td class="num">${fmt(h,1)}</td></tr>`
+    ).join('');
+    mpHtml+=`<div class="table-wrap"><table>
+      <thead><tr><th>Trade</th><th class="num">Hours</th></tr></thead>
+      <tbody>${tradeRows}</tbody>
+      <tfoot><tr><td>Total</td><td class="num">${fmt(totalHrs,1)}</td></tr></tfoot>
+    </table></div>`;
+  }
+  document.getElementById('cli-manpower').innerHTML=mpHtml;
+
+  // Section 3 – Overall progress bars (active CCs)
+  const activeCCs=new Set(actual.map(e=>e.cc));
+  let progHtml='';
+  for(const cat of CLI_GROUPS){
+    const codes=COST_CODES.filter(c=>c.cat===cat&&activeCCs.has(c.cc));
+    if(!codes.length) continue;
+    const label=CLI_CAT_MAP[cat]||cat;
+    const color=CAT_COLORS[cat]||'var(--accent)';
+    const rows=codes.map(c=>{
+      const qty=jtd[c.cc]||0;
+      const pct=c.bid_qty>0?(qty/c.bid_qty)*100:0;
+      return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:12px">
+        <div style="width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.name}</div>
+        <div class="pbar" style="flex:1"><div class="pbar-fill ${pbarClass(pct)}" style="width:${Math.min(pct,100)}%;background:${color}"></div></div>
+        <div style="width:44px;text-align:right;font-size:11px">${pct.toFixed(1)}%</div>
+      </div>`;
+    }).join('');
+    progHtml+=`<div style="margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;color:${color};text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">${label}</div>
+      ${rows}
+    </div>`;
+  }
+  document.getElementById('cli-progress').innerHTML=progHtml||'<span style="color:var(--muted)">No production data yet.</span>';
+}
+
+// ============================================================
+// UTILITY
+// ============================================================
+function showAlert(elId, msg, type){
+  const el=document.getElementById(elId);
+  if(!el) return;
+  const cls=type==='error'?'alert-danger':'alert-success';
+  el.innerHTML=`<div class="alert ${cls}" style="${type==='error'?'background:#ef444420;border:1px solid #ef444440;color:var(--red)':'background:#22c55e20;border:1px solid #22c55e40;color:var(--green)'}">${msg}</div>`;
+  setTimeout(()=>{ el.innerHTML=''; },3500);
+}
+
+function updateLastSaved(){
+  const now=new Date();
+  document.getElementById('lastSaved').textContent='Last saved: '+now.toLocaleTimeString();
+}
+
+// Listen for date changes on AP tab
+document.getElementById('ap-date').addEventListener('change',()=>renderActualTab());
+document.getElementById('int-date').addEventListener('change',()=>renderInternal());
+document.getElementById('cli-date').addEventListener('change',()=>renderClient());
+</script>
+</body>
+</html>
