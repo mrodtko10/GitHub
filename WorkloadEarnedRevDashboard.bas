@@ -160,16 +160,13 @@ Sub RefreshWorkloadDashboard()
             End If
         End If
 
-        ' Skip header-echo, total, placeholder rows
+        ' Stop at TOTAL row — everything after is secondary % tables, not project data
+        If projCode = "Total" Or projCode = "TOTAL" Then Exit For
+        ' Skip header-echo and placeholder rows
         If projCode = "Project Number" Then GoTo SkipRow
-        If projCode = "Total" Or projCode = "TOTAL" Then GoTo SkipRow
         If projCode = "New" Or projCode = "0" Then GoTo SkipRow
-        ' Skip secondary table rows (weekly % section starts with same project numbers)
-        If vStatus = "Secured" Or vStatus = "Anticipated" Or vStatus = "Possible" Then
-            ' valid row — continue
-        Else
-            GoTo SkipRow
-        End If
+        ' Only include rows with a recognised status
+        If vStatus <> "Secured" And vStatus <> "Anticipated" And vStatus <> "Possible" Then GoTo SkipRow
 
         Dim vTcv     As Double
         Dim vEarned  As Double
