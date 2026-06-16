@@ -157,13 +157,22 @@ tfoot td{font-weight:700;background:var(--surface2)}
 
 <div class="tab-bar">
   <button class="tab-btn entry-tab active" onclick="switchTab('actual')">
-    <span class="tab-label-hint">Entry</span>Actual Progress
+    <span class="tab-label-hint">Entry</span>Daily Progress Entry
+  </button>
+  <button class="tab-btn display-tab" onclick="switchTab('ap-view')">
+    <span class="tab-label-hint">View</span>Progress View
   </button>
   <button class="tab-btn entry-tab" onclick="switchTab('roc')">
-    <span class="tab-label-hint">Entry</span>ROC
+    <span class="tab-label-hint">Entry</span>ROC Daily Progress Entry
+  </button>
+  <button class="tab-btn display-tab" onclick="switchTab('roc-view')">
+    <span class="tab-label-hint">View</span>ROC View
   </button>
   <button class="tab-btn entry-tab" onclick="switchTab('timesheet')">
-    <span class="tab-label-hint">Entry</span>Timesheet
+    <span class="tab-label-hint">Entry</span>Daily Timesheet Entry
+  </button>
+  <button class="tab-btn display-tab" onclick="switchTab('ts-view')">
+    <span class="tab-label-hint">View</span>Timesheet View
   </button>
   <button class="tab-btn display-tab" onclick="switchTab('summary')">
     <span class="tab-label-hint">Report</span>Summary
@@ -333,6 +342,191 @@ tfoot td{font-weight:700;background:var(--surface2)}
         </tr></thead>
         <tbody id="ts-tbody"></tbody>
         <tfoot id="ts-tfoot"></tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ========== TAB: PROGRESS VIEW ========== -->
+<div class="tab-content" id="tab-ap-view">
+  <div class="kpi-grid" id="apv-kpis"></div>
+
+  <div class="card">
+    <div class="card-title">Daily Production – Last 14 Days</div>
+    <div class="chart-wrap"><canvas id="apv-chart"></canvas></div>
+  </div>
+
+  <!-- Inline edit card -->
+  <div class="card" id="apv-edit-card" style="display:none;border-color:var(--teal)">
+    <div class="card-title" style="color:var(--teal)">Edit Entry</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Date</label><input type="date" id="apv-edit-date"/></div>
+      <div class="form-group"><label>Cost Code</label><select id="apv-edit-cc" onchange="apvEditCcChange()"></select></div>
+      <div class="form-group" id="apv-edit-pcs-group"><label>Location / PCS</label><select id="apv-edit-pcs"></select></div>
+      <div class="form-group"><label>Qty Installed</label><input type="number" id="apv-edit-qty" min="0" step="any"/></div>
+      <div class="form-group"><label>Note</label><input type="text" id="apv-edit-note"/></div>
+      <div class="form-group" style="justify-content:flex-end">
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-teal" onclick="apvSaveEdit()">Save Changes</button>
+          <button class="btn btn-ghost" onclick="apvCancelEdit()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">All Entries</div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;align-items:flex-end">
+      <div class="form-group" style="min-width:130px"><label>From Date</label><input type="date" id="apv-from" oninput="renderApView()"/></div>
+      <div class="form-group" style="min-width:130px"><label>To Date</label><input type="date" id="apv-to" oninput="renderApView()"/></div>
+      <div class="form-group" style="min-width:180px"><label>Cost Code</label><select id="apv-cc-filter" onchange="renderApView()"><option value="">All Cost Codes</option></select></div>
+      <div class="form-group" style="min-width:160px"><label>Sort By</label>
+        <select id="apv-sort" onchange="renderApView()">
+          <option value="date-desc">Date (Newest First)</option>
+          <option value="date-asc">Date (Oldest First)</option>
+          <option value="cc">Cost Code</option>
+          <option value="qty-desc">Qty (High→Low)</option>
+        </select>
+      </div>
+      <button class="btn btn-ghost" onclick="apvClearFilters()" style="align-self:flex-end">Clear Filters</button>
+    </div>
+    <div class="table-wrap">
+      <table id="apv-table">
+        <thead><tr>
+          <th>Date</th><th>CC</th><th>Activity</th><th>Location</th><th class="num">Qty</th><th>Note</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="apv-tbody"></tbody>
+        <tfoot id="apv-tfoot"></tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ========== TAB: ROC VIEW ========== -->
+<div class="tab-content" id="tab-roc-view">
+  <div class="kpi-grid" id="rocv-kpis"></div>
+
+  <div class="card">
+    <div class="card-title">ROC Completion by PCS Location</div>
+    <div class="chart-wrap" style="height:260px"><canvas id="rocv-chart"></canvas></div>
+  </div>
+
+  <!-- ROC inline edit card -->
+  <div class="card" id="rocv-edit-card" style="display:none;border-color:var(--teal)">
+    <div class="card-title" style="color:var(--teal)">Edit ROC Entry</div>
+    <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start">
+      <div class="form-group"><label>Date</label><input type="date" id="rocv-edit-date"/></div>
+      <div style="margin-top:4px">
+        <table class="roc-act-table" style="max-width:380px">
+          <thead><tr><th>Activity</th><th>Weight</th><th>Complete</th></tr></thead>
+          <tbody>
+            <tr><td>Activity 1</td><td>20%</td><td><input type="checkbox" id="rocv-edit-a1"></td></tr>
+            <tr><td>Activity 2</td><td>20%</td><td><input type="checkbox" id="rocv-edit-a2"></td></tr>
+            <tr><td>Activity 3</td><td>30%</td><td><input type="checkbox" id="rocv-edit-a3"></td></tr>
+            <tr><td>Activity 4</td><td>30%</td><td><input type="checkbox" id="rocv-edit-a4"></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="display:flex;gap:8px;align-self:flex-end;margin-top:8px">
+        <button class="btn btn-teal" onclick="rocvSaveEdit()">Save Changes</button>
+        <button class="btn btn-ghost" onclick="rocvCancelEdit()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">All ROC Entries</div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;align-items:flex-end">
+      <div class="form-group" style="min-width:160px"><label>Cost Code</label>
+        <select id="rocv-cc-filter" onchange="renderRocView()">
+          <option value="">All</option><option value="4304">4304 – Racking Layout</option><option value="4305">4305 – Racking Install</option>
+        </select>
+      </div>
+      <div class="form-group" style="min-width:170px"><label>Sort By</label>
+        <select id="rocv-sort" onchange="renderRocView()">
+          <option value="pcs">PCS Location</option>
+          <option value="pct-desc">% Earned (High→Low)</option>
+          <option value="date-desc">Date (Newest)</option>
+        </select>
+      </div>
+      <div class="form-group" style="min-width:160px"><label>Show Only</label>
+        <select id="rocv-complete-filter" onchange="renderRocView()">
+          <option value="all">All Entries</option>
+          <option value="incomplete">Incomplete Only</option>
+          <option value="complete">Complete Only</option>
+        </select>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table id="rocv-table">
+        <thead><tr>
+          <th>CC</th><th>PCS Location</th><th>Act 1 (20%)</th><th>Act 2 (20%)</th><th>Act 3 (30%)</th><th>Act 4 (30%)</th><th class="num">% Earned</th><th>Date</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="rocv-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ========== TAB: TIMESHEET VIEW ========== -->
+<div class="tab-content" id="tab-ts-view">
+  <div class="kpi-grid" id="tsv-kpis"></div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="card">
+      <div class="card-title">Daily Total Hours – Last 30 Days</div>
+      <div class="chart-wrap"><canvas id="tsv-line-chart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Hours by Trade</div>
+      <div class="chart-wrap"><canvas id="tsv-donut-chart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- TS inline edit card -->
+  <div class="card" id="tsv-edit-card" style="display:none;border-color:var(--teal)">
+    <div class="card-title" style="color:var(--teal)">Edit Timesheet Entry</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Date</label><input type="date" id="tsv-edit-date"/></div>
+      <div class="form-group"><label>Employee Name</label><input type="text" id="tsv-edit-name"/></div>
+      <div class="form-group"><label>Employee ID</label><input type="text" id="tsv-edit-id"/></div>
+      <div class="form-group"><label>Trade</label><select id="tsv-edit-trade"><option value="">-- Trade --</option></select></div>
+      <div class="form-group"><label>Cost Code</label><select id="tsv-edit-cc"><option value="">-- CC --</option></select></div>
+      <div class="form-group"><label>Hours</label><input type="number" id="tsv-edit-hours" min="0" step=".5"/></div>
+      <div class="form-group" style="justify-content:flex-end">
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-teal" onclick="tsvSaveEdit()">Save Changes</button>
+          <button class="btn btn-ghost" onclick="tsvCancelEdit()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">All Timesheet Records</div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;align-items:flex-end">
+      <div class="form-group" style="min-width:130px"><label>From Date</label><input type="date" id="tsv-from" oninput="renderTsView()"/></div>
+      <div class="form-group" style="min-width:130px"><label>To Date</label><input type="date" id="tsv-to" oninput="renderTsView()"/></div>
+      <div class="form-group" style="min-width:160px"><label>Employee</label><input type="text" id="tsv-emp-filter" placeholder="Search name..." oninput="renderTsView()"/></div>
+      <div class="form-group" style="min-width:140px"><label>Trade</label><select id="tsv-trade-filter" onchange="renderTsView()"><option value="">All Trades</option></select></div>
+      <div class="form-group" style="min-width:180px"><label>Cost Code</label><select id="tsv-cc-filter" onchange="renderTsView()"><option value="">All Cost Codes</option></select></div>
+      <div class="form-group" style="min-width:170px"><label>Sort By</label>
+        <select id="tsv-sort" onchange="renderTsView()">
+          <option value="date-desc">Date (Newest First)</option>
+          <option value="date-asc">Date (Oldest First)</option>
+          <option value="emp">Employee A→Z</option>
+          <option value="hrs-desc">Hours (High→Low)</option>
+        </select>
+      </div>
+      <button class="btn btn-ghost" onclick="tsvClearFilters()" style="align-self:flex-end">Clear Filters</button>
+    </div>
+    <div class="table-wrap">
+      <table id="tsv-table">
+        <thead><tr>
+          <th>Date</th><th>Week Ending</th><th>Employee</th><th>ID</th><th>Trade</th><th>Cost Code</th><th class="num">Hours</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="tsv-tbody"></tbody>
+        <tfoot id="tsv-tfoot"></tfoot>
       </table>
     </div>
   </div>
@@ -640,7 +834,7 @@ function switchTab(name){
   document.querySelectorAll('.tab-btn').forEach(el=>el.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
   const btns=document.querySelectorAll('.tab-btn');
-  const idx={actual:0,roc:1,timesheet:2,summary:3,internal:4,client:5}[name];
+  const idx={actual:0,'ap-view':1,roc:2,'roc-view':3,timesheet:4,'ts-view':5,summary:6,internal:7,client:8}[name];
   if(btns[idx]) btns[idx].classList.add('active');
 
   if(name==='summary') renderSummary();
@@ -648,6 +842,9 @@ function switchTab(name){
   if(name==='client') renderClient();
   if(name==='actual') renderActualTab();
   if(name==='roc') renderRocTab();
+  if(name==='ap-view') renderApView();
+  if(name==='roc-view') renderRocView();
+  if(name==='ts-view') renderTsView();
 }
 
 // ============================================================
@@ -1276,6 +1473,522 @@ function updateLastSaved(){
 document.getElementById('ap-date').addEventListener('change',()=>renderActualTab());
 document.getElementById('int-date').addEventListener('change',()=>renderInternal());
 document.getElementById('cli-date').addEventListener('change',()=>renderClient());
+
+// ============================================================
+// VIEW TAB HELPERS
+// ============================================================
+const TRADE_COLORS=['#4f8ef7','#14b8a6','#22c55e','#f59e0b','#ef4444','#7c5cfc','#8892a4','#f97316','#06b6d4','#ec4899','#84cc16'];
+
+function apvBuildCcFilter(){
+  const actual=getActual();
+  const ccs=[...new Set(actual.map(e=>e.cc))].sort();
+  const sel=document.getElementById('apv-cc-filter');
+  const cur=sel.value;
+  sel.innerHTML='<option value="">All Cost Codes</option>'+ccs.map(cc=>`<option value="${cc}">${cc} – ${ccName(cc)}</option>`).join('');
+  if(cur) sel.value=cur;
+}
+
+function apvGetFiltered(){
+  const actual=getActual();
+  const from=document.getElementById('apv-from').value;
+  const to=document.getElementById('apv-to').value;
+  const ccF=document.getElementById('apv-cc-filter').value;
+  const sort=document.getElementById('apv-sort').value;
+  let rows=actual.filter(e=>{
+    if(from&&e.date<from) return false;
+    if(to&&e.date>to) return false;
+    if(ccF&&e.cc!==ccF) return false;
+    return true;
+  });
+  if(sort==='date-desc') rows.sort((a,b)=>b.date.localeCompare(a.date));
+  else if(sort==='date-asc') rows.sort((a,b)=>a.date.localeCompare(b.date));
+  else if(sort==='cc') rows.sort((a,b)=>a.cc.localeCompare(b.cc)||b.date.localeCompare(a.date));
+  else if(sort==='qty-desc') rows.sort((a,b)=>Number(b.qty)-Number(a.qty));
+  return rows;
+}
+
+let apvChart=null;
+let apvEditId=null;
+
+function renderApView(){
+  apvBuildCcFilter();
+  const actual=getActual();
+  // KPIs
+  const today=todayStr();
+  const todayQty=actual.filter(e=>e.date===today).reduce((s,e)=>s+Number(e.qty||0),0);
+  const totalJTD=actual.reduce((s,e)=>s+Number(e.qty||0),0);
+  const activeCCs=new Set(actual.map(e=>e.cc)).size;
+  document.getElementById('apv-kpis').innerHTML=`
+    <div class="kpi"><div class="kpi-label">Total Entries</div><div class="kpi-value">${actual.length}</div><div class="kpi-sub">All records</div></div>
+    <div class="kpi teal"><div class="kpi-label">Today's QTY</div><div class="kpi-value">${fmt(todayQty,1)}</div><div class="kpi-sub">Installed today</div></div>
+    <div class="kpi green"><div class="kpi-label">Total JTD QTY</div><div class="kpi-value">${fmt(totalJTD,0)}</div><div class="kpi-sub">All time installed</div></div>
+    <div class="kpi yellow"><div class="kpi-label">Active Cost Codes</div><div class="kpi-value">${activeCCs}</div><div class="kpi-sub">With entries</div></div>
+  `;
+  // Chart — last 14 days with data
+  const dayTotals={};
+  for(const e of actual){ dayTotals[e.date]=(dayTotals[e.date]||0)+Number(e.qty||0); }
+  const sortedDays=Object.keys(dayTotals).sort().slice(-14);
+  if(apvChart) apvChart.destroy();
+  const ctx=document.getElementById('apv-chart').getContext('2d');
+  apvChart=new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:sortedDays.map(d=>fmtDate(d)),
+      datasets:[{label:'QTY Installed',data:sortedDays.map(d=>dayTotals[d]),backgroundColor:'#14b8a6aa',borderColor:'#14b8a6',borderWidth:1,borderRadius:4}]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{color:'#8892a4',font:{size:11}},grid:{color:'#2e3350'}},
+        y:{ticks:{color:'#8892a4',font:{size:11}},grid:{color:'#2e3350'},beginAtZero:true}
+      }
+    }
+  });
+  // Table
+  const rows=apvGetFiltered();
+  const tbody=document.getElementById('apv-tbody');
+  const tfoot=document.getElementById('apv-tfoot');
+  if(!rows.length){
+    tbody.innerHTML='<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:14px">No entries match filters.</td></tr>';
+    tfoot.innerHTML='';
+    return;
+  }
+  let total=0;
+  tbody.innerHTML=rows.map(e=>{
+    const c=ccInfo(e.cc);
+    total+=Number(e.qty||0);
+    return `<tr>
+      <td>${fmtDate(e.date)}</td>
+      <td><code style="color:var(--accent)">${e.cc}</code></td>
+      <td style="font-size:12px;color:var(--muted)">${c?c.name:e.cc}</td>
+      <td>${e.pcs||'–'}</td>
+      <td class="num">${fmt(e.qty,2)}</td>
+      <td style="color:var(--muted)">${e.note||'–'}</td>
+      <td style="display:flex;gap:6px">
+        <button class="btn btn-teal no-print" style="padding:4px 10px;font-size:11px" onclick="apvStartEdit('${e.id}')">Edit</button>
+        <button class="btn btn-danger no-print" onclick="apvDelete('${e.id}')">Del</button>
+      </td>
+    </tr>`;
+  }).join('');
+  tfoot.innerHTML=`<tr><td colspan="4" style="text-align:right;color:var(--muted)">${rows.length} records | Total:</td><td class="num">${fmt(total,2)}</td><td></td><td></td></tr>`;
+}
+
+function apvDelete(id){
+  saveActual(getActual().filter(e=>e.id!==id));
+  renderApView();
+  renderActualTab();
+  updateLastSaved();
+}
+
+function apvClearFilters(){
+  document.getElementById('apv-from').value='';
+  document.getElementById('apv-to').value='';
+  document.getElementById('apv-cc-filter').value='';
+  document.getElementById('apv-sort').value='date-desc';
+  renderApView();
+}
+
+// Build edit form selects for AP view
+function apvBuildEditSelects(){
+  const ccSel=document.getElementById('apv-edit-cc');
+  if(!ccSel.options.length){
+    COST_CODES.forEach(c=>{
+      if(c.roc) return;
+      const o=document.createElement('option');
+      o.value=c.cc; o.textContent=c.cc+' – '+c.name;
+      ccSel.appendChild(o);
+    });
+  }
+  const pcsSel=document.getElementById('apv-edit-pcs');
+  if(!pcsSel.options.length){
+    pcsSel.innerHTML='<option value="">-- Select --</option>';
+    PCS_LOCATIONS.forEach(loc=>{
+      const o=document.createElement('option');
+      o.value=loc; o.textContent=loc;
+      pcsSel.appendChild(o);
+    });
+  }
+}
+
+function apvEditCcChange(){
+  const cc=document.getElementById('apv-edit-cc').value;
+  const c=ccInfo(cc);
+  document.getElementById('apv-edit-pcs-group').style.display=(c&&c.np)?'none':'flex';
+}
+
+function apvStartEdit(id){
+  apvBuildEditSelects();
+  const e=getActual().find(r=>r.id===id);
+  if(!e) return;
+  apvEditId=id;
+  document.getElementById('apv-edit-date').value=e.date;
+  document.getElementById('apv-edit-cc').value=e.cc;
+  apvEditCcChange();
+  document.getElementById('apv-edit-pcs').value=e.pcs||'';
+  document.getElementById('apv-edit-qty').value=e.qty;
+  document.getElementById('apv-edit-note').value=e.note||'';
+  const card=document.getElementById('apv-edit-card');
+  card.style.display='flex';
+  card.style.flexDirection='column';
+  card.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function apvSaveEdit(){
+  if(!apvEditId) return;
+  const actual=getActual();
+  const idx=actual.findIndex(e=>e.id===apvEditId);
+  if(idx<0) return;
+  const cc=document.getElementById('apv-edit-cc').value;
+  const c=ccInfo(cc);
+  actual[idx]={
+    ...actual[idx],
+    date:document.getElementById('apv-edit-date').value,
+    cc,
+    pcs:c&&c.np?'':document.getElementById('apv-edit-pcs').value,
+    qty:parseFloat(document.getElementById('apv-edit-qty').value)||0,
+    note:document.getElementById('apv-edit-note').value.trim()
+  };
+  saveActual(actual);
+  apvEditId=null;
+  document.getElementById('apv-edit-card').style.display='none';
+  renderApView();
+  renderActualTab();
+  updateLastSaved();
+}
+
+function apvCancelEdit(){
+  apvEditId=null;
+  document.getElementById('apv-edit-card').style.display='none';
+}
+
+// ============================================================
+// ROC VIEW
+// ============================================================
+let rocvChart=null;
+let rocvEditId=null;
+
+function renderRocView(){
+  const roc=getRoc();
+  // KPIs
+  const total=roc.length;
+  const avgPct=total?roc.reduce((s,e)=>s+rocEarnedPct(e),0)/total:0;
+  const full=roc.filter(e=>rocEarnedPct(e)===100).length;
+  const inprog=roc.filter(e=>{const p=rocEarnedPct(e);return p>0&&p<100;}).length;
+  document.getElementById('rocv-kpis').innerHTML=`
+    <div class="kpi"><div class="kpi-label">Total PCS Tracked</div><div class="kpi-value">${total}</div><div class="kpi-sub">CC+PCS combos</div></div>
+    <div class="kpi teal"><div class="kpi-label">Avg % Earned</div><div class="kpi-value">${avgPct.toFixed(1)}%</div><div class="kpi-sub">Across all entries</div></div>
+    <div class="kpi green"><div class="kpi-label">Fully Complete</div><div class="kpi-value">${full}</div><div class="kpi-sub">100% earned</div></div>
+    <div class="kpi yellow"><div class="kpi-label">In Progress</div><div class="kpi-value">${inprog}</div><div class="kpi-sub">Partially complete</div></div>
+  `;
+  // Chart
+  const sorted20=[...roc].sort((a,b)=>rocEarnedPct(b)-rocEarnedPct(a)).slice(0,20);
+  const labels=sorted20.map(e=>e.cc+' '+e.pcs);
+  const earned=sorted20.map(e=>rocEarnedPct(e));
+  const remaining=sorted20.map(e=>100-rocEarnedPct(e));
+  if(rocvChart) rocvChart.destroy();
+  const ctx=document.getElementById('rocv-chart').getContext('2d');
+  rocvChart=new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels,
+      datasets:[
+        {label:'% Earned',data:earned,backgroundColor:'#22c55eaa',borderColor:'#22c55e',borderWidth:1},
+        {label:'Remaining',data:remaining,backgroundColor:'#2e3350',borderColor:'#2e3350',borderWidth:1}
+      ]
+    },
+    options:{
+      indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#8892a4',font:{size:11}}}},
+      scales:{
+        x:{stacked:true,max:100,ticks:{color:'#8892a4',font:{size:10}},grid:{color:'#2e3350'}},
+        y:{stacked:true,ticks:{color:'#8892a4',font:{size:10}},grid:{color:'#2e3350'}}
+      }
+    }
+  });
+  // Table
+  const ccF=document.getElementById('rocv-cc-filter').value;
+  const sortV=document.getElementById('rocv-sort').value;
+  const cmpF=document.getElementById('rocv-complete-filter').value;
+  let rows=[...roc];
+  if(ccF) rows=rows.filter(e=>e.cc===ccF);
+  if(cmpF==='incomplete') rows=rows.filter(e=>rocEarnedPct(e)<100);
+  if(cmpF==='complete') rows=rows.filter(e=>rocEarnedPct(e)===100);
+  if(sortV==='pcs') rows.sort((a,b)=>a.cc.localeCompare(b.cc)||a.pcs.localeCompare(b.pcs));
+  else if(sortV==='pct-desc') rows.sort((a,b)=>rocEarnedPct(b)-rocEarnedPct(a));
+  else if(sortV==='date-desc') rows.sort((a,b)=>b.date.localeCompare(a.date));
+  const tbody=document.getElementById('rocv-tbody');
+  if(!rows.length){
+    tbody.innerHTML='<tr><td colspan="9" style="color:var(--muted);text-align:center;padding:14px">No ROC entries match filters.</td></tr>';
+    return;
+  }
+  const ck=(v)=>v?'<span class="check-yes">✓</span>':'<span class="check-no">—</span>';
+  tbody.innerHTML=rows.map(e=>{
+    const pct=rocEarnedPct(e);
+    const color=pct>=75?'var(--green)':pct>=25?'var(--yellow)':'var(--red)';
+    return `<tr>
+      <td><code style="color:var(--accent)">${e.cc}</code></td>
+      <td>${e.pcs}</td>
+      <td>${ck(e.a1)}</td><td>${ck(e.a2)}</td><td>${ck(e.a3)}</td><td>${ck(e.a4)}</td>
+      <td class="num" style="color:${color};font-weight:700">${pct}%</td>
+      <td>${fmtDate(e.date)}</td>
+      <td style="display:flex;gap:6px">
+        <button class="btn btn-teal no-print" style="padding:4px 10px;font-size:11px" onclick="rocvStartEdit('${e.id}')">Edit</button>
+        <button class="btn btn-danger no-print" onclick="rocvDelete('${e.id}')">Del</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function rocvDelete(id){
+  saveRoc(getRoc().filter(e=>e.id!==id));
+  renderRocView();
+  renderRocTab();
+  updateLastSaved();
+}
+
+function rocvStartEdit(id){
+  const e=getRoc().find(r=>r.id===id);
+  if(!e) return;
+  rocvEditId=id;
+  document.getElementById('rocv-edit-date').value=e.date;
+  document.getElementById('rocv-edit-a1').checked=!!e.a1;
+  document.getElementById('rocv-edit-a2').checked=!!e.a2;
+  document.getElementById('rocv-edit-a3').checked=!!e.a3;
+  document.getElementById('rocv-edit-a4').checked=!!e.a4;
+  const card=document.getElementById('rocv-edit-card');
+  card.style.display='flex';
+  card.style.flexDirection='column';
+  card.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function rocvSaveEdit(){
+  if(!rocvEditId) return;
+  const roc=getRoc();
+  const idx=roc.findIndex(e=>e.id===rocvEditId);
+  if(idx<0) return;
+  roc[idx]={
+    ...roc[idx],
+    date:document.getElementById('rocv-edit-date').value,
+    a1:document.getElementById('rocv-edit-a1').checked,
+    a2:document.getElementById('rocv-edit-a2').checked,
+    a3:document.getElementById('rocv-edit-a3').checked,
+    a4:document.getElementById('rocv-edit-a4').checked
+  };
+  saveRoc(roc);
+  rocvEditId=null;
+  document.getElementById('rocv-edit-card').style.display='none';
+  renderRocView();
+  renderRocTab();
+  updateLastSaved();
+}
+
+function rocvCancelEdit(){
+  rocvEditId=null;
+  document.getElementById('rocv-edit-card').style.display='none';
+}
+
+// ============================================================
+// TIMESHEET VIEW
+// ============================================================
+let tsvLineChart=null;
+let tsvDonutChart=null;
+let tsvEditId=null;
+
+function tsvBuildFilters(){
+  const ts=getTime();
+  const trades=[...new Set(ts.map(e=>e.trade))].sort();
+  const ccs=[...new Set(ts.map(e=>e.cc))].sort();
+  const tSel=document.getElementById('tsv-trade-filter');
+  const cSel=document.getElementById('tsv-cc-filter');
+  const tCur=tSel.value, cCur=cSel.value;
+  tSel.innerHTML='<option value="">All Trades</option>'+trades.map(t=>`<option value="${t}">${t}</option>`).join('');
+  cSel.innerHTML='<option value="">All Cost Codes</option>'+ccs.map(c=>`<option value="${c}">${c} – ${ccName(c)}</option>`).join('');
+  if(tCur) tSel.value=tCur;
+  if(cCur) cSel.value=cCur;
+  // Build edit selects
+  const eSel=document.getElementById('tsv-edit-trade');
+  if(eSel.options.length<2){ TRADES.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;eSel.appendChild(o);}); }
+  const ecSel=document.getElementById('tsv-edit-cc');
+  if(ecSel.options.length<2){ COST_CODES.forEach(c=>{const o=document.createElement('option');o.value=c.cc;o.textContent=c.cc+' – '+c.name;ecSel.appendChild(o);}); }
+}
+
+function tsvGetFiltered(){
+  let ts=getTime();
+  const from=document.getElementById('tsv-from').value;
+  const to=document.getElementById('tsv-to').value;
+  const emp=document.getElementById('tsv-emp-filter').value.toLowerCase().trim();
+  const trade=document.getElementById('tsv-trade-filter').value;
+  const cc=document.getElementById('tsv-cc-filter').value;
+  const sort=document.getElementById('tsv-sort').value;
+  ts=ts.filter(e=>{
+    if(from&&e.date<from) return false;
+    if(to&&e.date>to) return false;
+    if(emp&&!e.emp_name.toLowerCase().includes(emp)) return false;
+    if(trade&&e.trade!==trade) return false;
+    if(cc&&e.cc!==cc) return false;
+    return true;
+  });
+  if(sort==='date-desc') ts.sort((a,b)=>b.date.localeCompare(a.date)||a.emp_name.localeCompare(b.emp_name));
+  else if(sort==='date-asc') ts.sort((a,b)=>a.date.localeCompare(b.date)||a.emp_name.localeCompare(b.emp_name));
+  else if(sort==='emp') ts.sort((a,b)=>a.emp_name.localeCompare(b.emp_name)||b.date.localeCompare(a.date));
+  else if(sort==='hrs-desc') ts.sort((a,b)=>Number(b.hours)-Number(a.hours));
+  return ts;
+}
+
+function renderTsView(){
+  tsvBuildFilters();
+  const ts=getTime();
+  // KPIs
+  const today=todayStr();
+  const todayHrs=ts.filter(e=>e.date===today).reduce((s,e)=>s+Number(e.hours||0),0);
+  const totalHrs=ts.reduce((s,e)=>s+Number(e.hours||0),0);
+  const days=[...new Set(ts.map(e=>e.date))].length;
+  const avgDay=days>0?totalHrs/days:0;
+  const headcount=new Set(ts.map(e=>e.emp_name)).size;
+  document.getElementById('tsv-kpis').innerHTML=`
+    <div class="kpi"><div class="kpi-label">Total Hours JTD</div><div class="kpi-value">${fmt(totalHrs,1)}</div><div class="kpi-sub">All timesheet hours</div></div>
+    <div class="kpi teal"><div class="kpi-label">Today's Hours</div><div class="kpi-value">${fmt(todayHrs,1)}</div><div class="kpi-sub">${today}</div></div>
+    <div class="kpi green"><div class="kpi-label">Avg Daily Hours</div><div class="kpi-value">${fmt(avgDay,1)}</div><div class="kpi-sub">Over ${days} day(s)</div></div>
+    <div class="kpi yellow"><div class="kpi-label">Total Headcount</div><div class="kpi-value">${headcount}</div><div class="kpi-sub">Distinct employees</div></div>
+  `;
+  // Line chart — daily totals last 30 days
+  const dayTotals={};
+  for(const e of ts){ dayTotals[e.date]=(dayTotals[e.date]||0)+Number(e.hours||0); }
+  const sortedDays=Object.keys(dayTotals).sort().slice(-30);
+  if(tsvLineChart) tsvLineChart.destroy();
+  const lCtx=document.getElementById('tsv-line-chart').getContext('2d');
+  tsvLineChart=new Chart(lCtx,{
+    type:'line',
+    data:{
+      labels:sortedDays.map(d=>fmtDate(d)),
+      datasets:[{label:'Total Hours',data:sortedDays.map(d=>dayTotals[d]),borderColor:'#4f8ef7',backgroundColor:'#4f8ef722',fill:true,tension:.3,pointRadius:3,pointBackgroundColor:'#4f8ef7'}]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{color:'#8892a4',font:{size:10},maxRotation:45},grid:{color:'#2e3350'}},
+        y:{ticks:{color:'#8892a4',font:{size:11}},grid:{color:'#2e3350'},beginAtZero:true}
+      }
+    }
+  });
+  // Donut — hours by trade
+  const tradeMap={};
+  for(const e of ts){ tradeMap[e.trade]=(tradeMap[e.trade]||0)+Number(e.hours||0); }
+  const tradeLabels=Object.keys(tradeMap).sort((a,b)=>tradeMap[b]-tradeMap[a]);
+  if(tsvDonutChart) tsvDonutChart.destroy();
+  const dCtx=document.getElementById('tsv-donut-chart').getContext('2d');
+  tsvDonutChart=new Chart(dCtx,{
+    type:'doughnut',
+    data:{
+      labels:tradeLabels,
+      datasets:[{data:tradeLabels.map(t=>tradeMap[t]),backgroundColor:TRADE_COLORS.slice(0,tradeLabels.length),borderWidth:0}]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,cutout:'60%',
+      plugins:{legend:{position:'right',labels:{color:'#8892a4',font:{size:11},boxWidth:12}}}
+    }
+  });
+  // Table
+  const rows=tsvGetFiltered();
+  const tbody=document.getElementById('tsv-tbody');
+  const tfoot=document.getElementById('tsv-tfoot');
+  if(!rows.length){
+    tbody.innerHTML='<tr><td colspan="8" style="color:var(--muted);text-align:center;padding:14px">No records match filters.</td></tr>';
+    tfoot.innerHTML='';
+    return;
+  }
+  let totalF=0;
+  let lastDate='';
+  tbody.innerHTML=rows.map(e=>{
+    totalF+=Number(e.hours||0);
+    const border=e.date!==lastDate&&lastDate?'border-top:2px solid var(--border)':'';
+    lastDate=e.date;
+    return `<tr style="${border}">
+      <td>${fmtDate(e.date)}</td>
+      <td style="color:var(--muted)">${fmtDate(nextSaturday(e.date))}</td>
+      <td>${e.emp_name}</td>
+      <td style="color:var(--muted)">${e.emp_id||'–'}</td>
+      <td>${e.trade}</td>
+      <td><code style="color:var(--accent)">${e.cc}</code></td>
+      <td class="num">${fmt(e.hours,1)}</td>
+      <td style="display:flex;gap:6px">
+        <button class="btn btn-teal no-print" style="padding:4px 10px;font-size:11px" onclick="tsvStartEdit('${e.id}')">Edit</button>
+        <button class="btn btn-danger no-print" onclick="tsvDelete('${e.id}')">Del</button>
+      </td>
+    </tr>`;
+  }).join('');
+  tfoot.innerHTML=`<tr><td colspan="6" style="text-align:right;color:var(--muted)">${rows.length} records | Total:</td><td class="num">${fmt(totalF,1)}</td><td></td></tr>`;
+}
+
+function tsvDelete(id){
+  saveTime(getTime().filter(e=>e.id!==id));
+  renderTsView();
+  renderTimesheetTable();
+  updateLastSaved();
+}
+
+function tsvClearFilters(){
+  document.getElementById('tsv-from').value='';
+  document.getElementById('tsv-to').value='';
+  document.getElementById('tsv-emp-filter').value='';
+  document.getElementById('tsv-trade-filter').value='';
+  document.getElementById('tsv-cc-filter').value='';
+  document.getElementById('tsv-sort').value='date-desc';
+  renderTsView();
+}
+
+function tsvStartEdit(id){
+  tsvBuildFilters();
+  const e=getTime().find(r=>r.id===id);
+  if(!e) return;
+  tsvEditId=id;
+  document.getElementById('tsv-edit-date').value=e.date;
+  document.getElementById('tsv-edit-name').value=e.emp_name;
+  document.getElementById('tsv-edit-id').value=e.emp_id||'';
+  document.getElementById('tsv-edit-trade').value=e.trade;
+  document.getElementById('tsv-edit-cc').value=e.cc;
+  document.getElementById('tsv-edit-hours').value=e.hours;
+  const card=document.getElementById('tsv-edit-card');
+  card.style.display='flex';
+  card.style.flexDirection='column';
+  card.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function tsvSaveEdit(){
+  if(!tsvEditId) return;
+  const ts=getTime();
+  const idx=ts.findIndex(e=>e.id===tsvEditId);
+  if(idx<0) return;
+  ts[idx]={
+    ...ts[idx],
+    date:document.getElementById('tsv-edit-date').value,
+    emp_name:document.getElementById('tsv-edit-name').value.trim(),
+    emp_id:document.getElementById('tsv-edit-id').value.trim(),
+    trade:document.getElementById('tsv-edit-trade').value,
+    cc:document.getElementById('tsv-edit-cc').value,
+    hours:parseFloat(document.getElementById('tsv-edit-hours').value)||0
+  };
+  saveTime(ts);
+  tsvEditId=null;
+  document.getElementById('tsv-edit-card').style.display='none';
+  renderTsView();
+  renderTimesheetTable();
+  updateLastSaved();
+}
+
+function tsvCancelEdit(){
+  tsvEditId=null;
+  document.getElementById('tsv-edit-card').style.display='none';
+}
+
+// Init view tabs on load
+window.addEventListener('DOMContentLoaded',()=>{
+  renderApView();
+  renderRocView();
+  renderTsView();
+},true);
 </script>
 </body>
 </html>
