@@ -412,15 +412,21 @@
 
     <div class="chart-card">
       <div class="chart-title" id="donutTitle">PD — BL Hours</div>
-      <div class="tabs" style="margin-bottom:10px;gap:3px">
+      <div class="tabs" style="margin-bottom:6px;gap:3px">
         <button class="tab active" style="padding:3px 8px;font-size:10px" data-donut-tab onclick="setDonutMetric('bl',this)">BL Hrs</button>
         <button class="tab" style="padding:3px 8px;font-size:10px" data-donut-tab onclick="setDonutMetric('earned',this)">Earned</button>
         <button class="tab" style="padding:3px 8px;font-size:10px" data-donut-tab onclick="setDonutMetric('spent',this)">Spent</button>
         <button class="tab" style="padding:3px 8px;font-size:10px" data-donut-tab onclick="setDonutMetric('remaining',this)">Earned % Remaining</button>
       </div>
+      <div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap">
+        <span style="font-size:9px;color:var(--muted);align-self:center;text-transform:uppercase;letter-spacing:.05em">Category:</span>
+        <button class="tab active" style="padding:2px 7px;font-size:9px" data-donut-cat="NP-WHC" onclick="toggleDonutCat('NP-WHC',this)">NP-WHC</button>
+        <button class="tab active" style="padding:2px 7px;font-size:9px" data-donut-cat="PD-WHC" onclick="toggleDonutCat('PD-WHC',this)">PD-WHC</button>
+        <button class="tab active" style="padding:2px 7px;font-size:9px" data-donut-cat="PD-SUB" onclick="toggleDonutCat('PD-SUB',this)">PD-SUB</button>
+      </div>
       <div class="chart-wrap" style="height:180px; margin-bottom:10px"><canvas id="sectionDonut"></canvas></div>
       <table style="font-size:11px">
-        <thead><tr><th style="text-align:left">Section</th><th style="text-align:right">Hours</th><th style="text-align:right">%</th></tr></thead>
+        <thead><tr><th style="text-align:left">Section</th><th style="text-align:right" id="donutHoursHdr">Hours</th><th style="text-align:right">%</th></tr></thead>
         <tbody id="donutTableBody"></tbody>
       </table>
     </div>
@@ -2130,7 +2136,8 @@ let scIntervalWeeks = 4;
 let showPF       = true;
 let hiddenDS     = {};
 let selectedWeekIdx = SC_CURRENT_IDX;  // changes with week selector
-let donutMetric  = 'bl';               // bl | earned | spent | remaining
+let donutMetric     = 'bl';               // bl | earned | spent | remaining
+let donutCategories = new Set(['NP-WHC','PD-WHC','PD-SUB']);
 let pfSection = 'Overall';
 let pfRangeMin = 0;
 let pfRangeMax = SC_CURRENT_IDX;
@@ -2528,23 +2535,58 @@ const donutChart = new Chart(sdCtx, {
   }
 });
 
+function _donutComputeVals() {
+  const sections = ['Civil','PV','SS'];
+  const idx = selectedWeekIdx;
+  const allCats = ['NP-WHC','PD-WHC','PD-SUB'];
+  const allSelected = allCats.every(c => donutCategories.has(c));
+
+  // Fast path: all categories selected + non-remaining metric → use pre-computed PD_DONUT
+  if (allSelected && donutMetric !== 'remaining') {
+    const d = ALL_DATES[idx];
+    const src = PD_DONUT[d] || PD_DONUT[WEEK_ENDING] || {};
+    return sections.map(sec => (src[sec] || {})[donutMetric] || 0);
+  }
+
+  // Compute from FTE_BY_ACTIVITY filtered by selected categories
+  const vals = [0, 0, 0];
+  ACTIVITIES.forEach(a => {
+    if (!donutCategories.has(a.category)) return;
+    const fte = FTE_BY_ACTIVITY.activities[a.activity];
+    if (!fte) return;
+    const si = sections.indexOf(a.section);
+    if (si === -1) return;
+    if (donutMetric === 'bl') {
+      vals[si] += fte.bl.reduce((s,v) => s + (v||0), 0) * 60;
+    } else if (donutMetric === 'earned') {
+      for (let i = 0; i <= idx; i++) vals[si] += (fte.earned[i]||0) * 60;
+    } else if (donutMetric === 'spent') {
+      for (let i = 0; i <= idx; i++) vals[si] += (fte.spent[i]||0) * 60;
+    } else if (donutMetric === 'remaining') {
+      const totalBL = fte.bl.reduce((s,v) => s + (v||0), 0) * 60;
+      let cumEarned = 0;
+      for (let i = 0; i <= idx; i++) cumEarned += (fte.earned[i]||0) * 60;
+      vals[si] += Math.max(0, totalBL - cumEarned);
+    }
+  });
+  return vals;
+}
+
 function updateDonut() {
-  const d = ALL_DATES[selectedWeekIdx];
-  const src = PD_DONUT[d] || PD_DONUT[WEEK_ENDING];
-  const vals = ['Civil','PV','SS'].map(sec => (src[sec] || {})[donutMetric] || 0);
-  donutChart.data.datasets[0].data = vals.map(v => v || 0);
+  const vals = _donutComputeVals();
+  donutChart.data.datasets[0].data = vals.map(v => Math.max(v, 0));
   donutChart.update();
-  // Update donut title
   document.getElementById('donutTitle').textContent = 'PD — ' + (DONUT_LABELS[donutMetric]||donutMetric);
-  // Update summary table
+  const isRem = donutMetric === 'remaining';
+  const hdrEl = document.getElementById('donutHoursHdr');
+  if (hdrEl) hdrEl.textContent = isRem ? 'Rem Hrs' : 'Hours';
   const total = vals.reduce((a,b)=>a+b,0);
-  const tbody = document.getElementById('donutTableBody');
-  tbody.innerHTML = ['Civil','PV','SS'].map((sec,i) => {
+  const colors = ['#22c55e','#3b82f6','#a78bfa'];
+  document.getElementById('donutTableBody').innerHTML = ['Civil','PV','SS'].map((sec,i) => {
     const v = vals[i];
-    const pct = total>0 ? (v/total*100).toFixed(1) : '0.0';
-    const colors = ['#22c55e','#3b82f6','#a78bfa'];
+    const pct = total > 0 ? (v/total*100).toFixed(1) : '0.0';
     return `<tr><td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${colors[i]};margin-right:5px"></span>${sec}</td>
-      <td style="text-align:right">${v.toLocaleString()}</td>
+      <td style="text-align:right">${Math.round(v).toLocaleString()}</td>
       <td style="text-align:right">${pct}%</td></tr>`;
   }).join('');
 }
@@ -2553,6 +2595,19 @@ function setDonutMetric(m, btn) {
   donutMetric = m;
   document.querySelectorAll('[data-donut-tab]').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
+  updateDonut();
+}
+
+function toggleDonutCat(cat, btn) {
+  if (donutCategories.has(cat)) {
+    // Don't allow deselecting all
+    if (donutCategories.size === 1) return;
+    donutCategories.delete(cat);
+    btn.classList.remove('active');
+  } else {
+    donutCategories.add(cat);
+    btn.classList.add('active');
+  }
   updateDonut();
 }
 
@@ -3043,7 +3098,11 @@ function toggleDonut() {
     donutCard.style.display = '';
     grid.style.gridTemplateColumns = '2fr 1fr';
     btn.textContent = '⊟ Hide PD Chart';
-    requestAnimationFrame(() => requestAnimationFrame(() => scChart.resize()));
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      scChart.resize();
+      donutChart.resize();
+      updateDonut();
+    }));
   }
 }
 
