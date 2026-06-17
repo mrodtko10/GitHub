@@ -3083,29 +3083,36 @@ function showPage(name, btn) {
 let donutCollapsed = false;
 function toggleDonut() {
   donutCollapsed = !donutCollapsed;
-  const grid     = document.getElementById('scDonutGrid');
+  const grid      = document.getElementById('scDonutGrid');
+  const scCard    = grid.children[0];
   const donutCard = grid.children[1];
-  const btn      = document.getElementById('donutCollapseBtn');
+  const btn       = document.getElementById('donutCollapseBtn');
+  const cv        = document.getElementById('scurveChart');
   if (donutCollapsed) {
     donutCard.style.display = 'none';
     grid.style.gridTemplateColumns = '1fr';
     btn.textContent = '⊞ Show PD Chart';
-    const cv = document.getElementById('scurveChart');
-    cv.style.width = '';
-    cv.style.height = '';
-    setTimeout(() => { cv.style.width = ''; cv.style.height = ''; scChart.resize(); }, 50);
+    // Force the canvas to yield its size to the container, then resize to new width
+    cv.style.width = '1px';
+    cv.style.height = '1px';
+    setTimeout(() => {
+      cv.style.width = '';
+      cv.style.height = '';
+      scChart.resize(scCard.clientWidth, scCard.clientHeight || 420);
+    }, 30);
   } else {
-    // Clear Chart.js inline canvas size so the grid column can constrain it
-    const cv = document.getElementById('scurveChart');
-    cv.style.width = '';
     donutCard.style.display = '';
     grid.style.gridTemplateColumns = '2fr 1fr';
     btn.textContent = '⊟ Hide PD Chart';
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      scChart.resize();
+    cv.style.width = '1px';
+    cv.style.height = '1px';
+    setTimeout(() => {
+      cv.style.width = '';
+      cv.style.height = '';
+      scChart.resize(scCard.clientWidth, scCard.clientHeight || 420);
       donutChart.resize();
       updateDonut();
-    }));
+    }, 30);
   }
 }
 
