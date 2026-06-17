@@ -3112,9 +3112,9 @@ function toggleDonut() {
     setTimeout(() => {
       cv.style.width = '';
       cv.style.height = '';
-      scChart.resize(scCard.clientWidth, scCard.clientHeight || 420);
+      scChart.resize();
       updateSCurve();
-    }, 30);
+    }, 80);
   } else {
     donutCard.style.display = '';
     grid.style.gridTemplateColumns = '2fr 1fr';
@@ -3124,11 +3124,11 @@ function toggleDonut() {
     setTimeout(() => {
       cv.style.width = '';
       cv.style.height = '';
-      scChart.resize(scCard.clientWidth, scCard.clientHeight || 420);
+      scChart.resize();
       updateSCurve();
       donutChart.resize();
       updateDonut();
-    }, 30);
+    }, 80);
   }
 }
 
