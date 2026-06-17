@@ -394,13 +394,13 @@
           <canvas id="scurveChart"></canvas>
         </div>
         <!-- Vertical % Range slider (rotated horizontal dual slider) -->
-        <div style="display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:4px;padding:4px">
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:4px;padding:4px" title="Double-click to reset">
           <span style="font-size:9px;color:#60a5fa;font-weight:600" id="pctMaxLabel">100%</span>
-          <div style="width:22px;height:280px;overflow:visible;display:flex;align-items:center;justify-content:center">
+          <div style="width:22px;height:280px;overflow:visible;display:flex;align-items:center;justify-content:center" ondblclick="resetPctSlider()">
             <div style="transform:rotate(-90deg);transform-origin:center center;width:280px;flex-shrink:0">
               <div class="dual-slider" id="pctSliderTrack" style="height:22px">
-                <input type="range" id="pctMin" min="0" max="100" value="0" oninput="updateSCurve()">
-                <input type="range" id="pctMax" min="0" max="100" value="100" oninput="updateSCurve()">
+                <input type="range" id="pctMin" min="0" max="100" value="0" oninput="fixPctZIndex();updateSCurve()">
+                <input type="range" id="pctMax" min="0" max="100" value="100" oninput="fixPctZIndex();updateSCurve()">
               </div>
             </div>
           </div>
@@ -2341,6 +2341,20 @@ const scChart = new Chart(scCtx, {
   },
   plugins:[currentWeekPlugin]
 });
+
+function fixPctZIndex() {
+  const mn = document.getElementById('pctMin');
+  const mx = document.getElementById('pctMax');
+  // If min thumb is at max, give it higher z-index so user can pull it down
+  mn.style.zIndex = (+mn.value >= +mx.value) ? 5 : 3;
+}
+
+function resetPctSlider() {
+  document.getElementById('pctMin').value = 0;
+  document.getElementById('pctMax').value = 100;
+  fixPctZIndex();
+  updateSCurve();
+}
 
 function updateSCurve() {
   const { dMin, dMax, pMin, pMax } = getSliderVals();
