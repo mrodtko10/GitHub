@@ -636,8 +636,8 @@
           <span id="pfRangeLabel" class="slider-val"></span>
         </div>
         <div class="dual-slider" id="pfSliderTrack">
-          <input type="range" id="pfRangeMinEl" min="0" max="97" value="0" oninput="updatePFSlider()">
-          <input type="range" id="pfRangeMaxEl" min="0" max="97" value="12" oninput="updatePFSlider()">
+          <input type="range" id="pfRangeMinEl" min="0" max="96" value="0" oninput="updatePFSlider()">
+          <input type="range" id="pfRangeMaxEl" min="0" max="96" value="14" oninput="updatePFSlider()">
         </div>
       </div>
 
@@ -3118,6 +3118,39 @@ function makePFChart(canvasId) {
     }
   });
 }
+
+// Compute PF_SERIES from FTE_BY_ACTIVITY by labor category
+const PF_SERIES = (() => {
+  const N = ALL_DATES.length;
+  const cats = { indirect: 'NP-WHC', direct: 'PD-WHC', overall: null };
+  const result = {};
+  Object.entries(cats).forEach(([key, catFilter]) => {
+    const cumEa = new Array(N).fill(0);
+    const cumSp = new Array(N).fill(0);
+    ACTIVITIES.forEach(a => {
+      if (catFilter && a.category !== catFilter) return;
+      const fte = FTE_BY_ACTIVITY.activities[a.activity];
+      if (!fte) return;
+      let runE = 0, runS = 0;
+      for (let i = 0; i < N; i++) {
+        runE += (fte.earned[i] || 0) * 60;
+        runS += (fte.spent[i]  || 0) * 60;
+        cumEa[i] += runE;
+        cumSp[i] += runS;
+      }
+    });
+    const inc = [], cumu = [];
+    for (let i = 0; i < N; i++) {
+      cumu.push(cumSp[i] > 0 ? cumEa[i] / cumSp[i] : null);
+      if (i === 0) { inc.push(null); continue; }
+      const dE = cumEa[i] - cumEa[i-1];
+      const dS = cumSp[i] - cumSp[i-1];
+      inc.push(dS > 0 ? dE / dS : null);
+    }
+    result[key] = { inc, cumu };
+  });
+  return result;
+})();
 
 const pfIndirectChart = makePFChart('pfIndirectChart');
 const pfDirectChart   = makePFChart('pfDirectChart');
