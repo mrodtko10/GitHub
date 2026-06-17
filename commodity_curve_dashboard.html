@@ -376,8 +376,8 @@
           <span id="dateRangeLabel" class="slider-val"></span>
         </div>
         <div class="dual-slider" id="dateSliderTrack">
-          <input type="range" id="dateMin" min="0" max="97" value="0" oninput="updateSCurve()">
-          <input type="range" id="dateMax" min="0" max="97" value="97" oninput="updateSCurve()">
+          <input type="range" id="dateMin" min="0" max="96" value="0" oninput="updateSCurve()">
+          <input type="range" id="dateMax" min="0" max="96" value="96" oninput="updateSCurve()">
         </div>
       </div>
       <!-- Legend -->
@@ -2053,8 +2053,9 @@ function trimActual(arr, dMin) {
 }
 
 function getSliderVals() {
-  let dMin = +document.getElementById('dateMin').value;
-  let dMax = +document.getElementById('dateMax').value;
+  const N = ALL_DATES.length - 1;
+  let dMin = Math.min(+document.getElementById('dateMin').value, N);
+  let dMax = Math.min(+document.getElementById('dateMax').value, N);
   if (dMin > dMax) [dMin, dMax] = [dMax, dMin];
   let pMin = +document.getElementById('pctMin').value;
   let pMax = +document.getElementById('pctMax').value;
@@ -2079,7 +2080,7 @@ function updateSliderLabels() {
   const pctMinLbl = document.getElementById('pctMinLabel');
   if (pctMaxLbl) pctMaxLbl.textContent = pMax + '%';
   if (pctMinLbl) pctMinLbl.textContent = pMin + '%';
-  paintSliderTrack('dateMin','dateMax','dateSliderTrack', dMin, dMax, 97);
+  paintSliderTrack('dateMin','dateMax','dateSliderTrack', dMin, dMax, ALL_DATES.length - 1);
   paintSliderTrack('pctMin','pctMax','pctSliderTrack', pMin, pMax, 100);
 }
 
