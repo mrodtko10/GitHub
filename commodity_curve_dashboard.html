@@ -3093,7 +3093,8 @@ function toggleDonut() {
     const cv = document.getElementById('scurveChart');
     cv.style.width = '';
     cv.style.height = '';
-    requestAnimationFrame(() => requestAnimationFrame(() => scChart.resize()));
+    scChart.resize();
+    requestAnimationFrame(() => { cv.style.width = ''; cv.style.height = ''; scChart.resize(); });
   } else {
     // Clear Chart.js inline canvas size so the grid column can constrain it
     const cv = document.getElementById('scurveChart');
