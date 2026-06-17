@@ -3113,6 +3113,7 @@ function toggleDonut() {
       cv.style.width = '';
       cv.style.height = '';
       scChart.resize(scCard.clientWidth, scCard.clientHeight || 420);
+      updateSCurve();
     }, 30);
   } else {
     donutCard.style.display = '';
@@ -3124,6 +3125,7 @@ function toggleDonut() {
       cv.style.width = '';
       cv.style.height = '';
       scChart.resize(scCard.clientWidth, scCard.clientHeight || 420);
+      updateSCurve();
       donutChart.resize();
       updateDonut();
     }, 30);
