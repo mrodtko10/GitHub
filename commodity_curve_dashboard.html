@@ -3692,57 +3692,53 @@ function initProgressPage() {
 }
 
 function initActStickyHead() {
-  const table   = document.getElementById('actTable');
-  const wrap    = document.getElementById('actWrap');
-  const stickyEl = document.getElementById('act-sticky-head');
+  const table     = document.getElementById('actTable');
+  const wrap      = document.getElementById('actWrap');
+  const stickyEl  = document.getElementById('act-sticky-head');
   const stickyRow = document.getElementById('act-sticky-row');
-  if (!table) return;
+  if (!table || stickyEl._actInited) return;
+  stickyEl._actInited = true;
 
-  const realThs = table.querySelectorAll('thead th');
+  let cloneBuilt = false;
 
-  function updateStickyClone() {
-    // copy text + widths from real header
+  function buildClone() {
     stickyRow.innerHTML = '';
-    const tableRect = table.getBoundingClientRect();
-    realThs.forEach((th, i) => {
+    table.querySelectorAll('thead th').forEach(th => {
       const clone = document.createElement('th');
       clone.innerHTML = th.innerHTML;
       clone.style.width = th.offsetWidth + 'px';
-      clone.dataset.actCol = th.dataset.actCol || '';
       clone.addEventListener('click', () => th.click());
       stickyRow.appendChild(clone);
     });
-    const barH = document.getElementById('progStickyBar').offsetHeight;
-    stickyEl.style.top   = (50 + barH) + 'px';
-    stickyEl.style.left  = tableRect.left + 'px';
-    stickyEl.style.width = tableRect.width + 'px';
     stickyEl.querySelector('table').style.width = table.offsetWidth + 'px';
-    stickyEl.scrollLeft = wrap.scrollLeft;
+    cloneBuilt = true;
   }
 
-  // sync horizontal scroll of clone with table wrap
+  function onScroll() {
+    const barH     = document.getElementById('progStickyBar').offsetHeight;
+    const headerH  = 50;
+    const threshold = headerH + barH;
+    const theadRect = table.querySelector('thead').getBoundingClientRect();
+    const wrapRect  = wrap.getBoundingClientRect();
+
+    if (theadRect.bottom < threshold) {
+      if (!cloneBuilt) buildClone();
+      stickyEl.style.top     = threshold + 'px';
+      stickyEl.style.left    = wrapRect.left + 'px';
+      stickyEl.style.width   = wrapRect.width + 'px';
+      stickyEl.scrollLeft    = wrap.scrollLeft;
+      stickyEl.style.display = 'block';
+    } else {
+      stickyEl.style.display = 'none';
+    }
+  }
+
   wrap.addEventListener('scroll', () => {
     stickyEl.scrollLeft = wrap.scrollLeft;
   });
 
-  // show/hide based on whether real thead is above viewport
-  const observer = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-      if (!entry.isIntersecting && entry.boundingClientRect.top < 0) {
-        updateStickyClone();
-        stickyEl.style.display = 'block';
-      } else {
-        stickyEl.style.display = 'none';
-      }
-    });
-  }, { threshold: 0, rootMargin: '-' + (50 + document.getElementById('progStickyBar').offsetHeight) + 'px 0px 0px 0px' });
-
-  observer.observe(table.querySelector('thead'));
-
-  // update clone widths on resize
-  window.addEventListener('resize', () => {
-    if (stickyEl.style.display !== 'none') updateStickyClone();
-  });
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', () => { cloneBuilt = false; onScroll(); });
 }
 
 function buildProgKpiTiles() {
