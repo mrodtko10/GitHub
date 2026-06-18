@@ -2898,6 +2898,11 @@ function renderManpower() {
     const cw_act = sum(t.rows,'cw_act_fte');
     const utilPW = pw_bl > 0 ? Math.round(pw_act/pw_bl*100) : null;
     const utilCW = cw_bl > 0 ? Math.round(cw_act/cw_bl*100) : null;
+    // Avg/Day: average of non-null per-row values (weighted by days worked)
+    const pwAvgRows = t.rows.filter(r => r.pw_avg_day != null);
+    const cwAvgRows = t.rows.filter(r => r.cw_avg_day != null);
+    const pw_avg = pwAvgRows.length ? (pwAvgRows.reduce((s,r) => s + r.pw_avg_day, 0)).toFixed(1) : null;
+    const cw_avg = cwAvgRows.length ? (cwAvgRows.reduce((s,r) => s + r.cw_avg_day, 0)).toFixed(1) : null;
     const cwEarnedHtml = t.cwEarned !== undefined ? `
         <div style="border-left:1px solid rgba(255,255,255,0.08);padding-left:14px;margin-left:4px">
           <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">CW Earned</div>
@@ -2913,18 +2918,26 @@ function renderManpower() {
         </div>
         <div>
           <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">PW Actual</div>
-          <div style="font-size:22px;font-weight:700;color:#ef4444;line-height:1">${fmtN(pw_act)}</div>
+          <div style="font-size:22px;font-weight:700;color:#22c55e;line-height:1">${fmtN(pw_act)}</div>
           ${utilPW !== null ? `<div style="font-size:10px;color:${utilPW>=100?'#22c55e':'#f59e0b'};margin-top:1px">${utilPW}% of BL</div>` : ''}
         </div>
+        ${pw_avg !== null ? `<div>
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">PW Avg/Day</div>
+          <div style="font-size:22px;font-weight:700;color:#c084fc;line-height:1">${pw_avg}</div>
+        </div>` : ''}
         <div style="border-left:1px solid rgba(255,255,255,0.08);padding-left:14px;margin-left:4px">
           <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">CW BL</div>
           <div style="font-size:18px;font-weight:700;color:${t.color};line-height:1">${fmtN(cw_bl)}</div>
         </div>
         <div>
           <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">CW Actual</div>
-          <div style="font-size:22px;font-weight:700;color:#ef4444;line-height:1">${fmtN(cw_act)}</div>
+          <div style="font-size:22px;font-weight:700;color:#22c55e;line-height:1">${fmtN(cw_act)}</div>
           ${utilCW !== null ? `<div style="font-size:10px;color:${utilCW>=100?'#22c55e':'#f59e0b'};margin-top:1px">${utilCW}% of BL</div>` : ''}
         </div>
+        ${cw_avg !== null ? `<div>
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">CW Avg/Day</div>
+          <div style="font-size:22px;font-weight:700;color:#c084fc;line-height:1">${cw_avg}</div>
+        </div>` : ''}
         ${cwEarnedHtml}
       </div>
     </div>`;
@@ -2972,7 +2985,7 @@ function renderManpower() {
       ? 'background:rgba(34,197,94,0.07);border-left:3px solid rgba(34,197,94,0.6);'
       : 'opacity:0.65;border-left:3px solid transparent;';
     const cwActStyle = isActive ? 'text-align:right;color:#22c55e;font-weight:700;font-size:14px' : 'text-align:right;color:var(--muted)';
-    const pwActStyle = (r.pw_act_fte||0) > 0 ? 'text-align:right;color:#ef4444;font-weight:600' : 'text-align:right;color:var(--muted)';
+    const pwActStyle = (r.pw_act_fte||0) > 0 ? 'text-align:right;color:#22c55e;font-weight:600' : 'text-align:right;color:var(--muted)';
     return `<tr style="${rowStyle}">
       <td style="font-weight:${isActive?'600':'400'}">${r.activity}</td>
       <td>${r.whc_sub}</td>
