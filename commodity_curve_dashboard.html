@@ -245,6 +245,7 @@
       <h1 style="margin:0">Hillsboro 25-4002 <span class="badge">Project Status Report</span></h1>
       <div style="display:flex;gap:4px">
         <button id="hdrTab-dashboard" class="page-tab active" onclick="showPage('dashboard',this)" style="padding:5px 14px;font-size:12px">📊 Dashboard</button>
+        <button id="hdrTab-progress" class="page-tab" onclick="showPage('progress',this)" style="padding:5px 14px;font-size:12px">📋 Progress Detail</button>
         <button id="hdrTab-pf" class="page-tab" onclick="showPage('pf',this)" style="padding:5px 14px;font-size:12px">⚡ PF Analysis</button>
       </div>
     </div>
@@ -576,7 +577,43 @@
     </div>
   </div>
 
-  <div class="chart-card" style="margin-top:20px">
+
+</div><!-- end page-dashboard -->
+
+<!-- ============================================================ -->
+<!-- PROGRESS DETAIL PAGE                                         -->
+<!-- ============================================================ -->
+<div id="page-progress" class="page-section">
+
+  <!-- Section Summary Cards -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px" id="progSectionCards"></div>
+
+  <!-- Charts row: weekly earned + variance chart -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+    <div class="chart-card">
+      <div class="chart-title">Weekly Earned Hours — By Section</div>
+      <div class="chart-wrap" style="height:280px;position:relative">
+        <canvas id="weeklyEarnedChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Schedule Variance — Top 10 Behind vs Ahead</div>
+      <div class="chart-wrap" style="height:280px;position:relative">
+        <canvas id="varianceChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cumulative earned by section (sparkline area) -->
+  <div class="chart-card" style="margin-bottom:20px">
+    <div class="chart-title">Earned % Cumulative — Section Breakdown</div>
+    <div class="chart-wrap" style="height:220px;position:relative">
+      <canvas id="earnedSectionChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Activity Detail table (moved here) -->
+  <div class="chart-card" id="actDetailCard">
     <div class="chart-title" style="position:relative">Activity Detail
       <button class="pin-btn" onclick="togglePin('actWrap',this)" title="Pin header">📌 Pin</button>
     </div>
@@ -647,7 +684,7 @@
     </div>
   </div>
 
-</div><!-- end page-dashboard -->
+</div><!-- end page-progress -->
 
 <div id="page-pf" class="page-section">
 
@@ -3122,14 +3159,14 @@ function showPage(name, btn) {
   document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.page-tab').forEach(b => b.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
-  // Sync both old in-page tabs and header tabs
-  ['hdrTab-dashboard','hdrTab-pf'].forEach(id => {
+  ['hdrTab-dashboard','hdrTab-progress','hdrTab-pf'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.toggle('active', id === 'hdrTab-' + name);
   });
   btn.classList.add('active');
   document.getElementById('pfStickyBar').style.display = (name === 'pf') ? '' : 'none';
   document.getElementById('dashStickyBar').style.display = (name === 'dashboard') ? '' : 'none';
+  if (name === 'progress') initProgressPage();
 }
 
 // ============================================================
@@ -3603,6 +3640,207 @@ initPFSort();
 document.getElementById('pfRangeLabel').textContent = _fmtPFDate(ALL_DATES[0]) + ' → ' + _fmtPFDate(ALL_DATES[SC_CURRENT_IDX]);
 paintSliderTrack('pfRangeMinEl','pfRangeMaxEl','pfSliderTrack', 0, SC_CURRENT_IDX, ALL_DATES.length - 1);
 buildFTECostFilter();
+
+// ============================================================
+// PROGRESS DETAIL PAGE
+// ============================================================
+let progChartsInit = false;
+let weeklyEarnedChartObj = null, varianceChartObj = null, earnedSectionChartObj = null;
+
+function initProgressPage() {
+  if (progChartsInit) return;
+  progChartsInit = true;
+
+  buildProgSectionCards();
+  buildWeeklyEarnedChart();
+  buildVarianceChart();
+  buildEarnedSectionChart();
+  filterActivities();
+  initActSort();
+}
+
+function buildProgSectionCards() {
+  const sections = ['Civil','PV','SS'];
+  const sectionColors = { Civil: '#f59e0b', PV: '#3b82f6', SS: '#a78bfa' };
+  const sectionIcons  = { Civil: '🏗️', PV: '☀️', SS: '⚡' };
+
+  const bySection = {};
+  sections.forEach(s => { bySection[s] = { bl: 0, ea: 0, count: 0, behindCount: 0 }; });
+
+  ACTIVITIES.forEach(a => {
+    const s = a.section;
+    if (!bySection[s]) return;
+    bySection[s].count++;
+    bySection[s].bl += a.bl_pct || 0;
+    bySection[s].ea += a.ea_pct || 0;
+    const pv = (a.ea_pct || 0) - (a.bl_pct || 0);
+    if (pv < -5) bySection[s].behindCount++;
+  });
+
+  const el = document.getElementById('progSectionCards');
+  el.innerHTML = sections.map(s => {
+    const d = bySection[s];
+    const avgBl = d.count ? (d.bl / d.count) : 0;
+    const avgEa = d.count ? (d.ea / d.count) : 0;
+    const spi = avgBl > 0 ? (avgEa / avgBl) : null;
+    const spiColor = spi === null ? 'var(--muted)' : spi >= 1 ? '#22c55e' : spi >= 0.85 ? '#f59e0b' : '#ef4444';
+    const color = sectionColors[s];
+    const icon = sectionIcons[s];
+    const pctVarAvg = avgEa - avgBl;
+    const pctVarColor = pctVarAvg >= 0 ? '#22c55e' : pctVarAvg >= -10 ? '#f59e0b' : '#ef4444';
+    return `<div class="chart-card" style="--accent-bar:${color};position:relative;overflow:hidden">
+      <div style="font-size:22px;margin-bottom:6px">${icon} ${s}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px">
+        <div>
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Avg BL%</div>
+          <div style="font-size:20px;font-weight:700;color:${color}">${avgBl.toFixed(1)}%</div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Avg Earned%</div>
+          <div style="font-size:20px;font-weight:700;color:#22c55e">${avgEa.toFixed(1)}%</div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">SPI</div>
+          <div style="font-size:20px;font-weight:700;color:${spiColor}">${spi !== null ? spi.toFixed(2) : '—'}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:16px;margin-top:10px;font-size:11px;color:var(--muted)">
+        <span>Avg Var: <strong style="color:${pctVarColor}">${pctVarAvg >= 0 ? '+' : ''}${pctVarAvg.toFixed(1)}%</strong></span>
+        <span>Activities: <strong style="color:var(--text)">${d.count}</strong></span>
+        <span>Behind (&gt;5%): <strong style="color:#ef4444">${d.behindCount}</strong></span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function buildWeeklyEarnedChart() {
+  const sections = ['Civil','PV','SS'];
+  const sectionColors = { Civil: '#f59e0b', PV: '#3b82f6', SS: '#a78bfa' };
+
+  // Sum ea_week per section from ACTIVITIES
+  const totals = {};
+  sections.forEach(s => { totals[s] = 0; });
+  ACTIVITIES.forEach(a => {
+    if (totals[a.section] !== undefined) totals[a.section] += (a.ea_week || 0);
+  });
+
+  // Weekly earned from SCURVE cumulative — derive last N weeks of incremental earned
+  // Use ALL_DATES (weekly dates) and SCURVE to build incremental weekly earned hrs
+  // SCURVE earned is cumulative % of total BL. Convert to hours using EARNABLE_BL_TOTAL
+  const EARNABLE_BL_TOTAL = Object.values(PD_DONUT[ALL_DATES[0]]).reduce((s,v)=>s+(v.bl||0),0) || 474640;
+  const N = Math.min(8, ALL_DATES.length);
+  const recentDates = ALL_DATES.slice(Math.max(0, SC_CURRENT_IDX - N + 1), SC_CURRENT_IDX + 1);
+
+  const dsMap = {};
+  sections.forEach(s => { dsMap[s] = []; });
+
+  recentDates.forEach((dt, i) => {
+    sections.forEach(s => {
+      const cur = (SCURVE[dt]?.[s]?.earned || 0);
+      const prev = i === 0 ? 0 : (SCURVE[recentDates[i-1]]?.[s]?.earned || 0);
+      const incrPct = Math.max(0, cur - prev);
+      // earned is stored as percentage (0-100 scale)
+      const incrHrs = incrPct * EARNABLE_BL_TOTAL / 100;
+      dsMap[s].push(Math.round(incrHrs));
+    });
+  });
+
+  const labels = recentDates.map(d => d.slice(5)); // MM-DD
+
+  const ctx = document.getElementById('weeklyEarnedChart').getContext('2d');
+  weeklyEarnedChartObj = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: sections.map(s => ({
+        label: s,
+        data: dsMap[s],
+        backgroundColor: sectionColors[s] + 'cc',
+        borderColor: sectionColors[s],
+        borderWidth: 1,
+        borderRadius: 3,
+      }))
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } }, tooltip: { mode: 'index' } },
+      scales: {
+        x: { stacked: true, ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: '#2a2d45' } },
+        y: { stacked: true, ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: '#2a2d45' }, title: { display: true, text: 'Earned Hours', color: '#94a3b8', font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+function buildVarianceChart() {
+  // pct_var = ea_pct - bl_pct; show top 5 behind (most negative) + top 5 ahead (most positive)
+  const withVar = ACTIVITIES
+    .filter(a => a.bl_pct > 0 || a.ea_pct > 0)
+    .map(a => ({ label: a.activity, v: (a.ea_pct || 0) - (a.bl_pct || 0) }))
+    .filter(a => a.v !== 0);
+
+  withVar.sort((a, b) => a.v - b.v);
+  const behind = withVar.slice(0, 5);
+  const ahead  = withVar.slice(-5).reverse();
+  const combined = [...behind, ...ahead];
+
+  const labels = combined.map(a => a.label.length > 24 ? a.label.slice(0,22) + '…' : a.label);
+  const data   = combined.map(a => parseFloat(a.v.toFixed(1)));
+  const colors = data.map(v => v < 0 ? '#ef4444cc' : '#22c55ecc');
+  const borders = data.map(v => v < 0 ? '#ef4444' : '#22c55e');
+
+  const ctx = document.getElementById('varianceChart').getContext('2d');
+  varianceChartObj = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{ label: 'Earned % vs BL % Var', data, backgroundColor: colors, borderColor: borders, borderWidth: 1, borderRadius: 3 }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.raw > 0 ? '+' : ''}${ctx.raw}%` } } },
+      scales: {
+        x: { ticks: { color: '#94a3b8', font: { size: 10 }, callback: v => v + '%' }, grid: { color: '#2a2d45' } },
+        y: { ticks: { color: '#94a3b8', font: { size: 9 } }, grid: { color: 'transparent' } }
+      }
+    }
+  });
+}
+
+function buildEarnedSectionChart() {
+  const sections = ['Civil','PV','SS'];
+  const sectionColors = { Civil: '#f59e0b', PV: '#3b82f6', SS: '#a78bfa' };
+
+  // Plot cumulative earned % over all dates up to current for each section
+  const dates = ALL_DATES.slice(0, SC_CURRENT_IDX + 1);
+
+  const ctx = document.getElementById('earnedSectionChart').getContext('2d');
+  earnedSectionChartObj = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: dates.map(d => d.slice(5)),
+      datasets: sections.map(s => ({
+        label: s + ' Earned %',
+        data: dates.map(d => parseFloat((SCURVE[d]?.[s]?.earned || 0).toFixed(2))),
+        borderColor: sectionColors[s],
+        backgroundColor: sectionColors[s] + '22',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 2,
+        borderWidth: 2,
+      }))
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } }, tooltip: { mode: 'index' } },
+      scales: {
+        x: { ticks: { color: '#94a3b8', font: { size: 9 }, maxTicksLimit: 12 }, grid: { color: '#2a2d45' } },
+        y: { ticks: { color: '#94a3b8', font: { size: 10 }, callback: v => v + '%' }, grid: { color: '#2a2d45' } }
+      }
+    }
+  });
+}
 </script>
 </body>
 </html>
