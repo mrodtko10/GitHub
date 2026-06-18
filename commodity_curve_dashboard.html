@@ -175,6 +175,8 @@
   .pin-btn.pinned { color:#60a5fa; border-color:rgba(96,165,250,0.4); background:rgba(59,130,246,0.1); }
   .pinned-wrap { overflow-y: auto; max-height: 420px; }
   .pinned-wrap thead th { position: sticky; top: 0; z-index: 2; }
+  #actTable thead th { position: sticky; top: var(--act-thead-top, 52px); z-index: 3; background: var(--card); }
+  .pinned-wrap #actTable thead th { top: 0; }
   .collapse-btn {
     background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
     border-radius:5px; color:var(--muted); font-size:11px; padding:2px 8px;
@@ -584,6 +586,14 @@
 <!-- PROGRESS DETAIL PAGE                                         -->
 <!-- ============================================================ -->
 <div id="page-progress" class="page-section">
+
+  <!-- Sticky Progress KPI bar -->
+  <div id="progStickyBar" style="display:none;position:sticky;top:50px;z-index:89;background:var(--bg);border-bottom:1px solid var(--border);padding:8px 0 10px">
+    <button class="collapse-btn" id="progCollapseBtn" onclick="toggleProgHeader()" style="position:absolute;top:6px;right:6px">⊟ Collapse</button>
+    <div id="progStickyInner">
+      <div id="progKpiGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px"></div>
+    </div>
+  </div>
 
   <!-- Section Summary Cards -->
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px" id="progSectionCards"></div>
@@ -3166,7 +3176,15 @@ function showPage(name, btn) {
   btn.classList.add('active');
   document.getElementById('pfStickyBar').style.display = (name === 'pf') ? '' : 'none';
   document.getElementById('dashStickyBar').style.display = (name === 'dashboard') ? '' : 'none';
-  if (name === 'progress') initProgressPage();
+  document.getElementById('progStickyBar').style.display = (name === 'progress') ? '' : 'none';
+  if (name === 'progress') {
+    initProgressPage();
+    // set sticky thead offset = main header + progStickyBar
+    requestAnimationFrame(() => {
+      const barH = document.getElementById('progStickyBar').offsetHeight;
+      document.documentElement.style.setProperty('--act-thead-top', (50 + barH) + 'px');
+    });
+  }
 }
 
 // ============================================================
@@ -3610,6 +3628,19 @@ function toggleDashHeader() {
   btn.textContent = collapsed ? '⊟ Collapse' : '⊞ Expand';
 }
 
+function toggleProgHeader() {
+  const inner = document.getElementById('progStickyInner');
+  const btn   = document.getElementById('progCollapseBtn');
+  const collapsed = inner.style.display === 'none';
+  inner.style.display = collapsed ? '' : 'none';
+  btn.textContent = collapsed ? '⊟ Collapse' : '⊞ Expand';
+  // recalc thead sticky top after collapse/expand
+  requestAnimationFrame(() => {
+    const barH = document.getElementById('progStickyBar').offsetHeight;
+    document.documentElement.style.setProperty('--act-thead-top', (50 + barH) + 'px');
+  });
+}
+
 // ============================================================
 // PIN TABLE HEADER
 // ============================================================
@@ -3651,12 +3682,73 @@ function initProgressPage() {
   if (progChartsInit) return;
   progChartsInit = true;
 
+  buildProgKpiTiles();
   buildProgSectionCards();
   buildWeeklyEarnedChart();
   buildVarianceChart();
   buildEarnedSectionChart();
   filterActivities();
   initActSort();
+}
+
+function buildProgKpiTiles() {
+  const sections = ['Civil','PV','SS'];
+  const sectionColors = { Civil: '#f59e0b', PV: '#3b82f6', SS: '#a78bfa' };
+  const sectionIcons  = { Civil: '🏗️', PV: '☀️', SS: '⚡' };
+
+  // Compute weighted avg earned% and BL% for PD activities per section
+  // Weight by BL total hours from PD_DONUT if available, else simple avg
+  const bySection = {};
+  sections.forEach(s => { bySection[s] = { blSum: 0, eaSum: 0, count: 0 }; });
+
+  ACTIVITIES.filter(a => a.category.startsWith('PD')).forEach(a => {
+    const s = a.section;
+    if (!bySection[s]) return;
+    bySection[s].count++;
+    bySection[s].blSum += a.bl_pct || 0;
+    bySection[s].eaSum += a.ea_pct || 0;
+  });
+
+  // Overall PD totals
+  let totalBl = 0, totalEa = 0, totalCount = 0;
+  sections.forEach(s => {
+    totalBl    += bySection[s].blSum;
+    totalEa    += bySection[s].eaSum;
+    totalCount += bySection[s].count;
+  });
+  const overallAvgBl = totalCount ? totalBl / totalCount : 0;
+  const overallAvgEa = totalCount ? totalEa / totalCount : 0;
+  const overallSpi   = overallAvgBl > 0 ? overallAvgEa / overallAvgBl : null;
+  const overallVar   = overallAvgEa - overallAvgBl;
+
+  const tiles = [
+    { label: 'Overall PD', color: '#64748b', icon: '📊', avgBl: overallAvgBl, avgEa: overallAvgEa, spi: overallSpi, v: overallVar },
+    ...sections.map(s => {
+      const d = bySection[s];
+      const avgBl = d.count ? d.blSum / d.count : 0;
+      const avgEa = d.count ? d.eaSum / d.count : 0;
+      const spi   = avgBl > 0 ? avgEa / avgBl : null;
+      return { label: s, color: sectionColors[s], icon: sectionIcons[s], avgBl, avgEa, spi, v: avgEa - avgBl };
+    })
+  ];
+
+  const el = document.getElementById('progKpiGrid');
+  el.innerHTML = tiles.map(t => {
+    const spiColor = t.spi === null ? 'var(--muted)' : t.spi >= 1 ? '#22c55e' : t.spi >= 0.85 ? '#f59e0b' : '#ef4444';
+    const vColor   = t.v >= 0 ? '#22c55e' : t.v >= -10 ? '#f59e0b' : '#ef4444';
+    const vStr     = (t.v >= 0 ? '+' : '') + t.v.toFixed(1) + '%';
+    return `<div class="kpi-card" style="--accent-bar:${t.color}">
+      <div class="kpi-label">${t.icon} ${t.label} — PD Earned%</div>
+      <div style="display:flex;align-items:baseline;gap:8px;margin-top:4px">
+        <div class="kpi-value" style="color:#22c55e;font-size:22px">${t.avgEa.toFixed(1)}%</div>
+        <div style="font-size:12px;color:var(--muted)">vs BL <strong style="color:${t.color}">${t.avgBl.toFixed(1)}%</strong></div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">
+        Var: <strong style="color:${vColor}">${vStr}</strong>
+        &nbsp;·&nbsp; SPI: <strong style="color:${spiColor}">${t.spi !== null ? t.spi.toFixed(2) : '—'}</strong>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function buildProgSectionCards() {
