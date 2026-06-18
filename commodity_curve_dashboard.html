@@ -3639,11 +3639,17 @@ function togglePin(wrapId, btn) {
   const pinned = wrap.classList.toggle('pinned-wrap');
   btn.classList.toggle('pinned', pinned);
   btn.textContent = pinned ? '📌 Unpin' : '📌 Pin';
+  const card = wrap.closest('.chart-card');
   if (pinned) {
-    const card = wrap.closest('.chart-card');
     const stickyOffset = 50 + (document.getElementById('progStickyBar')?.offsetHeight || 0) + 8;
-    const top = card.getBoundingClientRect().top + window.scrollY - stickyOffset;
-    window.scrollTo({ top, behavior: 'smooth' });
+    card.style.position = 'sticky';
+    card.style.top = stickyOffset + 'px';
+    card.style.zIndex = '50';
+    window.scrollTo({ top: card.getBoundingClientRect().top + window.scrollY - stickyOffset, behavior: 'smooth' });
+  } else {
+    card.style.position = '';
+    card.style.top = '';
+    card.style.zIndex = '';
   }
 }
 
