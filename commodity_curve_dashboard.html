@@ -175,6 +175,9 @@
   .pin-btn.pinned { color:#60a5fa; border-color:rgba(96,165,250,0.4); background:rgba(59,130,246,0.1); }
   .pinned-wrap { overflow-y: auto; max-height: calc(100vh - 180px); }
   .pinned-wrap thead th { position: sticky; top: 0; z-index: 2; background: var(--card); }
+  .qf-btn { background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:5px;color:var(--text);font-size:11px;padding:3px 10px;cursor:pointer;transition:all .15s; }
+  .qf-btn:hover { background:rgba(255,255,255,0.12); }
+  .qf-btn.active { background:rgba(59,130,246,0.2);border-color:var(--accent);color:#60a5fa; }
   .collapse-btn {
     background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
     border-radius:5px; color:var(--muted); font-size:11px; padding:2px 8px;
@@ -671,6 +674,13 @@
       </select>
       <input type="number" id="actColVal" placeholder="value" step="any" style="width:80px" oninput="filterActivities()">
       <button onclick="document.getElementById('actColFilter').value='';document.getElementById('actColVal').value='';filterActivities()" style="padding:3px 8px;font-size:11px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:4px;color:var(--muted);cursor:pointer">Clear</button>
+    </div>
+    <div class="filters" style="margin-top:6px;align-items:center;gap:6px">
+      <span class="filter-label" style="white-space:nowrap">Quick:</span>
+      <button id="qf-bl-started"   class="qf-btn" onclick="setQuickFilter('bl_started',this)">BL Started</button>
+      <button id="qf-act-started"  class="qf-btn" onclick="setQuickFilter('act_started',this)">Actual Started</button>
+      <button id="qf-earned-week"  class="qf-btn" onclick="setQuickFilter('earned_week',this)">Earned This Week</button>
+      <button id="qf-clear"        class="qf-btn" onclick="setQuickFilter('',this)" style="color:var(--muted)">✕ Clear</button>
     </div>
     <div class="table-wrap" id="actWrap">
       <table id="actTable">
@@ -3075,6 +3085,13 @@ function initMpSort() {
 // ACTIVITY TABLE
 // ============================================================
 let actSortCol = null, actSortDir = 0;
+let actQuickFilter = '';
+function setQuickFilter(key, btn) {
+  actQuickFilter = (actQuickFilter === key) ? '' : key;
+  document.querySelectorAll('.qf-btn').forEach(b => b.classList.remove('active'));
+  if (actQuickFilter) btn.classList.add('active');
+  filterActivities();
+}
 function filterActivities() {
   const sec       = document.getElementById('sectionFilter').value;
   const cat       = document.getElementById('catFilter').value;
@@ -3083,6 +3100,12 @@ function filterActivities() {
   const actColF = document.getElementById('actColFilter').value;
   const actOp   = document.getElementById('actOpFilter').value;
   const actVal  = parseFloat(document.getElementById('actColVal').value);
+  const passesQuick = a => {
+    if (actQuickFilter === 'bl_started')  return (a.bl_pct || 0) > 0;
+    if (actQuickFilter === 'act_started') return (a.ea_pct || 0) > 0;
+    if (actQuickFilter === 'earned_week') return (a.ea_week || 0) > 0;
+    return true;
+  };
   const getActColVal = (a, col) => {
     if (col === 'pct_var') return (a.ea_pct||0) - (a.bl_pct||0);
     if (col === 'ea_week_pct') return a.ea_week || 0;
@@ -3103,7 +3126,8 @@ function filterActivities() {
     (!cat  || a.category === cat) &&
     (!whc  || a.whc_sub === whc) &&
     (!q    || (a.activity||'').toLowerCase().includes(q)) &&
-    passesColFilter(a)
+    passesColFilter(a) &&
+    passesQuick(a)
   );
   if (actSortCol && actSortDir !== 0) {
     filtered.sort((a,b) => {
@@ -3120,14 +3144,14 @@ function filterActivities() {
   const EARNABLE_BL_TOTAL = Object.values(PD_DONUT[ALL_DATES[0]]).reduce((s,v)=>s+(v.bl||0),0) || 474640;
   const fmtVar = v => v === null || v === undefined ? '—' : (v > 0 ? `<span style="color:#ef4444">+${v}</span>` : v < 0 ? `<span style="color:#22c55e">${v}</span>` : '0');
   let html = filtered.map(a => {
-    const blColor  = a.bl_pct >= 80 ? '#22c55e' : a.bl_pct >= 40 ? '#f59e0b' : '#ef4444';
-    const eaColor  = a.ea_pct >= 80 ? '#22c55e' : a.ea_pct >= 40 ? '#f59e0b' : '#ef4444';
-    const catClass = a.category.startsWith('NP') ? 'cat-NP' : a.category.startsWith('PD-S') ? 'cat-PS' : 'cat-PD';
-    // Earned% vs BL% variance — negative = behind (red), positive = ahead (green)
+    // BL: blue until ≥85%, then green
+    const blColor = a.bl_pct >= 85 ? '#22c55e' : '#3b82f6';
+    // Earned % vs BL % variance drives both earned color and var color
     const pctVar = (a.ea_pct || 0) - (a.bl_pct || 0);
     const pctVarColor = pctVar >= 0 ? '#22c55e' : pctVar >= -10 ? '#f59e0b' : '#ef4444';
+    const eaColor = pctVarColor;
+    const catClass = a.category.startsWith('NP') ? 'cat-NP' : a.category.startsWith('PD-S') ? 'cat-PS' : 'cat-PD';
     const pctVarStr = pctVar === 0 ? '0.0%' : (pctVar > 0 ? '+' : '') + pctVar.toFixed(1) + '%';
-    // Weekly earned as % of total earnable BL
     const eaWkPct = EARNABLE_BL_TOTAL > 0 ? (a.ea_week || 0) / EARNABLE_BL_TOTAL * 100 : 0;
     return `<tr>
       <td>${a.activity}</td>
@@ -3140,7 +3164,7 @@ function filterActivities() {
       <td>${pctBar(a.bl_pct, blColor)}</td>
       <td>${pctBar(a.ea_pct, eaColor)}</td>
       <td style="text-align:right"><span style="color:${pctVarColor};font-weight:600">${pctVarStr}</span></td>
-      <td style="text-align:right">${eaWkPct > 0 ? eaWkPct.toFixed(3) + '%' : '—'}</td>
+      <td style="text-align:right">${eaWkPct > 0 ? eaWkPct.toFixed(2) + '%' : '—'}</td>
     </tr>`;
   }).join('');
   document.getElementById('actTableBody').innerHTML = html ||
