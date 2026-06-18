@@ -104,6 +104,7 @@
     background: var(--surface); color: var(--muted);
     text-align: right; padding: 8px 10px; font-weight: 600;
     border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 2;
     white-space: nowrap; font-size: 11px; text-transform: uppercase; letter-spacing: .04em;
   }
   thead th:first-child, thead th:nth-child(2) { text-align: left; }
@@ -165,6 +166,15 @@
   .page-section { display:none; }
   .page-section.active { display:block; }
   .sort-icon { font-size:10px; opacity:0.5; margin-left:3px; }
+  .pin-btn {
+    position:absolute; top:0; right:0;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+    border-radius:5px; color:var(--muted); font-size:11px; padding:3px 8px;
+    cursor:pointer; line-height:1.4;
+  }
+  .pin-btn:hover { background: rgba(255,255,255,0.12); color:var(--text); }
+  .pin-btn.pinned { color:#60a5fa; border-color:rgba(96,165,250,0.4); background:rgba(59,130,246,0.1); }
+  .pinned-wrap { overflow-y: auto; max-height: 420px; }
   th:hover .sort-icon { opacity:1; }
   #mpTable td, #mpTable th { padding: 8px 10px; font-size:12px; }
   #actTable td, #actTable th { padding: 7px 9px; font-size:12px; }
@@ -475,7 +485,9 @@
 
   <!-- Weekly Manpower Table -->
   <div class="chart-card">
-    <div class="chart-title">Weekly Manpower Summary</div>
+    <div class="chart-title" style="position:relative">Weekly Manpower Summary
+      <button class="pin-btn" onclick="togglePin('mpWrap',this)" title="Pin header">📌 Pin</button>
+    </div>
     <!-- Summary mini tiles -->
     <div id="mpSummaryTiles" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px"></div>
     <!-- Filters -->
@@ -523,7 +535,7 @@
       <input type="number" id="mpColVal" placeholder="value" step="any" style="width:80px" oninput="renderManpower()">
       <button onclick="document.getElementById('mpColFilter').value='';document.getElementById('mpColVal').value='';renderManpower()" style="padding:3px 8px;font-size:11px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:4px;color:var(--muted);cursor:pointer">Clear</button>
     </div>
-    <div class="table-wrap" style="margin-top:10px">
+    <div class="table-wrap" id="mpWrap" style="margin-top:10px">
       <table id="mpTable">
         <thead>
           <tr>
@@ -548,7 +560,9 @@
   </div>
 
   <div class="chart-card" style="margin-top:20px">
-    <div class="chart-title">Activity Detail</div>
+    <div class="chart-title" style="position:relative">Activity Detail
+      <button class="pin-btn" onclick="togglePin('actWrap',this)" title="Pin header">📌 Pin</button>
+    </div>
     <div class="filters">
       <span class="filter-label">Section:</span>
       <select id="sectionFilter" onchange="filterActivities()">
@@ -594,7 +608,7 @@
       <input type="number" id="actColVal" placeholder="value" step="any" style="width:80px" oninput="filterActivities()">
       <button onclick="document.getElementById('actColFilter').value='';document.getElementById('actColVal').value='';filterActivities()" style="padding:3px 8px;font-size:11px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:4px;color:var(--muted);cursor:pointer">Clear</button>
     </div>
-    <div class="table-wrap">
+    <div class="table-wrap" id="actWrap">
       <table id="actTable">
         <thead>
           <tr>
@@ -687,7 +701,9 @@
 
   <!-- PF Table -->
   <div class="chart-card">
-    <div class="chart-title">PF Activity Detail <span style="font-size:11px;color:var(--muted)">— Direct contributes earned+spent · Indirect contributes spent only · Sub excluded</span></div>
+    <div class="chart-title" style="position:relative">PF Activity Detail <span style="font-size:11px;color:var(--muted)">— Direct contributes earned+spent · Indirect contributes spent only · Sub excluded</span>
+      <button class="pin-btn" onclick="togglePin('pfWrap',this)" title="Pin header">📌 Pin</button>
+    </div>
     <!-- Filters -->
     <div class="filters" style="margin-bottom:8px">
       <span class="filter-label">Section:</span>
@@ -734,7 +750,7 @@
       <input type="number" id="pfColVal" placeholder="value" step="any" style="width:80px" oninput="renderPFTable()">
       <button onclick="document.getElementById('pfColFilter').value='';document.getElementById('pfColVal').value='';renderPFTable()" style="padding:3px 8px;font-size:11px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:4px;color:var(--muted);cursor:pointer">Clear</button>
     </div>
-    <div class="table-wrap">
+    <div class="table-wrap" id="pfWrap">
       <table id="pfTable">
         <thead>
           <tr>
@@ -3507,6 +3523,17 @@ function initPFSort() {
       renderPFTable();
     });
   });
+}
+
+// ============================================================
+// ============================================================
+// PIN TABLE HEADER
+// ============================================================
+function togglePin(wrapId, btn) {
+  const wrap = document.getElementById(wrapId);
+  const pinned = wrap.classList.toggle('pinned-wrap');
+  btn.classList.toggle('pinned', pinned);
+  btn.textContent = pinned ? '📌 Unpin' : '📌 Pin';
 }
 
 // ============================================================
