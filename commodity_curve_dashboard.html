@@ -173,12 +173,8 @@
   }
   .pin-btn:hover { background: rgba(255,255,255,0.12); color:var(--text); }
   .pin-btn.pinned { color:#60a5fa; border-color:rgba(96,165,250,0.4); background:rgba(59,130,246,0.1); }
-  .pinned-wrap { overflow-y: auto; max-height: 420px; }
-  .pinned-wrap thead th { position: sticky; top: 0; z-index: 2; }
-  .pinned-wrap #actTable thead th { top: 0; }
-  #act-sticky-head { display:none; position:fixed; z-index:200; background:var(--card); border-bottom:1px solid var(--border); overflow:hidden; pointer-events:auto; }
-  #act-sticky-head table { border-collapse:collapse; table-layout:fixed; }
-  #act-sticky-head th { background:var(--card); color:var(--text); font-size:12px; padding:7px 9px; border-bottom:1px solid var(--border); white-space:nowrap; cursor:pointer; }
+  .pinned-wrap { overflow-y: auto; max-height: calc(100vh - 180px); }
+  .pinned-wrap thead th { position: sticky; top: 0; z-index: 2; background: var(--card); }
   .collapse-btn {
     background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
     border-radius:5px; color:var(--muted); font-size:11px; padding:2px 8px;
@@ -844,9 +840,6 @@
   </div>
 
 </div><!-- end page-pf -->
-
-<!-- Fixed sticky clone of actTable thead for freeze-pane effect -->
-<div id="act-sticky-head"><table><thead><tr id="act-sticky-row"></tr></thead></table></div>
 
 <script>
 // ============================================================
@@ -3186,8 +3179,6 @@ function showPage(name, btn) {
   document.getElementById('progStickyBar').style.display = (name === 'progress') ? '' : 'none';
   if (name === 'progress') {
     initProgressPage();
-  } else {
-    document.getElementById('act-sticky-head').style.display = 'none';
   }
 }
 
@@ -3648,6 +3639,10 @@ function togglePin(wrapId, btn) {
   const pinned = wrap.classList.toggle('pinned-wrap');
   btn.classList.toggle('pinned', pinned);
   btn.textContent = pinned ? '📌 Unpin' : '📌 Pin';
+  if (pinned) {
+    // scroll the card into view so the frozen header is visible immediately
+    wrap.closest('.chart-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 }
 
 // ============================================================
@@ -3688,57 +3683,6 @@ function initProgressPage() {
   buildEarnedSectionChart();
   filterActivities();
   initActSort();
-  initActStickyHead();
-}
-
-function initActStickyHead() {
-  const table     = document.getElementById('actTable');
-  const wrap      = document.getElementById('actWrap');
-  const stickyEl  = document.getElementById('act-sticky-head');
-  const stickyRow = document.getElementById('act-sticky-row');
-  if (!table || stickyEl._actInited) return;
-  stickyEl._actInited = true;
-
-  let cloneBuilt = false;
-
-  function buildClone() {
-    stickyRow.innerHTML = '';
-    table.querySelectorAll('thead th').forEach(th => {
-      const clone = document.createElement('th');
-      clone.innerHTML = th.innerHTML;
-      clone.style.width = th.offsetWidth + 'px';
-      clone.addEventListener('click', () => th.click());
-      stickyRow.appendChild(clone);
-    });
-    stickyEl.querySelector('table').style.width = table.offsetWidth + 'px';
-    cloneBuilt = true;
-  }
-
-  function onScroll() {
-    const barH     = document.getElementById('progStickyBar').offsetHeight;
-    const headerH  = 50;
-    const threshold = headerH + barH;
-    const theadRect = table.querySelector('thead').getBoundingClientRect();
-    const wrapRect  = wrap.getBoundingClientRect();
-
-    if (theadRect.bottom < threshold) {
-      if (!cloneBuilt) buildClone();
-      stickyEl.style.top     = threshold + 'px';
-      stickyEl.style.left    = wrapRect.left + 'px';
-      stickyEl.style.width   = wrapRect.width + 'px';
-      stickyEl.scrollLeft    = wrap.scrollLeft;
-      stickyEl.style.display = 'block';
-    } else {
-      stickyEl.style.display = 'none';
-    }
-  }
-
-  wrap.addEventListener('scroll', () => {
-    stickyEl.scrollLeft = wrap.scrollLeft;
-  });
-
-  window.addEventListener('scroll', onScroll, { passive: true });
-  window.addEventListener('resize', () => { cloneBuilt = false; onScroll(); });
 }
 
 function buildProgKpiTiles() {
