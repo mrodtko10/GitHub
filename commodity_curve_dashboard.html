@@ -591,13 +591,13 @@
   <!-- Charts row: weekly earned + variance chart -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
     <div class="chart-card">
-      <div class="chart-title">Weekly Earned Hours — By Section</div>
+      <div class="chart-title">Current Week Earned Hours — By Section <span>(PD Only)</span></div>
       <div class="chart-wrap" style="height:280px;position:relative">
         <canvas id="weeklyEarnedChart"></canvas>
       </div>
     </div>
     <div class="chart-card">
-      <div class="chart-title">Schedule Variance — Top 10 Behind vs Ahead</div>
+      <div class="chart-title">Schedule Variance — Top 10 Behind vs Ahead <span>(PD Only)</span></div>
       <div class="chart-wrap" style="height:280px;position:relative">
         <canvas id="varianceChart"></canvas>
       </div>
@@ -3667,7 +3667,7 @@ function buildProgSectionCards() {
   const bySection = {};
   sections.forEach(s => { bySection[s] = { bl: 0, ea: 0, count: 0, behindCount: 0 }; });
 
-  ACTIVITIES.forEach(a => {
+  ACTIVITIES.filter(a => a.category.startsWith('PD')).forEach(a => {
     const s = a.section;
     if (!bySection[s]) return;
     bySection[s].count++;
@@ -3717,65 +3717,41 @@ function buildWeeklyEarnedChart() {
   const sections = ['Civil','PV','SS'];
   const sectionColors = { Civil: '#f59e0b', PV: '#3b82f6', SS: '#a78bfa' };
 
-  // Sum ea_week per section from ACTIVITIES
-  const totals = {};
-  sections.forEach(s => { totals[s] = 0; });
-  ACTIVITIES.forEach(a => {
+  // Sum ea_week per section from PD-only ACTIVITIES (current week)
+  const totals = { Civil: 0, PV: 0, SS: 0 };
+  ACTIVITIES.filter(a => a.category.startsWith('PD')).forEach(a => {
     if (totals[a.section] !== undefined) totals[a.section] += (a.ea_week || 0);
   });
-
-  // Weekly earned from SCURVE cumulative — derive last N weeks of incremental earned
-  // Use ALL_DATES (weekly dates) and SCURVE to build incremental weekly earned hrs
-  // SCURVE earned is cumulative % of total BL. Convert to hours using EARNABLE_BL_TOTAL
-  const EARNABLE_BL_TOTAL = Object.values(PD_DONUT[ALL_DATES[0]]).reduce((s,v)=>s+(v.bl||0),0) || 474640;
-  const N = Math.min(8, ALL_DATES.length);
-  const recentDates = ALL_DATES.slice(Math.max(0, SC_CURRENT_IDX - N + 1), SC_CURRENT_IDX + 1);
-
-  const dsMap = {};
-  sections.forEach(s => { dsMap[s] = []; });
-
-  recentDates.forEach((dt, i) => {
-    sections.forEach(s => {
-      const cur = (SCURVE[dt]?.[s]?.earned || 0);
-      const prev = i === 0 ? 0 : (SCURVE[recentDates[i-1]]?.[s]?.earned || 0);
-      const incrPct = Math.max(0, cur - prev);
-      // earned is stored as percentage (0-100 scale)
-      const incrHrs = incrPct * EARNABLE_BL_TOTAL / 100;
-      dsMap[s].push(Math.round(incrHrs));
-    });
-  });
-
-  const labels = recentDates.map(d => d.slice(5)); // MM-DD
 
   const ctx = document.getElementById('weeklyEarnedChart').getContext('2d');
   weeklyEarnedChartObj = new Chart(ctx, {
     type: 'bar',
     data: {
-      labels,
-      datasets: sections.map(s => ({
-        label: s,
-        data: dsMap[s],
-        backgroundColor: sectionColors[s] + 'cc',
-        borderColor: sectionColors[s],
+      labels: sections,
+      datasets: [{
+        label: 'Current Week Earned Hours (PD)',
+        data: sections.map(s => Math.round(totals[s])),
+        backgroundColor: sections.map(s => sectionColors[s] + 'cc'),
+        borderColor: sections.map(s => sectionColors[s]),
         borderWidth: 1,
-        borderRadius: 3,
-      }))
+        borderRadius: 4,
+      }]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } }, tooltip: { mode: 'index' } },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.raw.toLocaleString()} hrs` } } },
       scales: {
-        x: { stacked: true, ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: '#2a2d45' } },
-        y: { stacked: true, ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: '#2a2d45' }, title: { display: true, text: 'Earned Hours', color: '#94a3b8', font: { size: 10 } } }
+        x: { ticks: { color: '#94a3b8', font: { size: 11 } }, grid: { color: '#2a2d45' } },
+        y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: '#2a2d45' }, title: { display: true, text: 'Earned Hours', color: '#94a3b8', font: { size: 10 } } }
       }
     }
   });
 }
 
 function buildVarianceChart() {
-  // pct_var = ea_pct - bl_pct; show top 5 behind (most negative) + top 5 ahead (most positive)
+  // PD-only: pct_var = ea_pct - bl_pct; show top 5 behind + top 5 ahead
   const withVar = ACTIVITIES
-    .filter(a => a.bl_pct > 0 || a.ea_pct > 0)
+    .filter(a => a.category.startsWith('PD') && (a.bl_pct > 0 || a.ea_pct > 0))
     .map(a => ({ label: a.activity, v: (a.ea_pct || 0) - (a.bl_pct || 0) }))
     .filter(a => a.v !== 0);
 
