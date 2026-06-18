@@ -268,11 +268,11 @@
   <!-- Key Dates -->
   <div class="dates-bar" style="margin-bottom:8px">
     <div class="label">Key Dates</div>
-    <div class="date-item"><div class="dot" style="background:#a78bfa"></div>Substation MC: <strong>Jul 02, 2027</strong></div>
-    <div class="date-item"><div class="dot" style="background:#3b82f6"></div>Guaranteed MC: <strong>Aug 05, 2027</strong></div>
-    <div class="date-item"><div class="dot" style="background:#22c55e"></div>GSC Incentive: <strong>Dec 17, 2027</strong></div>
-    <div class="date-item"><div class="dot" style="background:#f59e0b"></div>Guaranteed SC: <strong>Dec 30, 2027</strong></div>
-    <div class="date-item"><div class="dot" style="background:#ef4444"></div>Final Completion: <strong>Feb 16, 2028</strong></div>
+    <div class="date-item"><div class="dot" style="background:#a78bfa"></div>Substation MC: <strong contenteditable="true" style="outline:none;cursor:text;border-bottom:1px dashed rgba(167,139,250,0.4);padding-bottom:1px" spellcheck="false">Jul 02, 2027</strong></div>
+    <div class="date-item"><div class="dot" style="background:#3b82f6"></div>Guaranteed MC: <strong contenteditable="true" style="outline:none;cursor:text;border-bottom:1px dashed rgba(59,130,246,0.4);padding-bottom:1px" spellcheck="false">Aug 05, 2027</strong></div>
+    <div class="date-item"><div class="dot" style="background:#22c55e"></div>GSC Incentive: <strong contenteditable="true" style="outline:none;cursor:text;border-bottom:1px dashed rgba(34,197,94,0.4);padding-bottom:1px" spellcheck="false">Dec 17, 2027</strong></div>
+    <div class="date-item"><div class="dot" style="background:#f59e0b"></div>Guaranteed SC: <strong contenteditable="true" style="outline:none;cursor:text;border-bottom:1px dashed rgba(245,158,11,0.4);padding-bottom:1px" spellcheck="false">Dec 30, 2027</strong></div>
+    <div class="date-item"><div class="dot" style="background:#ef4444"></div>Final Completion: <strong contenteditable="true" style="outline:none;cursor:text;border-bottom:1px dashed rgba(239,68,68,0.4);padding-bottom:1px" spellcheck="false">Feb 16, 2028</strong></div>
   </div>
 
   <!-- KPI Cards -->
@@ -2913,19 +2913,6 @@ function renderManpower() {
       <div style="font-size:12px;font-weight:600;color:${t.color};margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">${t.label}</div>
       <div style="display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap">
         <div>
-          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">PW BL</div>
-          <div style="font-size:18px;font-weight:700;color:${t.color};line-height:1">${fmtN(pw_bl)}</div>
-        </div>
-        <div>
-          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">PW Actual</div>
-          <div style="font-size:22px;font-weight:700;color:#22c55e;line-height:1">${fmtN(pw_act)}</div>
-          ${utilPW !== null ? `<div style="font-size:10px;color:${utilPW>=100?'#22c55e':'#f59e0b'};margin-top:1px">${utilPW}% of BL</div>` : ''}
-        </div>
-        ${pw_avg !== null ? `<div>
-          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">PW Avg/Day</div>
-          <div style="font-size:22px;font-weight:700;color:#c084fc;line-height:1">${pw_avg}</div>
-        </div>` : ''}
-        <div style="border-left:1px solid rgba(255,255,255,0.08);padding-left:14px;margin-left:4px">
           <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">CW BL</div>
           <div style="font-size:18px;font-weight:700;color:${t.color};line-height:1">${fmtN(cw_bl)}</div>
         </div>
@@ -2937,6 +2924,19 @@ function renderManpower() {
         ${cw_avg !== null ? `<div>
           <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">CW Avg/Day</div>
           <div style="font-size:22px;font-weight:700;color:#c084fc;line-height:1">${cw_avg}</div>
+        </div>` : ''}
+        <div style="border-left:1px solid rgba(255,255,255,0.08);padding-left:14px;margin-left:4px">
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">PW BL</div>
+          <div style="font-size:18px;font-weight:700;color:${t.color};line-height:1">${fmtN(pw_bl)}</div>
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">PW Actual</div>
+          <div style="font-size:22px;font-weight:700;color:#22c55e;line-height:1">${fmtN(pw_act)}</div>
+          ${utilPW !== null ? `<div style="font-size:10px;color:${utilPW>=100?'#22c55e':'#f59e0b'};margin-top:1px">${utilPW}% of BL</div>` : ''}
+        </div>
+        ${pw_avg !== null ? `<div>
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">PW Avg/Day</div>
+          <div style="font-size:22px;font-weight:700;color:#c084fc;line-height:1">${pw_avg}</div>
         </div>` : ''}
         ${cwEarnedHtml}
       </div>
