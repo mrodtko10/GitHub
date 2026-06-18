@@ -3640,8 +3640,10 @@ function togglePin(wrapId, btn) {
   btn.classList.toggle('pinned', pinned);
   btn.textContent = pinned ? '📌 Unpin' : '📌 Pin';
   if (pinned) {
-    // scroll the card into view so the frozen header is visible immediately
-    wrap.closest('.chart-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const card = wrap.closest('.chart-card');
+    const stickyOffset = 50 + (document.getElementById('progStickyBar')?.offsetHeight || 0) + 8;
+    const top = card.getBoundingClientRect().top + window.scrollY - stickyOffset;
+    window.scrollTo({ top, behavior: 'smooth' });
   }
 }
 
