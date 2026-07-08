@@ -771,6 +771,7 @@ function monthlyAgg(months, field){
 function applyGlobalFiltersNoMonth(rows){
   const f = getF();
   return rows.filter(p=>{
+    if(f.sections.length && !f.sections.includes(p.sec||'')) return false;
     if(f.statuses.length){
       const st = LATEST_STATUS[p.id]||p.status;
       if(!f.statuses.some(s=>s.toLowerCase()===st.toLowerCase())) return false;
