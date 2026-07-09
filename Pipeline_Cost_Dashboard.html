@@ -257,8 +257,6 @@ input.fs{width:90px;}
 <div id="tab-overview" class="tab-content active">
   <div class="section-header"><h2>Executive Overview</h2><p id="ovSub"></p></div>
 
-  <div class="alert alert-red" id="alertLoss"><span>⚠</span><span id="alertLossText"></span></div>
-  <div class="alert alert-yellow" id="alertBilling"><span>◆</span><span id="alertBillingText"></span></div>
 
   <div class="kpi-grid">
     <div class="kpi blue"><div class="kpi-label">Total Portfolio Revenue</div><div class="kpi-value" id="kpiRev">—</div><div class="kpi-sub" id="kpiRevSub"></div></div>
@@ -842,20 +840,6 @@ function renderOverview(){
   document.getElementById('kpiJTD').textContent=fmt(totalJTD);
   document.getElementById('ovSub').textContent='Latest snapshot — '+fp.length+' projects';
 
-  const lossP=fp.filter(p=>p.margin_rev<0);
-  const alertL=document.getElementById('alertLoss');
-  const alertB=document.getElementById('alertBilling');
-  if(lossP.length){
-    const w=lossP.sort((a,b)=>a.margin_rev-b.margin_rev)[0];
-    document.getElementById('alertLossText').innerHTML='<strong>Margin Alert:</strong> '+w.name+' ('+w.id+') at <strong>'+fmtPct(w.margin_rev)+'</strong> — loss of '+fmt(Math.abs(w.profit));
-    alertL.classList.add('show');
-  } else alertL.classList.remove('show');
-  const bgap=fp.filter(p=>p.pct_complete>0.05&&p.billed/p.rev<0.25&&p.rev>5e6);
-  if(bgap.length){
-    const bg=bgap[0];
-    document.getElementById('alertBillingText').innerHTML='<strong>Billing Gap:</strong> '+bg.name+' is '+fmtPct(bg.pct_complete)+' complete but only '+fmtPct(bg.billed/bg.rev)+' billed.';
-    alertB.classList.add('show');
-  } else alertB.classList.remove('show');
 
   // Trend chart
   buildMonthSelects('trendFrom','trendTo',null,null);
