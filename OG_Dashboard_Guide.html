@@ -1,0 +1,707 @@
+<title>Oil & Gas Dashboard — User Guide</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+/* ── Tokens ── */
+:root {
+  --bg:       #f7f8fa;
+  --surface:  #ffffff;
+  --border:   #e2e6ec;
+  --text:     #1a1f2e;
+  --muted:    #5a6378;
+  --accent:   #1a6fef;
+  --accent-lt:#e8f0fd;
+  --green:    #1a8a4a;
+  --green-lt: #e6f5ec;
+  --red:      #c8292a;
+  --red-lt:   #fceaea;
+  --yellow:   #9a6f00;
+  --yellow-lt:#fdf5e0;
+  --purple:   #6b3fbf;
+  --purple-lt:#f0ebfc;
+  --rule:     #d4dae6;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:       #0f1117;
+    --surface:  #181c27;
+    --border:   #272d3e;
+    --text:     #dde2ee;
+    --muted:    #7c879e;
+    --accent:   #4d8ef7;
+    --accent-lt:#1a2540;
+    --green:    #34a85a;
+    --green-lt: #0e2318;
+    --red:      #e05252;
+    --red-lt:   #2a1010;
+    --yellow:   #c99a1a;
+    --yellow-lt:#251d08;
+    --purple:   #9b72e8;
+    --purple-lt:#1e1535;
+    --rule:     #272d3e;
+  }
+}
+:root[data-theme="dark"] {
+  --bg:#0f1117; --surface:#181c27; --border:#272d3e; --text:#dde2ee; --muted:#7c879e;
+  --accent:#4d8ef7; --accent-lt:#1a2540; --green:#34a85a; --green-lt:#0e2318;
+  --red:#e05252; --red-lt:#2a1010; --yellow:#c99a1a; --yellow-lt:#251d08;
+  --purple:#9b72e8; --purple-lt:#1e1535; --rule:#272d3e;
+}
+:root[data-theme="light"] {
+  --bg:#f7f8fa; --surface:#ffffff; --border:#e2e6ec; --text:#1a1f2e; --muted:#5a6378;
+  --accent:#1a6fef; --accent-lt:#e8f0fd; --green:#1a8a4a; --green-lt:#e6f5ec;
+  --red:#c8292a; --red-lt:#fceaea; --yellow:#9a6f00; --yellow-lt:#fdf5e0;
+  --purple:#6b3fbf; --purple-lt:#f0ebfc; --rule:#d4dae6;
+}
+
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+/* ── Header ── */
+.site-header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 28px 40px 24px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.header-eyebrow {
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.header-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -.01em;
+}
+.header-sub {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.theme-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 7px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.theme-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Layout ── */
+.layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  max-width: 1100px;
+  margin: 0 auto;
+  gap: 0;
+  padding: 0 20px;
+}
+@media (max-width: 800px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .site-header { padding: 20px; }
+}
+
+/* ── Sidebar nav ── */
+.sidebar {
+  padding: 36px 0 60px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+.sidebar-label {
+  font-size: 10px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+  padding: 0 12px;
+  margin-bottom: 8px;
+  margin-top: 24px;
+}
+.sidebar-label:first-child { margin-top: 0; }
+.sidebar a {
+  display: block;
+  padding: 6px 12px;
+  font-size: 13px;
+  color: var(--muted);
+  text-decoration: none;
+  border-radius: 6px;
+  transition: color .12s, background .12s;
+}
+.sidebar a:hover { color: var(--text); background: var(--border); }
+.sidebar a.active { color: var(--accent); background: var(--accent-lt); font-weight: 600; }
+
+/* ── Main content ── */
+.main {
+  padding: 40px 0 80px 48px;
+  border-left: 1px solid var(--rule);
+  min-width: 0;
+}
+@media (max-width: 800px) { .main { padding: 24px 0; border-left: none; } }
+
+section { margin-bottom: 52px; }
+section:last-child { margin-bottom: 0; }
+
+h2 {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.section-sub {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 20px;
+}
+h3 {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--muted);
+  margin: 28px 0 12px;
+}
+
+p { margin-bottom: 14px; max-width: 68ch; }
+p:last-child { margin-bottom: 0; }
+
+hr { border: none; border-top: 1px solid var(--rule); margin: 40px 0; }
+
+/* ── Cards ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px 24px;
+  margin-bottom: 14px;
+}
+
+/* ── Filter rows ── */
+.filter-list { display: flex; flex-direction: column; gap: 0; }
+.filter-row {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--rule);
+  align-items: start;
+}
+.filter-row:last-child { border-bottom: none; }
+.filter-name {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-lt);
+  padding: 3px 8px;
+  border-radius: 5px;
+  display: inline-block;
+  white-space: nowrap;
+}
+.filter-desc { font-size: 14px; color: var(--text); line-height: 1.55; }
+.filter-desc small { display: block; color: var(--muted); font-size: 12px; margin-top: 3px; }
+
+/* ── Badge swatches ── */
+.badge-grid { display: flex; flex-direction: column; gap: 12px; }
+.badge-row {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  align-items: center;
+  gap: 16px;
+}
+.badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.badge-green  { background: var(--green-lt);  color: var(--green);  }
+.badge-yellow { background: var(--yellow-lt); color: var(--yellow); }
+.badge-red    { background: var(--red-lt);    color: var(--red);    }
+.badge-blue   { background: var(--accent-lt); color: var(--accent); }
+.badge-grey   { background: var(--border);    color: var(--muted);  }
+.badge-purple { background: var(--purple-lt); color: var(--purple); }
+
+.badge-desc { font-size: 14px; color: var(--text); }
+.badge-desc small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+/* ── KPI stripe ── */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.kpi {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 14px 16px;
+  position: relative;
+  overflow: hidden;
+}
+.kpi::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+}
+.kpi.blue::before   { background: var(--accent); }
+.kpi.green::before  { background: var(--green); }
+.kpi.yellow::before { background: var(--yellow); }
+.kpi.red::before    { background: var(--red); }
+.kpi.purple::before { background: var(--purple); }
+.kpi-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 5px; }
+.kpi-value { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* ── Tab pills ── */
+.tab-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+.tab-pill {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  background: var(--surface);
+}
+.tab-pill.active { background: var(--accent-lt); border-color: var(--accent); color: var(--accent); }
+
+/* ── Tab guide cards ── */
+.tab-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px 24px;
+  margin-bottom: 14px;
+}
+.tab-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.tab-number {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--accent-lt);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.tab-name { font-size: 15px; font-weight: 700; }
+.tab-body { font-size: 14px; color: var(--text); line-height: 1.6; }
+.tab-body ul { padding-left: 20px; margin-top: 6px; }
+.tab-body li { margin-bottom: 4px; }
+
+/* ── Tip box ── */
+.tip {
+  background: var(--accent-lt);
+  border-left: 3px solid var(--accent);
+  padding: 12px 16px;
+  border-radius: 0 8px 8px 0;
+  font-size: 13px;
+  color: var(--text);
+  margin: 16px 0;
+}
+.tip strong { color: var(--accent); }
+</style>
+
+<header class="site-header">
+  <div>
+    <div class="header-eyebrow">Oil &amp; Gas Division</div>
+    <div class="header-title">Dashboard User Guide</div>
+    <div class="header-sub">How to read filters, color coding, and each tab</div>
+  </div>
+  <button class="theme-btn" onclick="toggleTheme()">Toggle Theme</button>
+</header>
+
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-label">Getting Started</div>
+    <a href="#overview">What This Dashboard Shows</a>
+    <a href="#snapshot">The Data Snapshot</a>
+
+    <div class="sidebar-label">Filters</div>
+    <a href="#filters">Using the Filter Bar</a>
+    <a href="#filter-tips">Filter Tips</a>
+
+    <div class="sidebar-label">Reading the Data</div>
+    <a href="#colors">Color Coding</a>
+    <a href="#kpis">KPI Tiles</a>
+    <a href="#tabs">Tab-by-Tab Guide</a>
+  </nav>
+
+  <main class="main">
+
+    <!-- OVERVIEW -->
+    <section id="overview">
+      <h2>What This Dashboard Shows</h2>
+      <p class="section-sub">A plain-English orientation before you dive in</p>
+      <p>The Oil &amp; Gas Executive Dashboard tracks financial performance across active construction and pipeline projects. It pulls monthly cost report data — covering contract revenue, profitability, billing status, and earned value — and presents it in one place so you can spot trends, compare jobs, and identify problems without opening individual spreadsheets.</p>
+      <p>Data is refreshed by running the Excel macro, which overwrites the dashboard file with the latest export. The date range shown in the top-right corner of the dashboard reflects the most recent month in the data.</p>
+      <div class="tip"><strong>Note:</strong> The dashboard shows the data as of the last refresh. If something looks stale, ask whoever manages the workbook to re-run the macro and send you the updated HTML file.</div>
+    </section>
+
+    <!-- SNAPSHOT -->
+    <section id="snapshot">
+      <h2>The Data Snapshot</h2>
+      <p class="section-sub">How the dashboard selects which rows to show</p>
+      <p>Each project appears once per report month in the underlying data. When you open the dashboard without any filters set, most views default to the <strong>most recent month's snapshot</strong> for each project — so a project that has been running since 2022 still shows only one row: its latest figures.</p>
+      <p>The <strong>Month</strong> filter lets you pin everything to a specific reporting period instead, which is useful for reviewing a closed month or comparing against a prior period.</p>
+      <p>Trend charts (on the Overview and Job Performance tabs) always show <em>all months</em> in the selected date range regardless of the Month filter.</p>
+    </section>
+
+    <hr>
+
+    <!-- FILTERS -->
+    <section id="filters">
+      <h2>Using the Filter Bar</h2>
+      <p class="section-sub">All filters stack — each one narrows the data further</p>
+
+      <div class="filter-list">
+
+        <div class="filter-row">
+          <span class="filter-name">Section</span>
+          <div>
+            <div class="filter-desc">Splits the portfolio by cost report source file — <strong>Sec. 100</strong> or <strong>Sec. 200</strong>. Use this first if you're responsible for only one section and don't want the other section's projects mixed in.
+              <small>Multi-select: you can show both sections simultaneously or isolate one.</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-row">
+          <span class="filter-name">Month</span>
+          <div>
+            <div class="filter-desc">Pins all snapshot views to a specific reporting month. Leave blank to see each project's most recent data.
+              <small>Single-select. Trend charts always span the full date range.</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-row">
+          <span class="filter-name">Status</span>
+          <div>
+            <div class="filter-desc">Filters by the project's latest known status: <strong>Open</strong> (active), <strong>Closed</strong> (work complete, pending final billing), or <strong>Finalized</strong> (books closed).
+              <small>Multi-select. Default shows all three.</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-row">
+          <span class="filter-name">Client</span>
+          <div>
+            <div class="filter-desc">Filter to one or more specific clients. Client names are extracted from the project name field (everything before the "/" separator).
+              <small>Multi-select. Populated from the data — only clients that exist appear here.</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-row">
+          <span class="filter-name">Start Year</span>
+          <div>
+            <div class="filter-desc">Filters by the year a project was awarded, derived from the job number prefix (e.g. job <em>23-1002</em> started in 2023).
+              <small>Multi-select. Useful for separating newer backlog from legacy jobs.</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-row">
+          <span class="filter-name">Job #</span>
+          <div>
+            <div class="filter-desc">Drill into a single job across all tabs. Once selected, every chart, KPI, and table reflects only that project.
+              <small>Multi-select, but most useful when narrowed to one job for detailed review.</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-row">
+          <span class="filter-name">Metric</span>
+          <div>
+            <div class="filter-desc">Applies a numeric threshold filter across the portfolio — for example, show only jobs where <em>Margin on Rev ≥ 10%</em>, or <em>EAC between $5M and $20M</em>.
+              <small>Choose a field, an operator (≥, ≤, or Between), then enter your value. Leave blank to disable.</small>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="tip"><strong>Reset all filters:</strong> Click the <strong>✕ Reset</strong> button at the right end of the filter bar to clear everything at once.</div>
+    </section>
+
+    <!-- FILTER TIPS -->
+    <section id="filter-tips">
+      <h2>Filter Tips</h2>
+
+      <h3>Common workflows</h3>
+      <div class="card">
+        <strong>Monthly close review</strong><br>
+        Set <span class="filter-name" style="font-family:ui-monospace,monospace;font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-lt);padding:2px 7px;border-radius:4px;">Month</span> to the period you just closed. Every KPI and scorecard will reflect that month's figures only — useful for verifying numbers match the cost report.
+      </div>
+      <div class="card">
+        <strong>Section lead review</strong><br>
+        Select your section under <span class="filter-name" style="font-family:ui-monospace,monospace;font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-lt);padding:2px 7px;border-radius:4px;">Section</span> first, then set <span class="filter-name" style="font-family:ui-monospace,monospace;font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-lt);padding:2px 7px;border-radius:4px;">Status → Open</span>. You'll see only your active jobs, with no closed or finalized work inflating the numbers.
+      </div>
+      <div class="card">
+        <strong>Single job deep-dive</strong><br>
+        Pick the job under <span class="filter-name" style="font-family:ui-monospace,monospace;font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-lt);padding:2px 7px;border-radius:4px;">Job #</span>, then step through each tab. The Job Performance tab's month-over-month trend and scorecard are especially useful for tracking a single job's trajectory.
+      </div>
+      <div class="card">
+        <strong>Find underperforming jobs</strong><br>
+        Set <span class="filter-name" style="font-family:ui-monospace,monospace;font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-lt);padding:2px 7px;border-radius:4px;">Metric → Margin on Rev ≤ 0</span>. The dashboard will surface only jobs running at a loss. Cross-reference on the Project Health tab's scorecard.
+      </div>
+    </section>
+
+    <hr>
+
+    <!-- COLOR CODING -->
+    <section id="colors">
+      <h2>Color Coding</h2>
+      <p class="section-sub">Every color encodes the same meaning consistently across all tabs</p>
+
+      <h3>Status badges</h3>
+      <div class="badge-grid">
+        <div class="badge-row">
+          <span class="badge badge-blue">Open</span>
+          <div class="badge-desc">Project is active — work in progress and costs accumulating.</div>
+        </div>
+        <div class="badge-row">
+          <span class="badge badge-yellow">Closed</span>
+          <div class="badge-desc">Work is complete but final billing or retention may still be outstanding.</div>
+        </div>
+        <div class="badge-row">
+          <span class="badge badge-grey">Finalized</span>
+          <div class="badge-desc">Job is fully closed — all billing settled and books reconciled.</div>
+        </div>
+      </div>
+
+      <h3>Margin badges</h3>
+      <p>Margin badges appear on every row in the Job Scorecard and Project Scorecard tables.</p>
+      <div class="badge-grid">
+        <div class="badge-row">
+          <span class="badge badge-green">+12.4%</span>
+          <div class="badge-desc"><strong>Healthy margin</strong> — 8% or above on revenue.
+            <small>Green = performing at or above bid expectations.</small>
+          </div>
+        </div>
+        <div class="badge-row">
+          <span class="badge badge-yellow">+4.1%</span>
+          <div class="badge-desc"><strong>Thin margin</strong> — between 0% and 8%.
+            <small>Yellow = below target. Watch for cost growth or CO slippage.</small>
+          </div>
+        </div>
+        <div class="badge-row">
+          <span class="badge badge-red">–6.2%</span>
+          <div class="badge-desc"><strong>Loss position</strong> — margin on revenue is negative.
+            <small>Red = job is losing money. Requires PM attention.</small>
+          </div>
+        </div>
+      </div>
+
+      <h3>KPI tile accent stripes</h3>
+      <p>The colored stripe at the top of each KPI tile indicates the metric's category — not its health.</p>
+      <div class="kpi-row">
+        <div class="kpi blue"><div class="kpi-label">Revenue / Billing</div><div class="kpi-value">$24.3M</div></div>
+        <div class="kpi green"><div class="kpi-label">Profit / Margin</div><div class="kpi-value">$2.1M</div></div>
+        <div class="kpi yellow"><div class="kpi-label">Billed / Collected</div><div class="kpi-value">$18.9M</div></div>
+        <div class="kpi red"><div class="kpi-label">Outstanding A/R</div><div class="kpi-value">$5.4M</div></div>
+        <div class="kpi purple"><div class="kpi-label">JTD Costs</div><div class="kpi-value">$21.8M</div></div>
+      </div>
+      <p style="font-size:13px;color:var(--muted);">A red tile for Outstanding A/R doesn't mean something is wrong — it just marks a receivables metric. Interpret the <em>number</em> in context, not the stripe color.</p>
+    </section>
+
+    <hr>
+
+    <!-- KPIs -->
+    <section id="kpis">
+      <h2>KPI Tiles</h2>
+      <p class="section-sub">The summary row at the top of each tab — always reflects your current filter state</p>
+
+      <h3>Key terms</h3>
+      <div class="filter-list">
+        <div class="filter-row">
+          <span style="font-weight:700;font-size:13px;">Total Portfolio Revenue</span>
+          <div class="filter-desc">Sum of Total Projected Revenue across all filtered projects. This is the contract value, not what has been earned or billed yet.</div>
+        </div>
+        <div class="filter-row">
+          <span style="font-weight:700;font-size:13px;">Total Profit</span>
+          <div class="filter-desc">Current month profit across the portfolio — revenue minus costs for the period. Can be negative if jobs are running over budget.</div>
+        </div>
+        <div class="filter-row">
+          <span style="font-weight:700;font-size:13px;">Blended Margin</span>
+          <div class="filter-desc">Total profit ÷ total revenue. The portfolio-wide margin percentage, weighted by job size.</div>
+        </div>
+        <div class="filter-row">
+          <span style="font-weight:700;font-size:13px;">JTD Costs</span>
+          <div class="filter-desc">Job-to-date costs — everything spent on the project from day one through the current month.</div>
+        </div>
+        <div class="filter-row">
+          <span style="font-weight:700;font-size:13px;">EAC</span>
+          <div class="filter-desc">Estimate at Completion — the current forecast of total cost to finish the job. Compare to Total Revenue to assess profitability outlook.</div>
+        </div>
+        <div class="filter-row">
+          <span style="font-weight:700;font-size:13px;">ETC</span>
+          <div class="filter-desc">Estimate to Complete — cost remaining from today to project close. ETC = EAC − JTD Costs.</div>
+        </div>
+        <div class="filter-row">
+          <span style="font-weight:700;font-size:13px;">Earned Revenue</span>
+          <div class="filter-desc">Revenue recognized based on % complete × contract value. Differs from Billed — you can earn revenue before or after you invoice.</div>
+        </div>
+        <div class="filter-row">
+          <span style="font-weight:700;font-size:13px;">Outstanding A/R</span>
+          <div class="filter-desc">Billed minus Collected. The amount invoiced but not yet received in cash.</div>
+        </div>
+        <div class="filter-row">
+          <span style="font-weight:700;font-size:13px;">Contingency</span>
+          <div class="filter-desc">Reserved budget for unforeseen costs. A declining contingency balance across months is a warning sign.</div>
+        </div>
+        <div class="filter-row">
+          <span style="font-weight:700;font-size:13px;">Movement</span>
+          <div class="filter-desc">Month-over-month change in profit. A positive number means the job improved; negative means it deteriorated.</div>
+        </div>
+      </div>
+    </section>
+
+    <hr>
+
+    <!-- TABS -->
+    <section id="tabs">
+      <h2>Tab-by-Tab Guide</h2>
+      <p class="section-sub">What each tab is for and what to look at first</p>
+
+      <div class="tab-card">
+        <div class="tab-card-header">
+          <div class="tab-number">1</div>
+          <div class="tab-name">Executive Overview</div>
+        </div>
+        <div class="tab-body">
+          The starting point. Shows portfolio-level KPIs, a Revenue &amp; Profit Trend line chart, a Portfolio Revenue Mix donut, and a Margin Distribution histogram.
+          <ul>
+            <li>The <strong>trend chart</strong> spans the date range you set — use it to spot months where profit dropped and investigate further.</li>
+            <li>The <strong>revenue mix donut</strong> shows your top 8 jobs by contract size. Everything else rolls into "Other."</li>
+            <li>The <strong>margin distribution</strong> histogram shows how many jobs sit in each margin band — a cluster of bars in the red/yellow zone is a portfolio-level signal.</li>
+            <li>The <strong>Current vs. Previous Month</strong> bar chart lets you pick any metric and see how each job moved month over month.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tab-card">
+        <div class="tab-card-header">
+          <div class="tab-number">2</div>
+          <div class="tab-name">Job Performance</div>
+        </div>
+        <div class="tab-body">
+          Per-job detail. The Job Scorecard table lists every project with margin badge, % complete, billed, and movement. Click a row (or use the Job # filter) to load the single-job drill-down panel below the table.
+          <ul>
+            <li>The drill-down shows the job's trend over time and a month-by-month detail table.</li>
+            <li>The <strong>Bid vs. Current Profit</strong> chart compares what was estimated at award versus where the job sits today — a shrinking bar means the job is burning through its margin.</li>
+            <li>Sort the scorecard table by any column to quickly rank jobs by margin, revenue, or % complete.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tab-card">
+        <div class="tab-card-header">
+          <div class="tab-number">3</div>
+          <div class="tab-name">Project Health</div>
+        </div>
+        <div class="tab-body">
+          Focuses on cost exposure and completion risk. The ETC Breakdown chart shows how much of each job's remaining budget is contingency versus actual work remaining.
+          <ul>
+            <li>The <strong>EAC vs. Revenue</strong> chart flags jobs where the Estimate at Completion is approaching or exceeding contract revenue — these are your loss candidates.</li>
+            <li>The Project Scorecard adds EAC, ETC, contingency, and earned margin columns alongside the margin badge.</li>
+            <li>A job with high EAC relative to revenue <em>and</em> low contingency remaining is a double warning sign.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tab-card">
+        <div class="tab-card-header">
+          <div class="tab-number">4</div>
+          <div class="tab-name">Cash &amp; Billing</div>
+        </div>
+        <div class="tab-body">
+          Tracks the gap between work performed, invoices sent, and cash received.
+          <ul>
+            <li><strong>Billing Progress by Job</strong> shows each job's % billed vs % complete — a job that is far ahead of billing may have a future cash inflow; one that is behind may need an invoice pushed.</li>
+            <li>The <strong>A/R Outstanding by Job</strong> bar chart ranks jobs by uncollected receivables.</li>
+            <li>The <strong>Cash Flow &amp; % Complete</strong> chart tracks how cash position moves as a project progresses.</li>
+            <li><strong>Collection Rate</strong> (Total Collected ÷ Total Billed) is in the KPI row — below 90% across the portfolio is worth investigating.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tab-card">
+        <div class="tab-card-header">
+          <div class="tab-number">5</div>
+          <div class="tab-name">Preliminary WIP</div>
+        </div>
+        <div class="tab-body">
+          Earned value metrics — the accounting team's view of recognized revenue and margin before the books are formally closed.
+          <ul>
+            <li><strong>JTD Earned Revenue</strong> is cumulative recognized revenue based on % complete. Compare to Total Billed to understand over/under-billing.</li>
+            <li><strong>Monthly Δ Contingency</strong> (highlighted red in the KPI row) shows how much contingency was consumed this month. Negative = contingency was drawn down.</li>
+            <li>The <strong>Earned Revenue — Cumulative &amp; Incremental</strong> chart shows both the running total and each month's slice — useful for spotting months where recognized revenue spiked or dropped.</li>
+            <li>The WIP Scorecard table includes earned margin, remaining margin, and % complete side by side for every job.</li>
+          </ul>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+</div>
+
+<script>
+function toggleTheme(){
+  const root = document.documentElement;
+  const current = root.getAttribute('data-theme');
+  const isDark = current === 'dark' || (!current && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  root.setAttribute('data-theme', isDark ? 'light' : 'dark');
+}
+
+// Sidebar active link on scroll
+const sections = document.querySelectorAll('section[id]');
+const links = document.querySelectorAll('.sidebar a');
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if(e.isIntersecting){
+      links.forEach(l => l.classList.remove('active'));
+      const match = document.querySelector('.sidebar a[href="#'+e.target.id+'"]');
+      if(match) match.classList.add('active');
+    }
+  });
+}, { rootMargin: '-30% 0px -60% 0px' });
+sections.forEach(s => observer.observe(s));
+</script>
