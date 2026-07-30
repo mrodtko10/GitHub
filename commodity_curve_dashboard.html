@@ -985,13 +985,17 @@ function updateStatsTile() {
   const d = ALL_DATES[selectedWeekIdx];
   const s = (STATS_BY_DATE[d] || {})[scSection] || {bl:0, earned:0, spent:0, cumu_pf:null};
 
-  // --- S-curve inner stats tile ---
+  // --- S-curve inner stats tile — cumulative values ---
+  const _sc = getSCData();
+  const _cumBL  = _sc.bl[selectedWeekIdx]     ?? 0;
+  const _cumEA  = _sc.earned[selectedWeekIdx] ?? 0;
+  const _cumSP  = _sc.spent[selectedWeekIdx]  ?? 0;
   const blEl2 = document.getElementById('scStatBL');
   const eaEl2 = document.getElementById('scStatEarned');
   const spEl2 = document.getElementById('scStatSpent');
-  if (blEl2) blEl2.textContent = s.bl.toFixed(2) + '%';
-  if (eaEl2) eaEl2.textContent = s.earned.toFixed(2) + '%';
-  if (spEl2) spEl2.textContent = s.spent.toFixed(2) + '%';
+  if (blEl2) blEl2.textContent = _cumBL.toFixed(2) + '%';
+  if (eaEl2) eaEl2.textContent = _cumEA.toFixed(2) + '%';
+  if (spEl2) spEl2.textContent = _cumSP.toFixed(2) + '%';
   const cpfEl = document.getElementById('kpi-cumu-pf');
   if (cpfEl) {
     cpfEl.textContent = s.cumu_pf != null ? s.cumu_pf.toFixed(2) : '—';
