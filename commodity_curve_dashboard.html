@@ -1001,17 +1001,21 @@ function updateStatsTile() {
     else if (subEl) subEl.textContent = 'PD Earned ÷ all WHC Spent';
   }
 
-  // --- Top KPI cards ---
-  const cpi = s.spent > 0 ? (s.earned / s.spent) : null;
-  const spi = s.bl    > 0 ? (s.earned / s.bl)    : null;
+  // --- Top KPI cards — use CUMULATIVE S-curve values at selected week ---
+  const scSrc = getSCData();
+  const cumBL     = scSrc.bl[selectedWeekIdx]     ?? 0;
+  const cumEarned = scSrc.earned[selectedWeekIdx] ?? 0;
+  const cumSpent  = scSrc.spent[selectedWeekIdx]  ?? 0;
+  const cpi = cumSpent > 0 ? (cumEarned / cumSpent) : null;
+  const spi = cumBL    > 0 ? (cumEarned / cumBL)    : null;
   const fmt1 = v => v !== null && v !== undefined ? v.toFixed(1) + '%' : '—';
   const fmt2 = v => v !== null ? v.toFixed(2) : '—';
   const fmtFTE = v => (v && v > 0) ? Math.round(v).toString() : '—';
 
-  document.getElementById('kpi-bl').textContent        = fmt1(s.bl);
-  document.getElementById('kpi-earned').textContent     = fmt1(s.earned);
-  document.getElementById('kpi-earned-sub').textContent = 'vs BL ' + fmt1(s.bl);
-  document.getElementById('kpi-spent').textContent      = fmt1(s.spent);
+  document.getElementById('kpi-bl').textContent        = fmt1(cumBL);
+  document.getElementById('kpi-earned').textContent     = fmt1(cumEarned);
+  document.getElementById('kpi-earned-sub').textContent = 'vs BL ' + fmt1(cumBL);
+  document.getElementById('kpi-spent').textContent      = fmt1(cumSpent);
 
   const cpiEl = document.getElementById('kpi-cpi');
   cpiEl.textContent = fmt2(cpi);
@@ -1056,7 +1060,7 @@ const scChart = new Chart(scCtx, {
          borderColor:'#ef4444', fill:false, tension:0.3,
          borderWidth:2, borderDash:[],
          pointRadius:0, pointHoverRadius:4,
-         spanGaps:false, yAxisID:'y' },
+         spanGaps:false, yAxisID:'y', hidden:true },
 
       { label:'Forecast Earned %', data:[],
          borderColor:'#fb923c', fill:false, tension:0.3,
