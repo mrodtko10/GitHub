@@ -1278,12 +1278,10 @@ function renderCashflow(){
   const totalBilled=monthRows.reduce((s,p)=>s+(p.billed-(prevById[p.id]?.billed||0)),0);
   const totalPaid=monthRows.reduce((s,p)=>s+(p.paid-(prevById[p.id]?.paid||0)),0);
   const totalCash=fp.reduce((s,p)=>s+p.cash_pos,0);
-  const ar=totalBilled-totalPaid;
   const collRate=totalBilled>0?totalPaid/totalBilled:0;
 
   document.getElementById('cf-billed').textContent=fmt(totalBilled);
   document.getElementById('cf-paid').textContent=fmt(totalPaid);
-  document.getElementById('cf-ar').textContent=fmt(ar);
   document.getElementById('cf-cash').textContent=fmt(totalCash);
   document.getElementById('cf-collrate').textContent=fmtPct(collRate);
 
