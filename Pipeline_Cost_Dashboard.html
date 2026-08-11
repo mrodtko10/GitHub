@@ -418,8 +418,8 @@ input.fs{width:90px;}
   <div class="section-header"><h2>Cash &amp; Billing</h2><p>Receivables, collections, and cash position</p></div>
 
   <div class="kpi-grid">
-    <div class="kpi blue"><div class="kpi-label">Total Billed</div><div class="kpi-value" id="cf-billed">—</div></div>
-    <div class="kpi green"><div class="kpi-label">Total Collected</div><div class="kpi-value" id="cf-paid">—</div></div>
+    <div class="kpi blue"><div class="kpi-label">Total Billed This Month</div><div class="kpi-value" id="cf-billed">—</div></div>
+    <div class="kpi green"><div class="kpi-label">Total Collected This Month</div><div class="kpi-value" id="cf-paid">—</div></div>
     <div class="kpi red"><div class="kpi-label">Outstanding A/R</div><div class="kpi-value" id="cf-ar">—</div></div>
     <!-- Replaced unbilled with cash position -->
     <div class="kpi yellow"><div class="kpi-label">Cash Position</div><div class="kpi-value" id="cf-cash">—</div></div>
@@ -1266,8 +1266,12 @@ function renderProjects(){
 // ============================================================
 function renderCashflow(){
   const fp=getLatestFiltered();
-  const totalBilled=fp.reduce((s,p)=>s+p.billed,0);
-  const totalPaid=fp.reduce((s,p)=>s+p.paid,0);
+  // For billed/paid tiles: use the latest month's rows only
+  const latestMonth=ALL_MONTHS[ALL_MONTHS.length-1];
+  const fMonth=document.getElementById('fMonth').value||latestMonth;
+  const monthRows=applyGlobalFiltersNoMonth(ALL_DATA.filter(p=>p.month===fMonth));
+  const totalBilled=monthRows.reduce((s,p)=>s+p.billed,0);
+  const totalPaid=monthRows.reduce((s,p)=>s+p.paid,0);
   const totalCash=fp.reduce((s,p)=>s+p.cash_pos,0);
   const ar=totalBilled-totalPaid;
   const collRate=totalBilled>0?totalPaid/totalBilled:0;
