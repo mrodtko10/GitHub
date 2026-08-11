@@ -181,7 +181,13 @@ Sub RefreshPipelineDashboard()
         vMarginCst = N(wsData.Cells(i, 20))   ' T  Margin on Cost
         vMarginRev = N(wsData.Cells(i, 21))   ' U  Margin on Rev
         vMovement  = N(wsData.Cells(i, 22))   ' V  Movement
-        vBilled    = N(wsData.Cells(i, 23))   ' W  Amount Billed
+        vBilled    = N(wsData.Cells(i, 23))   ' W  Net Amount Billed
+        ' If W is blank, derive billed from AA (% Billed) × H (Total Rev)
+        If vBilled = 0 And vRev <> 0 Then
+            Dim vPctBilled As Double
+            vPctBilled = N(wsData.Cells(i, 27))   ' AA  % Billed
+            If vPctBilled > 0 Then vBilled = vRev * vPctBilled
+        End If
         vPaid      = N(wsData.Cells(i, 24))   ' X  Amount Paid
         vCashPos   = N(wsData.Cells(i, 29))   ' AC Cash Position
         vWarranty  = N(wsData.Cells(i, 12))   ' L  Warranty
