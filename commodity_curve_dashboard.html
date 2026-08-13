@@ -882,20 +882,11 @@
         <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Total Piles</div>
         <div style="font-size:22px;font-weight:700;color:var(--text)">56,293</div>
       </div>
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 14px;text-align:center">
-        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Overmax</div>
-        <div style="font-size:22px;font-weight:700;color:#ef4444">474</div>
-      </div>
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 14px;text-align:center">
-        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">In Flood Zone</div>
-        <div style="font-size:22px;font-weight:700;color:#60a5fa">36,585</div>
-      </div>
       <!-- Toggles -->
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-        <button class="tab active" id="pmToggleFlood" onclick="pmToggle('flood',this)" style="font-size:11px;padding:4px 10px;border-color:#3b82f6;color:#3b82f6">Flood Overlay</button>
-        <button class="tab active" id="pmToggleOvermax" onclick="pmToggle('overmax',this)" style="font-size:11px;padding:4px 10px;border-color:#ef4444;color:#ef4444">Overmax Highlight</button>
         <button class="tab" id="pmColorMode" onclick="pmSwitchColor(this)" style="font-size:11px;padding:4px 10px">Color: Pile Type</button>
         <button onclick="pmResetView()" style="font-size:11px;padding:4px 10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer">Reset View</button>
+        <span style="font-size:11px;color:var(--muted)">Click map to zoom in · Scroll to zoom · Drag to pan</span>
       </div>
     </div>
 
@@ -2719,7 +2710,7 @@ function buildEarnedSectionChart() {
   let cvs, ctx;
   let viewX=0, viewY=0, zoom=1;
   let dragging=false, dragStart={x:0,y:0};
-  let showFlood=true, showOvermax=true, colorByElev=false;
+  let colorByElev=false;
   let offCanvas=null, offCtx=null; // offscreen pre-rendered
   let dirty=true;
   let mapW=0, mapH=0;
@@ -2758,14 +2749,6 @@ function buildEarnedSectionChart() {
   function pmResetView() { fitToView(); dirty=true; draw(); }
   window.pmResetView=pmResetView;
 
-  function pmToggle(type,btn) {
-    btn.classList.toggle('active');
-    if(type==='flood') showFlood=btn.classList.contains('active');
-    else showOvermax=btn.classList.contains('active');
-    dirty=true; draw();
-  }
-  window.pmToggle=pmToggle;
-
   function pmSwitchColor(btn) {
     colorByElev=!colorByElev;
     btn.textContent=colorByElev?'Color: Elevation':'Color: Pile Type';
@@ -2788,52 +2771,30 @@ function buildEarnedSectionChart() {
     ctx.fillStyle='#0f1117';
     ctx.fillRect(0,0,mapW,mapH);
 
-    const {n,xs,ys,ls,fl,om,zs}=PILES;
-    const dotR=Math.max(1,zoom*PILE_META.scale*0.6);
+    const {n,xs,ys,ls,zs}=PILES;
+    const dotR=Math.max(1.5,zoom*PILE_META.scale*1.2);
 
     // Draw by layer so same-color piles batch
-    for(let layer=0;layer<12;layer++) {
-      const [r,g,b]=LAYER_RGB[layer];
-      ctx.fillStyle=`rgb(${r},${g},${b})`;
+    if(colorByElev) {
       for(let i=0;i<n;i++) {
-        if(ls[i]!==layer) continue;
-        if(showFlood&&fl[i]) continue; // drawn in flood pass
-        if(showOvermax&&om[i]) continue; // drawn in overmax pass
         const sx=(xs[i]*PILE_META.scale)*zoom+viewX;
         const sy=mapH-((ys[i]*PILE_META.scale)*zoom+viewY);
         if(sx<-2||sx>mapW+2||sy<-2||sy>mapH+2) continue;
+        const [er,eg,eb]=elevColor(zs[i]);
+        ctx.fillStyle=`rgb(${er},${eg},${eb})`;
         ctx.fillRect(sx-dotR/2,sy-dotR/2,dotR,dotR);
       }
-    }
-
-    // Flood overlay
-    if(showFlood) {
-      ctx.fillStyle='rgba(59,130,246,0.6)';
-      for(let i=0;i<n;i++) {
-        if(!fl[i]) continue;
-        if(showOvermax&&om[i]) continue;
-        const sx=(xs[i]*PILE_META.scale)*zoom+viewX;
-        const sy=mapH-((ys[i]*PILE_META.scale)*zoom+viewY);
-        if(sx<-2||sx>mapW+2||sy<-2||sy>mapH+2) continue;
-        ctx.fillRect(sx-dotR/2,sy-dotR/2,dotR,dotR);
-      }
-    }
-
-    // Overmax highlight (drawn on top, always)
-    if(showOvermax) {
-      const omR=Math.max(2,dotR*1.8);
-      ctx.fillStyle='#ef4444';
-      ctx.strokeStyle='#fca5a5';
-      ctx.lineWidth=0.5;
-      for(let i=0;i<n;i++) {
-        if(!om[i]) continue;
-        const sx=(xs[i]*PILE_META.scale)*zoom+viewX;
-        const sy=mapH-((ys[i]*PILE_META.scale)*zoom+viewY);
-        if(sx<-2||sx>mapW+2||sy<-2||sy>mapH+2) continue;
-        ctx.beginPath();
-        ctx.arc(sx,sy,omR,0,Math.PI*2);
-        ctx.fill();
-        ctx.stroke();
+    } else {
+      for(let layer=0;layer<12;layer++) {
+        const [r,g,b]=LAYER_RGB[layer];
+        ctx.fillStyle=`rgb(${r},${g},${b})`;
+        for(let i=0;i<n;i++) {
+          if(ls[i]!==layer) continue;
+          const sx=(xs[i]*PILE_META.scale)*zoom+viewX;
+          const sy=mapH-((ys[i]*PILE_META.scale)*zoom+viewY);
+          if(sx<-2||sx>mapW+2||sy<-2||sy>mapH+2) continue;
+          ctx.fillRect(sx-dotR/2,sy-dotR/2,dotR,dotR);
+        }
       }
     }
 
@@ -2896,8 +2857,7 @@ function buildEarnedSectionChart() {
       tip.innerHTML=`<b style="color:#93c5fd">Table ${p.tb[best]}</b><br>
         Type: ${layer.label}<br>
         Elev: ${p.zs[best].toFixed(2)} ft<br>
-        X: ${realX.toFixed(2)} &nbsp; Y: ${realY.toFixed(2)}<br>
-        ${p.fl[best]?'<span style="color:#60a5fa">⚠ In Flood Zone</span><br>':''}${p.om[best]?'<span style="color:#ef4444">⚠ Overmax</span>':''}`;
+        X: ${realX.toFixed(2)} &nbsp; Y: ${realY.toFixed(2)}`;
       const bx=e.clientX-rect.left+12, by=e.clientY-rect.top-10;
       tip.style.left=bx+'px'; tip.style.top=by+'px'; tip.style.display='block';
     } else { tip.style.display='none'; }
@@ -2946,10 +2906,30 @@ function buildEarnedSectionChart() {
 
     cvs.addEventListener('wheel',onWheel,{passive:false});
     cvs.addEventListener('mousemove',onMouseMove);
+    let mouseDownPos={x:0,y:0};
     cvs.addEventListener('mousedown',e=>{
       dragging=true;
       const rect=cvs.getBoundingClientRect();
-      dragStart={x:(e.clientX-rect.left)*cvs.width/rect.width,y:(e.clientY-rect.top)*cvs.height/rect.height};
+      const mx=(e.clientX-rect.left)*cvs.width/rect.width;
+      const my=(e.clientY-rect.top)*cvs.height/rect.height;
+      mouseDownPos={x:mx,y:my};
+      dragStart={x:mx,y:my};
+    });
+    cvs.addEventListener('click',e=>{
+      // Only zoom-in if mouse barely moved (not a drag)
+      const rect=cvs.getBoundingClientRect();
+      const mx=(e.clientX-rect.left)*cvs.width/rect.width;
+      const my=(e.clientY-rect.top)*cvs.height/rect.height;
+      const dx=mx-mouseDownPos.x, dy=my-mouseDownPos.y;
+      if(dx*dx+dy*dy>64) return; // was a drag
+      // Zoom in 4× centered on click point
+      const targetZoom=Math.min(200,zoom*4);
+      const wx=(mx-viewX)/(zoom*PILE_META.scale);
+      const wy=(mapH-my-viewY)/(zoom*PILE_META.scale);
+      zoom=targetZoom;
+      viewX=mx-wx*zoom*PILE_META.scale;
+      viewY=mapH-my-wy*zoom*PILE_META.scale;
+      dirty=true; draw();
     });
     cvs.addEventListener('mouseup',()=>dragging=false);
     cvs.addEventListener('mouseleave',()=>{dragging=false;document.getElementById('pmTooltip').style.display='none';});
