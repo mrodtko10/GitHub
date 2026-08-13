@@ -2803,27 +2803,32 @@ function buildEarnedSectionChart() {
     ctx.fillRect(0,0,mapW,mapH);
 
     const {n,xs,ys,ls,zs}=PILES;
-    // Fixed screen size — dots don't grow as you zoom, spacing opens up instead
-    const dotR=4;
+    // Fixed screen size circles — size stays constant as you zoom
+    const dotR=6;
+    const TAU=Math.PI*2;
 
-    // All piles drawn in blue; elevation mode uses gradient
+    // All piles drawn as filled circles; elevation mode uses gradient
     if(colorByElev) {
       for(let i=0;i<n;i++) {
         const sx=(xs[i]*PILE_META.scale)*zoom+viewX;
         const sy=mapH-((ys[i]*PILE_META.scale)*zoom+viewY);
-        if(sx<-2||sx>mapW+2||sy<-2||sy>mapH+2) continue;
+        if(sx<-dotR||sx>mapW+dotR||sy<-dotR||sy>mapH+dotR) continue;
         const [er,eg,eb]=elevColor(zs[i]);
         ctx.fillStyle=`rgb(${er},${eg},${eb})`;
-        ctx.fillRect(sx-dotR/2,sy-dotR/2,dotR,dotR);
+        ctx.beginPath();ctx.arc(sx,sy,dotR,0,TAU);ctx.fill();
       }
     } else {
+      // Batch all blue piles into one path for performance
       ctx.fillStyle='#1d4ed8';
+      ctx.beginPath();
       for(let i=0;i<n;i++) {
         const sx=(xs[i]*PILE_META.scale)*zoom+viewX;
         const sy=mapH-((ys[i]*PILE_META.scale)*zoom+viewY);
-        if(sx<-2||sx>mapW+2||sy<-2||sy>mapH+2) continue;
-        ctx.fillRect(sx-dotR/2,sy-dotR/2,dotR,dotR);
+        if(sx<-dotR||sx>mapW+dotR||sy<-dotR||sy>mapH+dotR) continue;
+        ctx.moveTo(sx+dotR,sy);
+        ctx.arc(sx,sy,dotR,0,TAU);
       }
+      ctx.fill();
     }
 
     // Table outlines, numbers, and pile letters
