@@ -2711,6 +2711,7 @@ function buildEarnedSectionChart() {
   let viewX=0, viewY=0, zoom=1;
   let dragging=false, dragStart={x:0,y:0};
   let colorByElev=false;
+  let TABLE_DATA=null; // {tables:[{tnum,indices,minX,maxX,minY,maxY}], pileLetters:string[]}
   let offCanvas=null, offCtx=null; // offscreen pre-rendered
   let dirty=true;
   let mapW=0, mapH=0;
@@ -2733,6 +2734,36 @@ function buildEarnedSectionChart() {
       wx: (sx-viewX)/(zoom*PILE_META.scale),
       wy: (mapH-sy-viewY)/(zoom*PILE_META.scale)
     };
+  }
+
+  function rowLetter(idx) {
+    if(idx<26) return String.fromCharCode(65+idx);
+    return String.fromCharCode(64+Math.floor(idx/26))+String.fromCharCode(65+(idx%26));
+  }
+
+  function buildTableData(p) {
+    const map=new Map();
+    for(let i=0;i<p.n;i++){const t=p.tb[i];if(!map.has(t))map.set(t,[]);map.get(t).push(i);}
+    const tables=[];
+    const pileLetters=new Array(p.n);
+    map.forEach((indices,tnum)=>{
+      // Sort north-first (high y = north), then west-east within same row
+      indices.sort((a,b)=>{const dy=p.ys[b]-p.ys[a];return Math.abs(dy)>2?dy:p.xs[a]-p.xs[b];});
+      // Cluster piles into rows by y within 3-unit tolerance (1.5 ft)
+      let letterIdx=-1, refY=null;
+      for(const i of indices){
+        if(refY===null||Math.abs(p.ys[i]-refY)>3){refY=p.ys[i];letterIdx++;}
+        pileLetters[i]=rowLetter(letterIdx);
+      }
+      // Bounding box
+      let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+      for(const i of indices){
+        if(p.xs[i]<minX)minX=p.xs[i];if(p.xs[i]>maxX)maxX=p.xs[i];
+        if(p.ys[i]<minY)minY=p.ys[i];if(p.ys[i]>maxY)maxY=p.ys[i];
+      }
+      tables.push({tnum,indices,minX,maxX,minY,maxY});
+    });
+    return {tables,pileLetters};
   }
 
   function fitToView() {
@@ -2793,6 +2824,53 @@ function buildEarnedSectionChart() {
         if(sx<-2||sx>mapW+2||sy<-2||sy>mapH+2) continue;
         ctx.fillRect(sx-dotR/2,sy-dotR/2,dotR,dotR);
       }
+    }
+
+    // Table outlines, numbers, and pile letters
+    if(TABLE_DATA && zoom>0.4) {
+      const PAD=4; // world-unit padding around box
+      const showLetters=zoom>2.5;
+      const fontSize=Math.max(8,Math.min(14,dotR*2));
+      ctx.save();
+      for(const tbl of TABLE_DATA.tables) {
+        // Screen coords of bounding box
+        const sx1=(tbl.minX-PAD)*PILE_META.scale*zoom+viewX;
+        const sx2=(tbl.maxX+PAD)*PILE_META.scale*zoom+viewX;
+        const sy1=mapH-((tbl.maxY+PAD)*PILE_META.scale*zoom+viewY); // top (north)
+        const sy2=mapH-((tbl.minY-PAD)*PILE_META.scale*zoom+viewY); // bottom (south)
+        // Skip if entirely off screen
+        if(sx2<0||sx1>mapW||sy2<0||sy1>mapH) continue;
+        const bw=sx2-sx1, bh=sy2-sy1;
+        // Rectangle outline
+        ctx.strokeStyle='#1e40af';
+        ctx.lineWidth=1.5;
+        ctx.strokeRect(sx1,sy1,bw,bh);
+        // Table number above box
+        if(bw>20) {
+          ctx.fillStyle='#1e40af';
+          ctx.font=`bold ${Math.max(9,Math.min(13,bw/6))}px sans-serif`;
+          ctx.textAlign='center';
+          ctx.textBaseline='bottom';
+          ctx.fillText(tbl.tnum, sx1+bw/2, sy1-2);
+        }
+      }
+      // Pile letters (only when zoomed in enough)
+      if(showLetters) {
+        ctx.font=`bold ${fontSize}px sans-serif`;
+        ctx.textAlign='center';
+        ctx.textBaseline='middle';
+        const {n,xs,ys}=PILES;
+        for(let i=0;i<n;i++){
+          const sx=xs[i]*PILE_META.scale*zoom+viewX;
+          const sy=mapH-(ys[i]*PILE_META.scale*zoom+viewY);
+          if(sx<-20||sx>mapW+20||sy<-20||sy>mapH+20) continue;
+          const ltr=TABLE_DATA.pileLetters[i];
+          if(!ltr) continue;
+          ctx.fillStyle='#ffffff';
+          ctx.fillText(ltr,sx,sy);
+        }
+      }
+      ctx.restore();
     }
 
     // Scale bar
@@ -2896,7 +2974,7 @@ function buildEarnedSectionChart() {
       ctx.font='16px sans-serif';
       ctx.textAlign='center';
       ctx.fillText('Decoding pile data…',mapW/2,mapH/2);
-      setTimeout(()=>{PILES=decodePiles();initLegend();fitToView();dirty=true;draw();},50);
+      setTimeout(()=>{PILES=decodePiles();TABLE_DATA=buildTableData(PILES);initLegend();fitToView();dirty=true;draw();},50);
     } else {
       fitToView(); dirty=true; draw();
     }
