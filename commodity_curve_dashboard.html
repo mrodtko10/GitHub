@@ -895,21 +895,21 @@
   </div>
 
   <!-- Canvas container -->
-  <div style="position:relative;margin:0 20px 20px;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:#0f1117">
+  <div style="position:relative;margin:0 20px 20px;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:#f1f5f9">
     <canvas id="pileMapCanvas" style="display:block;width:100%;cursor:crosshair"></canvas>
     <!-- Tooltip -->
     <div id="pmTooltip" style="display:none;position:absolute;background:#1e2235;border:1px solid #2a2d45;border-radius:6px;padding:8px 12px;font-size:12px;color:#e2e8f0;pointer-events:none;z-index:10;white-space:nowrap"></div>
     <!-- Scale bar -->
     <div id="pmScaleBar" style="position:absolute;bottom:14px;left:14px;display:flex;flex-direction:column;gap:3px">
       <div style="display:flex;align-items:center;gap:6px">
-        <div id="pmScaleLine" style="height:3px;background:#94a3b8;border-radius:2px;min-width:40px"></div>
-        <span id="pmScaleLabel" style="font-size:11px;color:#94a3b8"></span>
+        <div id="pmScaleLine" style="height:3px;background:#475569;border-radius:2px;min-width:40px"></div>
+        <span id="pmScaleLabel" style="font-size:11px;color:#475569"></span>
       </div>
     </div>
     <!-- North arrow -->
     <div style="position:absolute;top:12px;right:14px;text-align:center">
-      <div style="font-size:18px;color:#94a3b8">↑</div>
-      <div style="font-size:10px;color:#94a3b8">N</div>
+      <div style="font-size:18px;color:#475569">↑</div>
+      <div style="font-size:10px;color:#475569">N</div>
     </div>
   </div>
 </div>
@@ -2768,13 +2768,14 @@ function buildEarnedSectionChart() {
   function draw() {
     if(!cvs||!PILES) return;
     ctx.clearRect(0,0,mapW,mapH);
-    ctx.fillStyle='#0f1117';
+    ctx.fillStyle='#f1f5f9';
     ctx.fillRect(0,0,mapW,mapH);
 
     const {n,xs,ys,ls,zs}=PILES;
-    const dotR=Math.max(1.5,zoom*PILE_META.scale*1.2);
+    // Dot grows with zoom: floor of 3px at default, scales up generously when zoomed
+    const dotR=Math.max(3, zoom*PILE_META.scale*3);
 
-    // Draw by layer so same-color piles batch
+    // All piles drawn in blue; elevation mode uses gradient
     if(colorByElev) {
       for(let i=0;i<n;i++) {
         const sx=(xs[i]*PILE_META.scale)*zoom+viewX;
@@ -2785,16 +2786,12 @@ function buildEarnedSectionChart() {
         ctx.fillRect(sx-dotR/2,sy-dotR/2,dotR,dotR);
       }
     } else {
-      for(let layer=0;layer<12;layer++) {
-        const [r,g,b]=LAYER_RGB[layer];
-        ctx.fillStyle=`rgb(${r},${g},${b})`;
-        for(let i=0;i<n;i++) {
-          if(ls[i]!==layer) continue;
-          const sx=(xs[i]*PILE_META.scale)*zoom+viewX;
-          const sy=mapH-((ys[i]*PILE_META.scale)*zoom+viewY);
-          if(sx<-2||sx>mapW+2||sy<-2||sy>mapH+2) continue;
-          ctx.fillRect(sx-dotR/2,sy-dotR/2,dotR,dotR);
-        }
+      ctx.fillStyle='#1d4ed8';
+      for(let i=0;i<n;i++) {
+        const sx=(xs[i]*PILE_META.scale)*zoom+viewX;
+        const sy=mapH-((ys[i]*PILE_META.scale)*zoom+viewY);
+        if(sx<-2||sx>mapW+2||sy<-2||sy>mapH+2) continue;
+        ctx.fillRect(sx-dotR/2,sy-dotR/2,dotR,dotR);
       }
     }
 
@@ -2893,9 +2890,9 @@ function buildEarnedSectionChart() {
     cvs.style.height=mapH+'px';
 
     if(!PILES) {
-      ctx.fillStyle='#0f1117';
+      ctx.fillStyle='#f1f5f9';
       ctx.fillRect(0,0,mapW,mapH);
-      ctx.fillStyle='#94a3b8';
+      ctx.fillStyle='#475569';
       ctx.font='16px sans-serif';
       ctx.textAlign='center';
       ctx.fillText('Decoding pile data…',mapW/2,mapH/2);
