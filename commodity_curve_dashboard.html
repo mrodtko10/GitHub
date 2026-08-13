@@ -2772,8 +2772,8 @@ function buildEarnedSectionChart() {
     ctx.fillRect(0,0,mapW,mapH);
 
     const {n,xs,ys,ls,zs}=PILES;
-    // Dot grows with zoom: floor of 3px at default, scales up generously when zoomed
-    const dotR=Math.max(3, zoom*PILE_META.scale*3);
+    // Fixed screen size — dots don't grow as you zoom, spacing opens up instead
+    const dotR=4;
 
     // All piles drawn in blue; elevation mode uses gradient
     if(colorByElev) {
