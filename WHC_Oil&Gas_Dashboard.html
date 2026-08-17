@@ -173,8 +173,10 @@ input.fs{width:90px;}
         <div class="ms-all"><span onclick="selectAllMs('Status')">All</span><span onclick="clearMs('Status')">Clear</span></div>
         <div class="ms-divider"></div>
         <label class="ms-option"><input type="checkbox" value="Open" onchange="msChanged('Status')"> Open</label>
-        <label class="ms-option"><input type="checkbox" value="Closed" onchange="msChanged('Status')"> Closed</label>
+        <label class="ms-option"><input type="checkbox" value="Inactive" onchange="msChanged('Status')"> Inactive</label>
         <label class="ms-option"><input type="checkbox" value="Finalized" onchange="msChanged('Status')"> Finalized</label>
+        <label class="ms-option"><input type="checkbox" value="Cancelled" onchange="msChanged('Status')"> Cancelled</label>
+        <label class="ms-option"><input type="checkbox" value="FINAL" onchange="msChanged('Status')"> Final</label>
       </div>
     </div>
   </div>
@@ -562,7 +564,7 @@ function applyGlobalFilters(rows, latestStatusMode=false){
   const f = getF();
   return rows.filter(p=>{
     // Section filter
-    if(f.sections.length && !f.sections.includes(p.sec||'')) return false;
+    if(f.sections.length && p.sec && !f.sections.includes(p.sec)) return false;
     // Month filter
     if(f.month && p.month !== f.month) return false;
     // Status multi-select — uses latest known status for project
@@ -769,7 +771,7 @@ function monthlyAgg(months, field){
 function applyGlobalFiltersNoMonth(rows){
   const f = getF();
   return rows.filter(p=>{
-    if(f.sections.length && !f.sections.includes(p.sec||'')) return false;
+    if(f.sections.length && p.sec && !f.sections.includes(p.sec)) return false;
     if(f.statuses.length){
       const st = LATEST_STATUS[p.id]||p.status;
       if(!f.statuses.some(s=>s.toLowerCase()===st.toLowerCase())) return false;
