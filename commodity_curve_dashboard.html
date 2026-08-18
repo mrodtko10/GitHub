@@ -2889,7 +2889,7 @@ function buildEarnedSectionChart() {
       }
     } else {
       // Batch all blue piles into one path for performance
-      ctx.fillStyle=showSat?'#facc15':'#1d4ed8';
+      ctx.fillStyle='#ef4444';
       ctx.beginPath();
       for(let i=0;i<n;i++) {
         const sx=(xs[i]*PILE_META.scale)*zoom+viewX;
@@ -2917,12 +2917,12 @@ function buildEarnedSectionChart() {
         if(sx2<0||sx1>mapW||sy2<0||sy1>mapH) continue;
         const bw=sx2-sx1, bh=sy2-sy1;
         // Rectangle outline
-        ctx.strokeStyle=showSat?'#facc15':'#1e40af';
+        ctx.strokeStyle='#3b82f6';
         ctx.lineWidth=1.5;
         ctx.strokeRect(sx1,sy1,bw,bh);
         // Table number above box
         if(bw>20) {
-          ctx.fillStyle=showSat?'#facc15':'#1e40af';
+          ctx.fillStyle='#3b82f6';
           ctx.font=`bold ${Math.max(9,Math.min(13,bw/6))}px sans-serif`;
           ctx.textAlign='center';
           ctx.textBaseline='bottom';
