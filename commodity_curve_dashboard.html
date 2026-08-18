@@ -884,6 +884,7 @@
       </div>
       <!-- Toggles -->
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <button class="tab active" id="pmSatToggle" onclick="pmToggleSat(this)" style="font-size:11px;padding:4px 10px;border-color:#16a34a;color:#16a34a">🛰 Satellite</button>
         <button class="tab" id="pmColorMode" onclick="pmSwitchColor(this)" style="font-size:11px;padding:4px 10px">Color: Pile Type</button>
         <button onclick="pmResetView()" style="font-size:11px;padding:4px 10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer">Reset View</button>
         <span style="font-size:11px;color:var(--muted)">Click map to zoom in · Scroll to zoom · Drag to pan</span>
@@ -2712,6 +2713,7 @@ function buildEarnedSectionChart() {
   let dragging=false, dragStart={x:0,y:0};
   let colorByElev=false;
   let TABLE_DATA=null; // {tables:[{tnum,indices,minX,maxX,minY,maxY}], pileLetters:string[]}
+  let showSat=true;
   let offCanvas=null, offCtx=null; // offscreen pre-rendered
   let dirty=true;
   let mapW=0, mapH=0;
@@ -2735,6 +2737,72 @@ function buildEarnedSectionChart() {
       wy: (mapH-sy-viewY)/(zoom*PILE_META.scale)
     };
   }
+
+  // ---- Satellite tile background ----
+  // Affine transform: pile world coords → lat/lon (Wharton TX, ~TX South Central State Plane ft)
+  const MAP_LAT = 29.317, MAP_LON = -96.100;
+  const LOC_CX_W = (PILE_META.max_x - PILE_META.min_x) / PILE_META.scale / 2;
+  const LOC_CY_W = (PILE_META.max_y - PILE_META.min_y) / PILE_META.scale / 2;
+  const FT_PER_LAT = 362800;
+  const FT_PER_LON = Math.cos(MAP_LAT * Math.PI / 180) * 364500;
+
+  function worldToLL(wx,wy){
+    return {lat:MAP_LAT+((wy-LOC_CY_W)*PILE_META.scale)/FT_PER_LAT, lon:MAP_LON+((wx-LOC_CX_W)*PILE_META.scale)/FT_PER_LON};
+  }
+  function llToWorld(lat,lon){
+    return {wx:LOC_CX_W+((lon-MAP_LON)*FT_PER_LON)/PILE_META.scale, wy:LOC_CY_W+((lat-MAP_LAT)*FT_PER_LAT)/PILE_META.scale};
+  }
+  function llToTile(lat,lon,z){
+    const n=Math.pow(2,z);
+    return {tx:Math.floor((lon+180)/360*n), ty:Math.floor((1-Math.log(Math.tan(lat*Math.PI/180)+1/Math.cos(lat*Math.PI/180))/Math.PI)/2*n)};
+  }
+  function tileNW(tx,ty,z){
+    const n=Math.pow(2,z);
+    return {lat:Math.atan(Math.sinh(Math.PI*(1-2*ty/n)))*180/Math.PI, lon:tx/n*360-180};
+  }
+
+  const tileCache=new Map(), tilePending=new Set();
+  function getTile(tx,ty,tz){
+    const key=`${tz}/${tx}/${ty}`;
+    if(tileCache.has(key)) return tileCache.get(key);
+    if(tilePending.has(key)) return null;
+    tilePending.add(key);
+    const img=new Image(); img.crossOrigin='anonymous';
+    img.src=`https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${tz}/${ty}/${tx}`;
+    img.onload=()=>{tileCache.set(key,img);tilePending.delete(key);dirty=true;draw();};
+    img.onerror=()=>{tilePending.delete(key);tileCache.set(key,null);};
+    return null;
+  }
+
+  function drawTiles(){
+    if(!showSat) return;
+    const sw=screenToWorld(0,mapH), ne=screenToWorld(mapW,0);
+    const swLL=worldToLL(sw.wx,sw.wy), neLL=worldToLL(ne.wx,ne.wy);
+    const vwFt=(ne.wx-sw.wx)*PILE_META.scale;
+    const tz=vwFt>40000?13:vwFt>15000?14:vwFt>6000?15:vwFt>2500?16:17;
+    const swT=llToTile(swLL.lat,swLL.lon,tz), neT=llToTile(neLL.lat,neLL.lon,tz);
+    const x0=Math.min(swT.tx,neT.tx)-1, x1=Math.max(swT.tx,neT.tx)+1;
+    const y0=Math.min(swT.ty,neT.ty)-1, y1=Math.max(swT.ty,neT.ty)+1;
+    if((x1-x0+1)*(y1-y0+1)>49) return;
+    for(let tx=x0;tx<=x1;tx++){
+      for(let ty=y0;ty<=y1;ty++){
+        const img=getTile(tx,ty,tz); if(!img) continue;
+        const nw=tileNW(tx,ty,tz), se=tileNW(tx+1,ty+1,tz);
+        const nwW=llToWorld(nw.lat,nw.lon), seW=llToWorld(se.lat,se.lon);
+        const sx1=nwW.wx*PILE_META.scale*zoom+viewX, sy1=mapH-(nwW.wy*PILE_META.scale*zoom+viewY);
+        const sx2=seW.wx*PILE_META.scale*zoom+viewX, sy2=mapH-(seW.wy*PILE_META.scale*zoom+viewY);
+        try{ctx.drawImage(img,sx1,sy1,sx2-sx1,sy2-sy1);}catch(e){}
+      }
+    }
+  }
+
+  function pmToggleSat(btn){
+    showSat=!showSat;
+    btn.classList.toggle('active',showSat);
+    dirty=true; draw();
+  }
+  window.pmToggleSat=pmToggleSat;
+  // ---- end tile background ----
 
   function rowLetter(idx) {
     if(idx<26) return String.fromCharCode(65+idx);
@@ -2799,8 +2867,9 @@ function buildEarnedSectionChart() {
   function draw() {
     if(!cvs||!PILES) return;
     ctx.clearRect(0,0,mapW,mapH);
-    ctx.fillStyle='#f1f5f9';
+    ctx.fillStyle=showSat?'#0f1117':'#f1f5f9';
     ctx.fillRect(0,0,mapW,mapH);
+    drawTiles();
 
     const {n,xs,ys,ls,zs}=PILES;
     // Fixed screen size circles — size stays constant as you zoom
@@ -2819,7 +2888,7 @@ function buildEarnedSectionChart() {
       }
     } else {
       // Batch all blue piles into one path for performance
-      ctx.fillStyle='#1d4ed8';
+      ctx.fillStyle=showSat?'#facc15':'#1d4ed8';
       ctx.beginPath();
       for(let i=0;i<n;i++) {
         const sx=(xs[i]*PILE_META.scale)*zoom+viewX;
@@ -2847,12 +2916,12 @@ function buildEarnedSectionChart() {
         if(sx2<0||sx1>mapW||sy2<0||sy1>mapH) continue;
         const bw=sx2-sx1, bh=sy2-sy1;
         // Rectangle outline
-        ctx.strokeStyle='#1e40af';
+        ctx.strokeStyle=showSat?'#facc15':'#1e40af';
         ctx.lineWidth=1.5;
         ctx.strokeRect(sx1,sy1,bw,bh);
         // Table number above box
         if(bw>20) {
-          ctx.fillStyle='#1e40af';
+          ctx.fillStyle=showSat?'#facc15':'#1e40af';
           ctx.font=`bold ${Math.max(9,Math.min(13,bw/6))}px sans-serif`;
           ctx.textAlign='center';
           ctx.textBaseline='bottom';
