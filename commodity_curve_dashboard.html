@@ -2740,11 +2740,12 @@ function buildEarnedSectionChart() {
 
   // ---- Satellite tile background ----
   // Affine transform: pile world coords → lat/lon (Wharton TX, ~TX South Central State Plane ft)
-  const MAP_LAT = 29.317, MAP_LON = -96.100;
+  // Precise center from KMZ civil plans (Hillsboro Solar, Hill County TX)
+  const MAP_LAT = 31.939327, MAP_LON = -97.007336;
   const LOC_CX_W = (PILE_META.max_x - PILE_META.min_x) / PILE_META.scale / 2;
   const LOC_CY_W = (PILE_META.max_y - PILE_META.min_y) / PILE_META.scale / 2;
-  const FT_PER_LAT = 362800;
-  const FT_PER_LON = Math.cos(MAP_LAT * Math.PI / 180) * 364500;
+  const FT_PER_LAT = 362775;
+  const FT_PER_LON = Math.cos(MAP_LAT * Math.PI / 180) * 365220;
 
   function worldToLL(wx,wy){
     return {lat:MAP_LAT+((wy-LOC_CY_W)*PILE_META.scale)/FT_PER_LAT, lon:MAP_LON+((wx-LOC_CX_W)*PILE_META.scale)/FT_PER_LON};
